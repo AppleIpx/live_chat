@@ -28,8 +28,7 @@ pytest:
   before_script:
     - docker compose up --build
   script:
-    - docker compose run --rm fastapi-live-chat mypy .
-    - docker compose -f test.yml run django-market-power-test pytest -n auto --create-db
-    - docker compose -f test.yml down
-    - docker image rm postgres_market_power_test
+    - docker compose run pytest --create-db
+    - docker compose down
+    - docker image rm postgres-live-chat
 
