@@ -32,9 +32,12 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str) -> None:
 @fast_stream_router.subscriber(channel="{user_id}")
 async def receive_message_from_user(message: DirectMessage, user_id: str) -> None:
     """Отправка сообщения пользователю."""
+    sender_ws = active_clients[user_id]
     recipient_id = message.recipient_id
     if recipient_id == user_id:
-        await active_clients[user_id].send_text("Вы не можете отправить сообщение себе")
-    if recipient_id in active_clients:
+        await sender_ws.send_text("Вы не можете отправить сообщение себе")
+    elif recipient_id in active_clients:
         client_ws = active_clients[recipient_id]
         await client_ws.send_text(message.message)
+    else:
+        await sender_ws.send_text("Пользователь не найден")
