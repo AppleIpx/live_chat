@@ -1,5 +1,4 @@
 import enum
-import os
 from pathlib import Path
 from tempfile import gettempdir
 from typing import Optional
@@ -29,29 +28,26 @@ class Settings(BaseSettings):
     with environment variables.
     """
 
-    host: str = os.getenv("HOST", "0.0.0.0")  # noqa: S104
-    port: int = os.getenv("PORT", 8000)  # noqa: PLW1508
+    host: str
+    port: int
     # quantity of workers for uvicorn
-    workers_count: int = os.getenv("WORKERS_COUNT", 1)  # noqa: PLW1508
+    workers_count: int = 1
     # Enable uvicorn reloading
-    reload: bool = os.getenv("IS_RELOAD", False)  # noqa: PLW1508
-
+    reload: bool = False
     # Current environment
     environment: str = "dev"
-
     log_level: LogLevel = LogLevel.INFO
-    users_secret: str = os.getenv("USERS_SECRET", "")  # type: ignore[assigment]
+    users_secret: str
     # Variables for the database
-    db_host: str = os.getenv("POSTGRES_HOST")  # type: ignore[assigment]
-    db_port: int = int(os.getenv("POSTGRES_PORT"))  # type: ignore[assigment]
-    db_user: str = os.getenv("POSTGRES_USER")  # type: ignore[assigment]
-    db_pass: str = os.getenv("POSTGRES_PASSWORD")  # type: ignore[assigment]
-    db_base: str = os.getenv("POSTGRES_DB")  # type: ignore[assigment]
-    db_echo: bool = False
-
+    postgres_host: str
+    postgres_port: int = 5432
+    postgres_user: str
+    postgres_password: str
+    postgres_db: str
+    postgres_echo: bool = False
     # Variables for Redis
-    redis_host: str = os.getenv("REDIS_HOST")  # type: ignore[assigment]
-    redis_port: int = os.getenv("REDIS_PORT")  # type: ignore[assigment]
+    redis_host: str
+    redis_port: int = 6379
     redis_user: Optional[str] = None
     redis_pass: Optional[str] = None
     redis_base: Optional[int] = None
@@ -65,11 +61,11 @@ class Settings(BaseSettings):
         """
         return URL.build(
             scheme="postgresql+asyncpg",
-            host=self.db_host,
-            port=self.db_port,
-            user=self.db_user,
-            password=self.db_pass,
-            path=f"/{self.db_base}",
+            host=self.postgres_host,
+            port=self.postgres_port,
+            user=self.postgres_user,
+            password=self.postgres_password,
+            path=f"/{self.postgres_db}",
         )
 
     @property
@@ -97,4 +93,4 @@ class Settings(BaseSettings):
     )
 
 
-settings = Settings()
+settings = Settings()  # type: ignore[call-arg]

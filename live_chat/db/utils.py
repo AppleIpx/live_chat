@@ -13,7 +13,7 @@ async def create_database() -> None:
     async with engine.connect() as conn:
         database_existance = await conn.execute(
             text(
-                f"SELECT 1 FROM pg_database WHERE datname='{settings.db_base}'",  # noqa: S608
+                f"SELECT 1 FROM pg_database WHERE datname='{settings.postgres_db}'",  # noqa: S608
             ),
         )
         database_exists = database_existance.scalar() == 1
@@ -24,7 +24,7 @@ async def create_database() -> None:
     async with engine.connect() as conn:
         await conn.execute(
             text(
-                f'CREATE DATABASE "{settings.db_base}" ENCODING "utf8" TEMPLATE template1',  # noqa: E501
+                f'CREATE DATABASE "{settings.postgres_db}" ENCODING "utf8" TEMPLATE template1',  # noqa: E501
             ),
         )
 
@@ -37,8 +37,8 @@ async def drop_database() -> None:
         disc_users = (
             "SELECT pg_terminate_backend(pg_stat_activity.pid) "  # noqa: S608
             "FROM pg_stat_activity "
-            f"WHERE pg_stat_activity.datname = '{settings.db_base}' "
+            f"WHERE pg_stat_activity.datname = '{settings.postgres_db}' "
             "AND pid <> pg_backend_pid();"
         )
         await conn.execute(text(disc_users))
-        await conn.execute(text(f'DROP DATABASE "{settings.db_base}"'))
+        await conn.execute(text(f'DROP DATABASE "{settings.postgres_db}"'))

@@ -74,10 +74,6 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore:.*unclosed.*:ResourceWarning",
 ]
-env = [
-    "LIVE_CHAT_ENVIRONMENT=pytest",
-    "LIVE_CHAT_DB_BASE=live_chat_test",
-]
 
 [tool.ruff]
 # List of enabled rulsets.
