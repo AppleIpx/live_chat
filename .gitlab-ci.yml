@@ -12,7 +12,8 @@ precommit:
     paths:
       - ${PRE_COMMIT_HOME}
   before_script:
-    - pip install pre-commit
+    - pip install poetry
+    - poetry install pre-commit
   script:
     - pre-commit run --all-files
 
