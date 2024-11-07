@@ -1,55 +1,55 @@
 services:
-  fastapi-live-chat:
+  fastapi-live-chat-local:
     build:
       context: .
       dockerfile: ./Dockerfile
     container_name:
-      live_chat_fastapi
+      live_chat_fastapi_local
     restart: always
     ports:
       - "8000:8000"
     command: python live_chat
     env_file:
-      - .env
+      - .envs/.local/.env
     depends_on:
-      postgres-live-chat:
+      postgres-live-chat-local:
         condition: service_healthy
-      redis-live-chat:
+      redis-live-chat-local:
         condition: service_healthy
 
-  postgres-live-chat:
+  postgres-live-chat-local:
     image: postgres:16.3-bullseye
-    container_name: postgres_live_chat
+    container_name: postgres_live_chat_local
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-local-data:/var/lib/postgresql/data
     env_file:
-      - .env
+      - .envs/.local/.env
     restart: always
     healthcheck:
-      test: pg_isready -U postgres-live-chat -d postgres_live_chat
+      test: pg_isready -U postgres-live-chat -d postgres_live_chat_local
       interval: 2s
       timeout: 3s
       retries: 40
 
-  migrator-live-chat:
+  migrator-live-chat-local:
     build:
       context: .
-    container_name: migrator_live_chat
+    container_name: migrator_live_chat_local
     env_file:
-      - .env
+      - .envs/.local/.env
     restart: "no"
     command: alembic upgrade head
     depends_on:
-      postgres-live-chat:
+      postgres-live-chat-local:
         condition: service_healthy
 
-  redis-live-chat:
+  redis-live-chat-local:
     image: bitnami/redis:6.2.5
     restart: always
     env_file:
-      - .env
+      - .envs/.local/.env
     volumes:
-      - redis-data:/var/lib/postgresql/data
+      - redis-local-data:/var/lib/postgresql/data
     environment:
       ALLOW_EMPTY_PASSWORD: "yes"
     healthcheck:
@@ -59,5 +59,5 @@ services:
       retries: 50
 
 volumes:
-  postgres-data:
-  redis-data:
+  postgres-local-data:
+  redis-local-data:

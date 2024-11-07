@@ -1,0 +1,63 @@
+services:
+  fastapi-live-chat-test:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name:
+      live_chat_fastapi_test
+    restart: always
+    ports:
+      - "8000:8000"
+    command: python live_chat
+    env_file:
+      - .envs/.test/.env
+    depends_on:
+      postgres-live-chat-test:
+        condition: service_healthy
+      redis-live-chat-test:
+        condition: service_healthy
+
+  postgres-live-chat-test:
+    image: postgres:16.3-bullseye
+    container_name: postgres_live_chat_test
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    env_file:
+      - .envs/.test/.env
+    restart: always
+    healthcheck:
+      test: pg_isready -U postgres-live-chat -d postgres_live_chat_test
+      interval: 2s
+      timeout: 3s
+      retries: 40
+
+  migrator-live-chat-test:
+    build:
+      context: .
+    container_name: migrator_live_chat_test
+    env_file:
+      - .envs/.test/.env
+    restart: "no"
+    command: alembic upgrade head
+    depends_on:
+      postgres-live-chat-test:
+        condition: service_healthy
+
+  redis-live-chat-test:
+    image: bitnami/redis:6.2.5
+    restart: always
+    env_file:
+      - .envs/.test/.env
+    volumes:
+      - redis-test-data:/var/lib/postgresql/data
+    environment:
+      ALLOW_EMPTY_PASSWORD: "yes"
+    healthcheck:
+      test: redis-cli ping
+      interval: 1s
+      timeout: 3s
+      retries: 50
+
+volumes:
+  postgres-test-data:
+  redis-test-data:
