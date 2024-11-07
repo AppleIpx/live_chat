@@ -14,6 +14,7 @@ precommit:
   before_script:
     - pip install poetry
     - poetry install
+    - pip install pre-commit 
   script:
     - pre-commit run --all-files
 
@@ -28,7 +29,5 @@ pytest:
   before_script:
     - docker compose up --build
   script:
-    - docker compose run pytest --create-db
+    - docker compose run fastapi-live-chat pytest
     - docker compose down
-    - docker image rm postgres-live-chat
-
