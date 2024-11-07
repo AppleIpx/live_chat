@@ -593,6 +593,21 @@ lua = ["lupa (>=2.1,<3.0)"]
 probabilistic = ["pyprobables (>=0.6,<0.7)"]
 
 [[package]]
+name = "fast-depends"
+version = "2.4.12"
+description = "FastDepends - extracted and cleared from HTTP domain logic FastAPI Dependency Injection System. Async and sync are both supported."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "fast_depends-2.4.12-py3-none-any.whl", hash = "sha256:9e5d110ddc962329e46c9b35e5fe65655984247a13ee3ca5a33186db7d2d75c2"},
+    {file = "fast_depends-2.4.12.tar.gz", hash = "sha256:9393e6de827f7afa0141e54fa9553b737396aaf06bd0040e159d1f790487b16d"},
+]
+
+[package.dependencies]
+anyio = ">=3.0.0,<5.0.0"
+pydantic = ">=1.7.4,<1.8 || >1.8,<1.8.1 || >1.8.1,<3.0.0"
+
+[[package]]
 name = "fastapi"
 version = "0.115.4"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
@@ -651,6 +666,39 @@ files = [
 [package.dependencies]
 fastapi-users = ">=10.0.0"
 sqlalchemy = {version = ">=2.0.0,<2.1.0", extras = ["asyncio"]}
+
+[[package]]
+name = "faststream"
+version = "0.5.28"
+description = "FastStream: the simplest way to work with a messaging queues"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "faststream-0.5.28-py3-none-any.whl", hash = "sha256:620f3edd2b85ac3d329726907540027abebc939ea7f16d209ef18de7d6e82f49"},
+    {file = "faststream-0.5.28.tar.gz", hash = "sha256:67794ffa8054169488f211832c50c3a992d897ebba415032a327372e019bda4c"},
+]
+
+[package.dependencies]
+anyio = ">=3.7.1,<5"
+fast-depends = ">=2.4.0b0,<3.0.0"
+typing-extensions = ">=4.8.0"
+
+[package.extras]
+cli = ["typer (>=0.9,!=0.12,<1)", "watchfiles (>=0.15.0,<0.25.0)"]
+confluent = ["confluent-kafka (>=2,<3)", "confluent-kafka (>=2.6,<3)"]
+dev = ["aio-pika (>=9,<10)", "aiokafka (>=0.9,<0.12)", "bandit (==1.7.10)", "cairosvg", "codespell (==2.3.0)", "confluent-kafka (>=2,<3)", "confluent-kafka (>=2.6,<3)", "confluent-kafka-stubs", "coverage[toml] (==7.6.1)", "coverage[toml] (==7.6.3)", "detect-secrets (==1.5.0)", "dirty-equals (==0.8.0)", "email-validator (==2.2.0)", "fastapi (==0.115.2)", "httpx (==0.27.2)", "mdx-include (==1.4.2)", "mike (==2.1.3)", "mkdocs-git-revision-date-localized-plugin (==1.2.9)", "mkdocs-glightbox (==0.4.0)", "mkdocs-literate-nav (==0.6.1)", "mkdocs-macros-plugin (==1.3.5)", "mkdocs-material (==9.5.40)", "mkdocs-minify-plugin (==0.8.0)", "mkdocs-static-i18n (==1.2.3)", "mkdocstrings[python] (==0.26.2)", "mypy (==1.12.0)", "nats-py (>=2.7.0,<=3.0.0)", "opentelemetry-sdk (>=1.24.0,<2.0.0)", "pillow", "pre-commit (==3.5.0)", "pre-commit (==4.0.1)", "prometheus-client (>=0.20.0,<0.30.0)", "pydantic-settings (>=2.0.0,<3.0.0)", "pytest (==8.3.3)", "pytest-asyncio (==0.24.0)", "pyyaml (==6.0.2)", "redis (>=5.0.0,<6.0.0)", "requests", "ruff (==0.6.9)", "semgrep (==1.91.0)", "typer (>=0.9,!=0.12,<1)", "types-aiofiles", "types-deprecated", "types-docutils", "types-pygments", "types-pyyaml", "types-redis", "types-setuptools", "types-ujson", "typing-extensions (>=4.8.0,<4.12.1)", "watchfiles (>=0.15.0,<0.25.0)"]
+devdocs = ["cairosvg", "mdx-include (==1.4.2)", "mike (==2.1.3)", "mkdocs-git-revision-date-localized-plugin (==1.2.9)", "mkdocs-glightbox (==0.4.0)", "mkdocs-literate-nav (==0.6.1)", "mkdocs-macros-plugin (==1.3.5)", "mkdocs-material (==9.5.40)", "mkdocs-minify-plugin (==0.8.0)", "mkdocs-static-i18n (==1.2.3)", "mkdocstrings[python] (==0.26.2)", "pillow", "requests"]
+kafka = ["aiokafka (>=0.9,<0.12)"]
+lint = ["aio-pika (>=9,<10)", "aiokafka (>=0.9,<0.12)", "bandit (==1.7.10)", "codespell (==2.3.0)", "confluent-kafka (>=2,<3)", "confluent-kafka (>=2.6,<3)", "confluent-kafka-stubs", "mypy (==1.12.0)", "nats-py (>=2.7.0,<=3.0.0)", "opentelemetry-sdk (>=1.24.0,<2.0.0)", "prometheus-client (>=0.20.0,<0.30.0)", "redis (>=5.0.0,<6.0.0)", "ruff (==0.6.9)", "semgrep (==1.91.0)", "typer (>=0.9,!=0.12,<1)", "types-aiofiles", "types-deprecated", "types-docutils", "types-pygments", "types-pyyaml", "types-redis", "types-setuptools", "types-ujson", "watchfiles (>=0.15.0,<0.25.0)"]
+nats = ["nats-py (>=2.7.0,<=3.0.0)"]
+optionals = ["aio-pika (>=9,<10)", "aiokafka (>=0.9,<0.12)", "confluent-kafka (>=2,<3)", "confluent-kafka (>=2.6,<3)", "nats-py (>=2.7.0,<=3.0.0)", "opentelemetry-sdk (>=1.24.0,<2.0.0)", "prometheus-client (>=0.20.0,<0.30.0)", "redis (>=5.0.0,<6.0.0)", "typer (>=0.9,!=0.12,<1)", "watchfiles (>=0.15.0,<0.25.0)"]
+otel = ["opentelemetry-sdk (>=1.24.0,<2.0.0)"]
+prometheus = ["prometheus-client (>=0.20.0,<0.30.0)"]
+rabbit = ["aio-pika (>=9,<10)"]
+redis = ["redis (>=5.0.0,<6.0.0)"]
+test-core = ["coverage[toml] (==7.6.1)", "coverage[toml] (==7.6.3)", "dirty-equals (==0.8.0)", "pytest (==8.3.3)", "pytest-asyncio (==0.24.0)", "typing-extensions (>=4.8.0,<4.12.1)"]
+testing = ["coverage[toml] (==7.6.1)", "coverage[toml] (==7.6.3)", "dirty-equals (==0.8.0)", "email-validator (==2.2.0)", "fastapi (==0.115.2)", "httpx (==0.27.2)", "pydantic-settings (>=2.0.0,<3.0.0)", "pytest (==8.3.3)", "pytest-asyncio (==0.24.0)", "pyyaml (==6.0.2)", "typing-extensions (>=4.8.0,<4.12.1)"]
+types = ["aio-pika (>=9,<10)", "aiokafka (>=0.9,<0.12)", "confluent-kafka (>=2,<3)", "confluent-kafka (>=2.6,<3)", "confluent-kafka-stubs", "mypy (==1.12.0)", "nats-py (>=2.7.0,<=3.0.0)", "opentelemetry-sdk (>=1.24.0,<2.0.0)", "prometheus-client (>=0.20.0,<0.30.0)", "redis (>=5.0.0,<6.0.0)", "typer (>=0.9,!=0.12,<1)", "types-aiofiles", "types-deprecated", "types-docutils", "types-pygments", "types-pyyaml", "types-redis", "types-setuptools", "types-ujson", "watchfiles (>=0.15.0,<0.25.0)"]
 
 [[package]]
 name = "filelock"
@@ -2569,4 +2617,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "9c6981ea120612d3972863786fd8dec405bc6f79404d98349ff7454169c24d68"
+content-hash = "9a0b6de08c71344baa86ece3e453c52b6223af867344cd3a1e502af7b7c1e6db"

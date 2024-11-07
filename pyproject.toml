@@ -13,6 +13,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.12"
 fastapi = "^0.115.4"
+faststream = "^0.5.28"
 uvicorn = { version = "^0.32.0", extras = ["standard"] }
 fastapi-users = "^14.0.0"
 httpx-oauth = "^0.14.1"
@@ -120,6 +121,7 @@ lint.ignore = [
     "ANN401",  # typing.Any are disallowed in `**kwargs
     "PLR0913", # Too many arguments for function call
     "D106",    # Missing docstring in public nested class
+    "RUF001",  # String contains ambiguous
 ]
 exclude = [
     "live_chat/db/migrations",
