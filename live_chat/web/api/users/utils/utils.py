@@ -1,47 +1,24 @@
-# type: ignore
 import uuid
 
 from fastapi import Depends
-from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin, schemas
+from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
     JWTStrategy,
 )
-from fastapi_users.db import SQLAlchemyBaseUserTableUUID, SQLAlchemyUserDatabase
+from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.base import Base
 from live_chat.db.dependencies import get_db_session
+from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.settings import settings
+from live_chat.web.api.users.schemas import UserManager
 
 
-class User(SQLAlchemyBaseUserTableUUID, Base):
-    """Represents a user entity."""
-
-
-class UserRead(schemas.BaseUser[uuid.UUID]):
-    """Represents a read command for a user."""
-
-
-class UserCreate(schemas.BaseUserCreate):
-    """Represents a create command for a user."""
-
-
-class UserUpdate(schemas.BaseUserUpdate):
-    """Represents an update command for a user."""
-
-
-class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-    """Manages a user session and its tokens."""
-
-    reset_password_token_secret = settings.users_secret
-    verification_token_secret = settings.users_secret
-
-
-async def get_user_db(
+async def get_user_db(  # type: ignore[misc]
     session: AsyncSession = Depends(get_db_session),
-) -> SQLAlchemyUserDatabase:
+) -> SQLAlchemyUserDatabase:  # type: ignore[type-arg]
     """
     Yield a SQLAlchemyUserDatabase instance.
 
@@ -51,8 +28,8 @@ async def get_user_db(
     yield SQLAlchemyUserDatabase(session, User)
 
 
-async def get_user_manager(
-    user_db: SQLAlchemyUserDatabase = Depends(get_user_db),
+async def get_user_manager(  # type: ignore[misc]
+    user_db: SQLAlchemyUserDatabase = Depends(get_user_db),  # type: ignore[type-arg]
 ) -> UserManager:
     """
     Yield a UserManager instance.
@@ -63,7 +40,7 @@ async def get_user_manager(
     yield UserManager(user_db)
 
 
-def get_jwt_strategy() -> JWTStrategy:
+def get_jwt_strategy() -> JWTStrategy:  # type: ignore[type-arg]
     """
     Return a JWTStrategy in order to instantiate it dynamically.
 
@@ -78,11 +55,8 @@ auth_jwt = AuthenticationBackend(
     transport=bearer_transport,
     get_strategy=get_jwt_strategy,
 )
-
 backends = [
     auth_jwt,
 ]
-
 api_users = FastAPIUsers[User, uuid.UUID](get_user_manager, backends)
-
 current_active_user = api_users.current_user(active=True)
