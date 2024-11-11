@@ -11,6 +11,6 @@ class RecipientType(str, Enum):
 class WebSocketActionType(str, Enum):
     """Выбор действия в вебсокете."""
 
-    JOIN_GROUP = "group:join"
-    REMOVE_GROUP = "group:remove"
+    JOIN_GROUP = "group_join"
+    REMOVE_GROUP = "group_remove"
     SEND_MESSAGE = "message:send"

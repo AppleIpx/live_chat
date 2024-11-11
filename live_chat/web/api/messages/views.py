@@ -1,20 +1,19 @@
 import logging
 
 from fastapi import APIRouter
-from pydantic import ValidationError
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
-from live_chat.enums import RecipientType, WebSocketActionType
+from live_chat.enums import WebSocketActionType
 from live_chat.services.faststream import fast_stream_router
 from live_chat.web.api.messages.schema import ChatMessage, GroupUsage
-from live_chat.web.websocket_manager import WebSocketManager
+from live_chat.web.utils import validate_model
+from live_chat.web.websocket import websocket_manager
 
-router = APIRouter()
+websocket_router = APIRouter()
 logger = logging.getLogger(__name__)
-websocket_manager: WebSocketManager = WebSocketManager()
 
 
-@router.websocket("/ws/{user_id}")
+@websocket_router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str) -> None:
     """Подключение WebSocket."""
     await websocket_manager.connect(websocket, user_id)
@@ -23,31 +22,15 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str) -> None:
             data = await websocket.receive_json()
             action = data["action_type"]
             if action == WebSocketActionType.SEND_MESSAGE:
-                try:
-                    message = ChatMessage(**data)
-                except ValidationError as e:
-                    error_message = {"error": "Invalid data", "details": e.errors()}
-                    await websocket.send_json(error_message)
-                    continue
-
-                if (recipient_type := message.recipient_type) not in frozenset(
-                    [RecipientType.GROUP, RecipientType.USER],
-                ):
-                    await websocket_manager.send_return_message(
-                        "Тип сообщения некорректен",
-                        user_id,
-                    )
-                channel = f"{recipient_type.value}:{message.recipient_id}"
+                message = await validate_model(websocket, ChatMessage, data)
+                message_type = message.recipient_type.value  # type: ignore[attr-defined]
+                recipient_id = message.recipient_id  # type: ignore[attr-defined]
+                channel = f"{message_type}:{recipient_id}"
             else:
-                try:
-                    group_usage = GroupUsage(**data)
-                except ValidationError as e:
-                    error_message = {"error": "Invalid data", "details": e.errors()}
-                    await websocket.send_json(error_message)
-                    continue
-                channel = f"{action}:{group_usage.group_id}"
+                group_usage = await validate_model(websocket, GroupUsage, data)
+                group_id = group_usage.group_id  # type: ignore[attr-defined]
+                channel = f"{action}:{group_id}"
             await fast_stream_router.broker.publish(data, channel)
-
     except WebSocketDisconnect:
         logger.info(f"Client {user_id} disconnected")
     finally:
@@ -74,7 +57,7 @@ async def receive_message_from_user(
         )
 
 
-@fast_stream_router.subscriber(channel="group:join:{group_id}")
+@fast_stream_router.subscriber(channel="group_join:{group_id}")
 async def join_group(
     group_usage: GroupUsage,
     group_id: str,
@@ -89,13 +72,13 @@ async def join_group(
         )
 
 
-@fast_stream_router.subscriber(channel="group:remove:{group_id}")
+@fast_stream_router.subscriber(channel="group_remove:{group_id}")
 async def remove_group(
-    message: ChatMessage,
+    group_usage: GroupUsage,
     group_id: str,
 ) -> None:
     """Выйти из группы."""
-    user_id = message.sender_id
+    user_id = group_usage.sender_id
     await websocket_manager.remove_from_group(user_id, group_id)
     await websocket_manager.send_return_message(
         f"Вы вышли из группы {group_id}",

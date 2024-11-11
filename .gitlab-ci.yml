@@ -5,6 +5,9 @@ stages:
 
 precommit:
   stage: lint
+  only:
+    - merge_requests
+    - main
   image: python:3.12
   variables:
     PRE_COMMIT_HOME: ${CI_PROJECT_DIR}/.cache/pre-commit

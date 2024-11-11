@@ -52,3 +52,6 @@ class WebSocketManager:
         """Удаляем пользователя из группы."""
         if group_id in self.groups:
             self.groups[group_id].discard(user_id)
+
+
+websocket_manager: WebSocketManager = WebSocketManager()
