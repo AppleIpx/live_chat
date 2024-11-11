@@ -2,14 +2,14 @@ from enum import Enum
 
 
 class RecipientType(str, Enum):
-    """Выбор для типа сообщения."""
+    """Choices for the message type."""
 
     GROUP = "group"
     USER = "user"
 
 
 class WebSocketActionType(str, Enum):
-    """Выбор действия в вебсокете."""
+    """Websocket Actions."""
 
     JOIN_GROUP = "group_join"
     REMOVE_GROUP = "group_remove"

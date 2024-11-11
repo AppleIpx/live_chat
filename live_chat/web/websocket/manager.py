@@ -2,27 +2,27 @@ from starlette.websockets import WebSocket
 
 
 class WebSocketManager:
-    """Менеджер для вебсокетов."""
+    """Websocket Maintenance Manager."""
 
     def __init__(self) -> None:
         self.active_connections: dict[str, WebSocket] = {}
         self.groups: dict[str, set[str]] = {}
 
     async def connect(self, websocket: WebSocket, user_id: str) -> None:
-        """Устанавливаем соединение."""
+        """Establishing the connection."""
         await websocket.accept()
         self.active_connections[user_id] = websocket
 
     def disconnect(self, user_id: str) -> None:
-        """Отключаем пользователя."""
+        """Disconnecting the user."""
         del self.active_connections[user_id]
 
     async def send_return_message(self, message: str, user_id: str) -> None:
-        """Возвращаем сообщение получателю."""
+        """Return the message to the recipient."""
         await self.active_connections[user_id].send_text(message)
 
     async def send_direct_message(self, message: str, user_id: str) -> None:
-        """Отправляем личное сообщение пользователю."""
+        """Send a private message to the user."""
         if user_id in self.active_connections:
             websocket = self.active_connections[user_id]
             await websocket.send_text(message)
@@ -30,13 +30,13 @@ class WebSocketManager:
             await self.send_return_message("Пользователь не подключен", user_id)
 
     async def send_group_message(self, message: str, group_id: str) -> None:
-        """Отправляем сообщение всем пользователям в группе."""
+        """Send a message to all users in the group."""
         if group_id in self.groups:
             for user_id in self.groups[group_id]:
                 await self.send_direct_message(message, user_id)
 
     async def add_to_group(self, user_id: str, group_id: str) -> bool:
-        """Добавляем пользователя в группу."""
+        """Add the user to the group."""
         if group_id not in self.groups:
             self.groups[group_id] = set()
         if user_id in self.groups.get(group_id, set()):
@@ -49,7 +49,7 @@ class WebSocketManager:
         return True
 
     async def remove_from_group(self, user_id: str, group_id: str) -> None:
-        """Удаляем пользователя из группы."""
+        """Remove the user from the group."""
         if group_id in self.groups:
             self.groups[group_id].discard(user_id)
 
