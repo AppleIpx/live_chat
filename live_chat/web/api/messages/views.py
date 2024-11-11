@@ -1,12 +1,12 @@
 import logging
 
 from fastapi import APIRouter
+from pydantic import ValidationError
 from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from live_chat.enums import WebSocketActionType
 from live_chat.services.faststream import fast_stream_router
 from live_chat.web.api.messages.schema import ChatMessage, GroupUsage
-from live_chat.web.utils import validate_model
 from live_chat.web.websocket import websocket_manager
 
 websocket_router = APIRouter()
@@ -19,17 +19,21 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str) -> None:
     await websocket_manager.connect(websocket, user_id)
     try:
         while True:
-            data = await websocket.receive_json()
-            if (action := data["action_type"]) == WebSocketActionType.SEND_MESSAGE:
-                message = await validate_model(websocket, ChatMessage, data)
-                message_type = message.recipient_type.value  # type: ignore[attr-defined]
-                recipient_id = message.recipient_id  # type: ignore[attr-defined]
-                channel = f"{message_type}:{recipient_id}"
-            else:
-                group_usage = await validate_model(websocket, GroupUsage, data)
-                group_id = group_usage.group_id  # type: ignore[attr-defined]
-                channel = f"{action}:{group_id}"
-            await fast_stream_router.broker.publish(data, channel)
+            try:
+                data = await websocket.receive_json()
+                if (action := data["action_type"]) == WebSocketActionType.SEND_MESSAGE:
+                    message = ChatMessage(**data)
+                    message_type = message.recipient_type.value  # type: ignore[attr-defined]
+                    recipient_id = message.recipient_id  # type: ignore[attr-defined]
+                    channel = f"{message_type}:{recipient_id}"
+                else:
+                    group_usage = GroupUsage(**data)
+                    group_id = group_usage.group_id  # type: ignore[attr-defined]
+                    channel = f"{action}:{group_id}"
+                await fast_stream_router.broker.publish(data, channel)
+            except ValidationError as e:
+                error_message = {"error": "Invalid data", "details": e.errors()}
+                await websocket.send_json(error_message)
     except WebSocketDisconnect:
         logger.info(f"Client {user_id} disconnected")
     finally:
