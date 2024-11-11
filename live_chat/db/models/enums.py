@@ -2,14 +2,14 @@ import enum
 
 
 class ChatType(enum.Enum):
-    """select chat type."""
+    """Select chat type."""
 
     DIRECT = "direct"
     GROUP = "group"
 
 
 class MessageType(enum.Enum):
-    """select message type."""
+    """Select message type."""
 
     TEXT = "text"
     FILE = "file"

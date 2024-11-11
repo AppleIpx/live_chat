@@ -29,7 +29,7 @@ chat_participant = Table(
 
 
 class Message(Base):
-    """message model."""
+    """Message model."""
 
     __tablename__ = "message"
 
@@ -53,7 +53,7 @@ class Message(Base):
 
 
 class Chat(Base):
-    """chat model."""
+    """Chat model."""
 
     __tablename__ = "chat"
 
@@ -78,7 +78,7 @@ class Chat(Base):
 
 
 class ReadStatus(RemoveBaseFieldsMixin, Base):  # type: ignore[misc]
-    """read status model."""
+    """Read status model."""
 
     __tablename__ = "read_status"
 

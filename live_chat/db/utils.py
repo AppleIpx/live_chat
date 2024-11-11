@@ -45,7 +45,7 @@ async def drop_database() -> None:
 
 
 class RemoveBaseFieldsMixin:
-    """model for updating read status."""
+    """Mixin for updating read status."""
 
     created_at = None
     updated_at = None
