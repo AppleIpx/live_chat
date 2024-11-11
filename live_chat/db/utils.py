@@ -42,3 +42,11 @@ async def drop_database() -> None:
         )
         await conn.execute(text(disc_users))
         await conn.execute(text(f'DROP DATABASE "{settings.postgres_db}"'))
+
+
+class RemoveBaseFieldsMixin:
+    """Mixin for updating read status."""
+
+    created_at = None
+    updated_at = None
+    is_deleted = None
