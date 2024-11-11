@@ -1,12 +1,7 @@
 from fastapi import APIRouter
 
-from live_chat.db.models.users import (  # type: ignore[attr-defined]
-    UserCreate,
-    UserRead,
-    UserUpdate,
-    api_users,
-    auth_jwt,
-)
+from live_chat.web.api.users.schemas import UserCreate, UserRead, UserUpdate
+from live_chat.web.api.users.utils.utils import api_users, auth_jwt
 
 router = APIRouter()
 
