@@ -104,7 +104,6 @@ class User(SQLAlchemyBaseUserTable, Base):
     first_name: Mapped[str] = mapped_column(String(150), default="")
     last_name: Mapped[str] = mapped_column(String(150), default="")
     email: Mapped[str] = mapped_column(String(254), unique=True)
-    password: Mapped[str] = mapped_column(String(128))
     last_login: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     user_image: Mapped[str] = mapped_column(String(1048), nullable=True)
     is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
