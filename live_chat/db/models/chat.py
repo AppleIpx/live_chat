@@ -1,15 +1,15 @@
 # type: ignore
+import uuid
 from datetime import datetime
 from typing import List
 
-from fastapi_users.db import SQLAlchemyBaseUserTable
+from fastapi_users_db_sqlalchemy import GUID, UUID_ID, SQLAlchemyBaseUserTableUUID
 from sqlalchemy import (
-    Boolean,
+    UUID,
     Column,
     DateTime,
     Enum,
     ForeignKey,
-    Integer,
     String,
     Table,
 )
@@ -23,8 +23,8 @@ from live_chat.db.utils import RemoveBaseFieldsMixin
 chat_participant = Table(
     "chat_participant",
     meta,
-    Column("user_id", Integer, ForeignKey("user.id"), primary_key=True),
-    Column("chat_id", Integer, ForeignKey("chat.id"), primary_key=True),
+    Column("user_id", UUID, ForeignKey("user.id"), primary_key=True),
+    Column("chat_id", UUID, ForeignKey("chat.id"), primary_key=True),
 )
 
 
@@ -33,7 +33,7 @@ class Message(Base):
 
     __tablename__ = "message"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[UUID_ID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
     message_type: Mapped[str] = mapped_column(
         Enum(MessageType, inherit_schema=True),
         default=MessageType.TEXT,
@@ -57,7 +57,7 @@ class Chat(Base):
 
     __tablename__ = "chat"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[UUID_ID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
     chat_type: Mapped[MessageType] = mapped_column(Enum(ChatType, inherit_schema=True))
 
     users: Mapped[List["User"]] = relationship(
@@ -74,7 +74,7 @@ class Chat(Base):
     )
 
     def __str__(self) -> str:
-        return f"{self.chat_type.value.title()} {self.guid}"
+        return f"{self.chat_type.value.title()} {self.id}"
 
 
 class ReadStatus(RemoveBaseFieldsMixin, Base):  # type: ignore[misc]
@@ -82,7 +82,7 @@ class ReadStatus(RemoveBaseFieldsMixin, Base):  # type: ignore[misc]
 
     __tablename__ = "read_status"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[UUID_ID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
     last_read_message_id: Mapped[int] = mapped_column(nullable=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
     chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
@@ -94,19 +94,16 @@ class ReadStatus(RemoveBaseFieldsMixin, Base):  # type: ignore[misc]
         return f"User: {self.user_id}, Message: {self.last_read_message_id}"
 
 
-class User(SQLAlchemyBaseUserTable, Base):
+class User(SQLAlchemyBaseUserTableUUID, Base):
     """Represents a user entity."""
 
     __tablename__ = "user"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(150), unique=True)
     first_name: Mapped[str] = mapped_column(String(150), default="")
     last_name: Mapped[str] = mapped_column(String(150), default="")
-    email: Mapped[str] = mapped_column(String(254), unique=True)
     last_login: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     user_image: Mapped[str] = mapped_column(String(1048), nullable=True)
-    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False)
 
     chats: Mapped[List["Chat"]] = relationship(
         secondary="chat_participant",
