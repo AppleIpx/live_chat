@@ -1,5 +1,6 @@
-FROM python:3.12.4-alpine3.20 as prod
+FROM python:3.12.2-slim-bookworm as prod
 
+RUN pip install --upgrade pip setuptools
 RUN pip install poetry==1.8.4
 RUN pip install gunicorn==23.0.0
 

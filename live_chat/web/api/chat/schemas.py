@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from fastapi_users_db_sqlalchemy import UUID_ID
 from pydantic import BaseModel
 
 from live_chat.db.models.enums import ChatType
@@ -10,7 +11,7 @@ from live_chat.web.api.users.schemas import UserRead
 class ChatSchema(BaseModel):
     """Represents chat."""
 
-    id: int
+    id: UUID_ID
     chat_type: ChatType
 
 
@@ -23,7 +24,7 @@ class CreateDirectChatSchema(BaseModel):
 class GetDirectChatSchema(BaseModel):
     """Represents a get command for a direct chat."""
 
-    chat_id: int
+    chat_id: UUID_ID
     chat_type: ChatType
     created_at: datetime
     updated_at: datetime
@@ -41,12 +42,23 @@ class GetDirectChatsSchema(BaseModel):
     total_unread_messages_count: int
 
 
-class MessageSchema(BaseModel):
-    """Represents a message."""
+class ReadMessageSchema(BaseModel):
+    """Represents a message for read."""
 
-    id: int
+    id: UUID_ID
     content: str
     created_at: datetime
+    updated_at: datetime
+    user: UserRead  # type: ignore[type-arg]
+    chat: ChatSchema
+    is_read: bool | None = False
+    is_new: bool | None = True
+
+
+class CreateMessageSchema(BaseModel):
+    """Represents a message for create."""
+
+    content: str
     user: UserRead  # type: ignore[type-arg]
     chat: ChatSchema
     is_read: bool | None = False
@@ -56,7 +68,7 @@ class MessageSchema(BaseModel):
 class LastReadMessageSchema(BaseModel):
     """Represents a last read message."""
 
-    id: int
+    id: UUID_ID
     content: str
     created_at: datetime
 
@@ -64,9 +76,9 @@ class LastReadMessageSchema(BaseModel):
 class GetMessageSchema(BaseModel):
     """Represents a get command for a message."""
 
-    message_id: int
-    user_id: int
-    chat_id: int
+    message_id: UUID_ID
+    user_id: UUID_ID
+    chat_id: UUID_ID
     content: str
     created_at: datetime
     is_read: bool | None = False

@@ -1,9 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from fastapi.security import HTTPBearer
 
 from live_chat.web.api.users.schemas import UserCreate, UserRead, UserUpdate
 from live_chat.web.api.users.utils.utils import api_users, auth_jwt
 
-router = APIRouter()
+http_bearer = HTTPBearer(auto_error=False)
+router = APIRouter(dependencies=[Depends(http_bearer)])
 
 router.include_router(
     api_users.get_register_router(UserRead, UserCreate),
