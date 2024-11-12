@@ -43,7 +43,7 @@ class GetDirectChatsSchema(BaseModel):
 
 
 class ReadMessageSchema(BaseModel):
-    """Represents a message."""
+    """Represents a message for read."""
 
     id: UUID_ID
     content: str
@@ -56,7 +56,7 @@ class ReadMessageSchema(BaseModel):
 
 
 class CreateMessageSchema(BaseModel):
-    """Represents a message."""
+    """Represents a message for create."""
 
     content: str
     user: UserRead  # type: ignore[type-arg]
