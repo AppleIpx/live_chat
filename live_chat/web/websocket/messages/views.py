@@ -7,9 +7,9 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 
 from live_chat.db.utils import get_async_session
 from live_chat.services.faststream import fast_stream_router
-from live_chat.web.api.messages.schema import ChatMessage, GroupUsage
 from live_chat.web.websocket import websocket_manager
 from live_chat.web.websocket.enums import WebSocketActionType
+from live_chat.web.websocket.messages.schema import ChatMessage, GroupUsage
 
 websocket_router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ async def receive_message_from_user(
             message.sender_id,
         )
     elif chat_id in websocket_manager.active_connections:
-        await websocket_manager.send_direct_message(message.content, chat_id)
+        await websocket_manager.send_direct_message(message, chat_id)
     else:
         logger.info("Client is not online")
         # TODO: add sending deferred messages
@@ -97,4 +97,4 @@ async def receive_message_from_group(
     chat_id: str,
 ) -> None:
     """Processing messages and sending them to the group."""
-    await websocket_manager.send_group_message(message.content, chat_id)
+    await websocket_manager.send_group_message(message, chat_id)

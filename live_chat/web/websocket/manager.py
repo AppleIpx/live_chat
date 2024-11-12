@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.websockets import WebSocket
 
+from live_chat.web.websocket.messages.schema import ChatMessage
 from live_chat.web.websocket.mixins import SelectUserMixin
 
 
@@ -25,15 +26,19 @@ class WebSocketManager(SelectUserMixin):
         """Return the message to the recipient."""
         await self.active_connections[username].send_text(message)
 
-    async def send_direct_message(self, message: str, username: str) -> None:
+    async def send_direct_message(self, message: ChatMessage, username: str) -> None:
         """Send a private message to the user."""
-        if self.db_session and (
-            user := await self.get_user_by_username(self.db_session, username=username)
-        ):
-            websocket = self.active_connections[user.username]
-            await websocket.send_text(message)
+        if self.db_session:
+            if await self.get_user_by_username(self.db_session, username=username):
+                websocket = self.active_connections[username]
+                await websocket.send_text(message.content)
+            else:
+                await self.send_return_message(
+                    f"The user {username} is not in the database.",
+                    message.sender_id,
+                )
 
-    async def send_group_message(self, message: str, group_id: str) -> None:
+    async def send_group_message(self, message: ChatMessage, group_id: str) -> None:
         """Send a message to all users in the group."""
         if group_id in self.groups:
             for username in self.groups[group_id]:
