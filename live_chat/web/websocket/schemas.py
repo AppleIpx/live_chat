@@ -2,6 +2,13 @@ from fastapi_users_db_sqlalchemy import UUID_ID
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.websockets import WebSocket
 
+from live_chat.web.api.chat.schemas import CreateMessageSchema
+from live_chat.web.websocket.mixins import ActionTypeMixin
+
+
+class SendMessageWebSocketSchema(ActionTypeMixin, CreateMessageSchema):
+    """Represents a message for create in WebSocket."""
+
 
 class UserConnection(BaseModel):
     """Schema for storing the user's connection."""

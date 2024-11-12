@@ -10,8 +10,8 @@ class WebSocketMessageActions(str, Enum):
     DELETE_MESSAGE = "message:delete"
 
 
-class DisconnectType(str, Enum):
+class WebSocketDisconnectTypes(str, Enum):
     """Disconnect types."""
 
-    LEAVE_CHAT = "leave_chat"
-    DISCONNECT_WEBSOCKET = "disconnect_websocket"
+    LEAVE_CHAT = "chat:leave"
+    DISCONNECT_WEBSOCKET = "websocket:disconnect"

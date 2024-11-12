@@ -9,8 +9,11 @@ from starlette.websockets import WebSocket, WebSocketDisconnect
 from live_chat.db.utils import get_async_session
 from live_chat.services.faststream import fast_stream_router
 from live_chat.web.websocket import websocket_manager
-from live_chat.web.websocket.enums import DisconnectType, WebSocketMessageActions
-from live_chat.web.websocket.messages.schemas import SendMessageWebSocketSchema
+from live_chat.web.websocket.enums import (
+    WebSocketDisconnectTypes,
+    WebSocketMessageActions,
+)
+from live_chat.web.websocket.schemas import SendMessageWebSocketSchema
 from live_chat.web.websocket.utils import get_chat_by_id
 
 websocket_router = APIRouter()
@@ -30,27 +33,32 @@ async def websocket_endpoint(
         websocket_manager.db_session = db_session
         try:
             while True:
-                try:
-                    data = await websocket.receive_json()
-                    if (
-                        action := data["action_type"]
-                    ) == WebSocketMessageActions.SEND_MESSAGE:
+                data = await websocket.receive_json()
+                action_type = data.get("action_type")
+                if action_type == WebSocketMessageActions.SEND_MESSAGE:
+                    try:
                         message = SendMessageWebSocketSchema(**data)
-                        channel = f"{action}:{message.chat.id}"
+                        channel = f"{action_type}:{message.chat.id}"
                         await fast_stream_router.broker.publish(data, channel)
-                except ValidationError as e:
-                    error_message = {"error": "Invalid data", "details": e.errors()}
-                    await websocket.send_json(error_message)
+                    except ValidationError as error:
+                        await websocket.send_json(
+                            {
+                                "error_type": "Invalid data",
+                                "details": error.errors(),
+                            },
+                        )
+                else:
+                    await websocket.send_json({"error_type": "Invalid action_type."})
         except WebSocketDisconnect:
             logger.info(f"Client {username} disconnected")
         finally:
             await websocket_manager.disconnect(
                 username,
                 chat_id,
-                DisconnectType.DISCONNECT_WEBSOCKET,
+                WebSocketDisconnectTypes.DISCONNECT_WEBSOCKET,
             )
     else:
-        logging.warning("The chat is not in the database.")
+        logger.warning("The chat is not in the database.")
 
 
 @fast_stream_router.subscriber(channel="message:send:{chat_id}")
@@ -59,11 +67,7 @@ async def receive_message(
     chat_id: UUID_ID,
 ) -> None:
     """Processing messages and sending them to the user."""
-    if chat_id in websocket_manager.active_connections:
-        await websocket_manager.send_message(message)
-    else:
-        logger.info("Client is not online")
-        # TODO: add sending deferred messages
+    await websocket_manager.send_message(message)
 
 
 """
