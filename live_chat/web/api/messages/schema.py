@@ -1,21 +1,20 @@
 from pydantic import BaseModel
 
-from live_chat.enums import RecipientType, WebSocketActionType
+from live_chat.db.models.enums import ChatType
+from live_chat.web.websocket.mixins import ActionTypeMixin
 
 
-class ChatMessage(BaseModel):
+class ChatMessage(ActionTypeMixin, BaseModel):
     """Simple message model."""
 
-    action_type: WebSocketActionType
-    recipient_type: RecipientType
-    recipient_id: str
+    chat_type: ChatType
+    chat_id: str
     content: str
     sender_id: str
 
 
-class GroupUsage(BaseModel):
+class GroupUsage(ActionTypeMixin, BaseModel):
     """Usage with groups."""
 
-    action_type: WebSocketActionType
     group_id: str
     sender_id: str

@@ -1,6 +1,8 @@
+from typing import AsyncGenerator
+
 from sqlalchemy import text
 from sqlalchemy.engine import make_url
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from live_chat.settings import settings
 
@@ -42,6 +44,27 @@ async def drop_database() -> None:
         )
         await conn.execute(text(disc_users))
         await conn.execute(text(f'DROP DATABASE "{settings.postgres_db}"'))
+
+
+engine = create_async_engine(
+    f"{settings.db_url}",
+    pool_size=40,
+    max_overflow=20,
+    pool_recycle=3600,
+    isolation_level="AUTOCOMMIT",
+)
+async_session_maker = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+    """Returns the current async session."""
+
+    async with async_session_maker() as session:
+        yield session
 
 
 class RemoveBaseFieldsMixin:

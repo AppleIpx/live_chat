@@ -16,6 +16,17 @@ aiormq = ">=6.8.0,<6.9.0"
 yarl = "*"
 
 [[package]]
+name = "aiofiles"
+version = "24.1.0"
+description = "File support for asyncio."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "aiofiles-24.1.0-py3-none-any.whl", hash = "sha256:b4ec55f4195e3eb5d7abd1bf7e061763e864dd4954231fb8539a0ef8bb8260e5"},
+    {file = "aiofiles-24.1.0.tar.gz", hash = "sha256:22a075c9e5a3810f0c2e48f3008c94d68c65d763b9b03857924c99e57355166c"},
+]
+
+[[package]]
 name = "aiormq"
 version = "6.8.1"
 description = "Pure python AMQP asynchronous client library"
@@ -2617,4 +2628,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "9a0b6de08c71344baa86ece3e453c52b6223af867344cd3a1e502af7b7c1e6db"
+content-hash = "a2368356bef97b28f44f38290ffeceeba9d382630c26a312c62ba5dc1ab6c35f"
