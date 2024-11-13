@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     redis_user: Optional[str] = None
     redis_pass: Optional[str] = None
     redis_base: Optional[int] = None
+    # authentication related
+    encryption_algorithm: str = "HS256"
 
     @property
     def db_url(self) -> URL:
