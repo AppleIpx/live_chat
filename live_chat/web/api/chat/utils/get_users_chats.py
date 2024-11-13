@@ -1,9 +1,26 @@
+from typing import List
+
 from sqlalchemy import Select, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
 from live_chat.db.models.enums import ChatType
+from live_chat.web.api.chat.schemas import GetDetailChatSchema
+
+
+def transformation(chats: List[Chat]) -> List[GetDetailChatSchema]:
+    """Transformation of chats to the desired data type. Used to fixed mypy error."""
+    return [
+        GetDetailChatSchema(
+            chat_id=chat.id,
+            chat_type=chat.chat_type,
+            created_at=chat.created_at,
+            updated_at=chat.updated_at,
+            users=chat.users,
+        )
+        for chat in chats
+    ]
 
 
 async def get_query(current_user: User, chat_type: str) -> Select[tuple[Chat]]:
