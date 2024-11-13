@@ -33,14 +33,14 @@ class Message(Base):
 
     __tablename__ = "message"
 
-    id: Mapped[UUID_ID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
     message_type: Mapped[str] = mapped_column(
         Enum(MessageType, inherit_schema=True),
         default=MessageType.TEXT,
     )
     content: Mapped[str] = mapped_column(String(5000))
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
-    chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
+    chat_id: Mapped[UUID] = mapped_column(ForeignKey("chat.id"))
 
     file_name: Mapped[str] = mapped_column(String(50), nullable=True)
     file_path: Mapped[str] = mapped_column(String(1000), nullable=True)
@@ -82,10 +82,10 @@ class ReadStatus(RemoveBaseFieldsMixin, Base):  # type: ignore[misc]
 
     __tablename__ = "read_status"
 
-    id: Mapped[UUID_ID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
     last_read_message_id: Mapped[int] = mapped_column(nullable=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"))
-    chat_id: Mapped[int] = mapped_column(ForeignKey("chat.id"))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
+    chat_id: Mapped[UUID] = mapped_column(ForeignKey("chat.id"))
 
     chat: Mapped[Chat] = relationship(back_populates="read_statuses")
     user: Mapped["User"] = relationship(back_populates="read_statuses")
