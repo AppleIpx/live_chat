@@ -4,9 +4,15 @@ from starlette import status
 
 from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
-from live_chat.web.api.chat.schemas import CreateDirectChatSchema, DisplayChatSchema
+from live_chat.web.api.chat.schemas import (
+    CreateDirectChatSchema,
+    DisplayChatSchema,
+    GetChatsSchema,
+    GetDetailChatSchema,
+)
 from live_chat.web.api.chat.utils.check_direct_chat_exists import direct_chat_exists
 from live_chat.web.api.chat.utils.create_direct_chat import create_direct_chat
+from live_chat.web.api.chat.utils.get_users_chats import get_user_chats
 from live_chat.web.api.users.utils.check_user_auth import get_current_auth_user
 from live_chat.web.api.users.utils.get_user_by_id import get_user_by_id
 from live_chat.web.api.users.utils.utils import current_active_user
@@ -70,4 +76,31 @@ async def create_direct_chat_view(
     return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="failed to complete the authorization step",
+    )
+
+
+@chat_router.get(
+    "/",
+    summary="List chats",
+    response_model=GetChatsSchema,
+)
+async def get_list_chats_view(
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(current_active_user),
+) -> GetChatsSchema:
+    """Getting chats to which a user has been added."""
+    chats: list[Chat] = await get_user_chats(db_session, current_user=current_user)
+    chats_data = [
+        GetDetailChatSchema(
+            chat_id=chat.id,
+            chat_type=chat.chat_type,
+            created_at=chat.created_at,
+            updated_at=chat.updated_at,
+            users=chat.users,
+        )
+        for chat in chats
+    ]
+
+    return GetChatsSchema(
+        chats=chats_data,
     )

@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from fastapi_users_db_sqlalchemy import UUID_ID
 from pydantic import BaseModel
 
 from live_chat.db.models.enums import ChatType
@@ -31,25 +32,23 @@ class CreateDirectChatSchema(BaseModel):
     recipient_user_id: UUID
 
 
-class GetDirectChatSchema(BaseModel):
+class GetDetailChatSchema(BaseModel):
     """Represents a get command for a direct chat."""
 
-    chat_id: UUID
+    chat_id: UUID_ID
     chat_type: ChatType
     created_at: datetime
     updated_at: datetime
     users: list[UserRead]  # type: ignore[type-arg]
-    new_messages_count: int
 
     class Config:
         from_attributes = True
 
 
-class GetDirectChatsSchema(BaseModel):
+class GetChatsSchema(BaseModel):
     """Represents a get command for a direct chats."""
 
-    chats: list[GetDirectChatSchema]
-    total_unread_messages_count: int
+    chats: list[GetDetailChatSchema]
 
 
 class ReadMessageSchema(BaseModel):
