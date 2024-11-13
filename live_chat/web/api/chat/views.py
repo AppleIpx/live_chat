@@ -60,7 +60,6 @@ async def create_direct_chat_view(
                 detail=f"Chat with recipient user exists [{recipient_user_id}]",
             )
 
-        # Check if the data is already in the cache
         chat: Chat = await create_direct_chat(
             db_session,
             initiator_user=current_user,

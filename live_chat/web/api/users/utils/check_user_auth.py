@@ -16,7 +16,7 @@ async def get_current_auth_user(
     token: str = Depends(oauth2_scheme),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> bool:
-    """Check user token and return the current authenticated user."""
+    """Check user token and return whether the current authenticated user exists."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
