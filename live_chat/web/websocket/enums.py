@@ -1,9 +1,17 @@
 from enum import Enum
 
 
-class WebSocketActionType(str, Enum):
+class WebSocketMessageActions(str, Enum):
     """Websocket Actions."""
 
-    JOIN_GROUP = "group_join"
-    REMOVE_GROUP = "group_remove"
     SEND_MESSAGE = "message:send"
+    READ_MESSAGE = "message:read"
+    EDIT_MESSAGE = "message:edit"
+    DELETE_MESSAGE = "message:delete"
+
+
+class WebSocketDisconnectTypes(str, Enum):
+    """Disconnect types."""
+
+    LEAVE_CHAT = "chat:leave"
+    DISCONNECT_WEBSOCKET = "websocket:disconnect"
