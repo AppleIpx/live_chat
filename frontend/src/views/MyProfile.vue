@@ -9,12 +9,13 @@
           <p><strong>Имя:</strong> {{ user.first_name }}</p>
           <p><strong>Фамилия:</strong> {{ user.last_name }}</p>
           <p><strong>Статус:</strong> {{ user.is_active ? 'Активен' : 'Неактивен' }}</p>
-          <p><strong>Роль:</strong> {{ user.is_superuser ? 'Администратор' : 'Пользователь' }}</p>
+          <p><strong>Роль:</strong>
+            {{ user.is_superuser ? 'Администратор' : 'Пользователь' }}</p>
           <p><strong>Подтвержден:</strong> {{ user.is_verified ? 'Да' : 'Нет' }}</p>
         </div>
         <br>
         <router-link to="/chats">
-          <button class="button">Перейти к чатам</button>
+          <button class="btn-main">Перейти к чатам</button>
         </router-link>
       </div>
       <div v-else>
@@ -45,7 +46,7 @@ export default {
       try {
         const token = localStorage.getItem('accessToken');
         if (!token) {
-          this.$router.push('/login');
+          this.$router.push('/');
           return;
         }
 
@@ -54,8 +55,8 @@ export default {
             Authorization: `Bearer ${token}`,
           },
         });
-
         this.user = response.data;
+        localStorage.setItem('user', JSON.stringify(this.user));
       } catch (error) {
         console.error('Ошибка получения профиля:', error);
         this.error = 'Не удалось загрузить профиль. Пожалуйста, попробуйте позже.';
@@ -85,7 +86,7 @@ export default {
 }
 
 .profile h2 {
-  color: #0078d4;
+  color: #37a5de;
   font-size: 24px;
   text-align: center;
   margin-bottom: 20px;
@@ -102,7 +103,7 @@ export default {
 }
 
 .profile-info strong {
-  color: #0078d4;
+  color: #37a5de;
 }
 
 .loading-container {
@@ -120,13 +121,17 @@ export default {
 }
 
 .loading-text {
-  color: #0078d4;
+  color: #37a5de;
   font-size: 18px;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 600px) {

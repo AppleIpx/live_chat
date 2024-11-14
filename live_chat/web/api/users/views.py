@@ -1,5 +1,8 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from fastapi.security import HTTPBearer
+from fastapi_users import models
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
@@ -11,7 +14,7 @@ from live_chat.web.api.users.schemas import (
     UserUpdate,
 )
 from live_chat.web.api.users.utils.get_list_users import get_all_users, transformation
-from live_chat.web.api.users.utils.utils import api_users, auth_jwt
+from live_chat.web.api.users.utils.utils import api_users, auth_jwt, get_user_by_id
 
 http_bearer = HTTPBearer(auto_error=False)
 router = APIRouter(dependencies=[Depends(http_bearer)])
@@ -59,3 +62,9 @@ async def get_users(
     users: list[User] = await get_all_users(db_session)
     users_data = transformation(users)
     return ListUserSchema(users=users_data)
+
+
+@router.get("/users/read/{user_id}", response_model=UserRead, tags=["users"])
+async def get_user(user_id: UUID, user: models.UP = Depends(get_user_by_id)) -> User:
+    """Gets a user by id without authentication."""
+    return user

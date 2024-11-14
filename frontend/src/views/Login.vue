@@ -23,7 +23,7 @@ export default {
     return {
       username: '',
       password: '',
-      errorMessage: '',  // Для вывода ошибок
+      errorMessage: '',
     };
   },
   methods: {
@@ -34,10 +34,11 @@ export default {
         formData.append('password', this.password);
 
         const response = await axios.post('http://0.0.0.0:8000/api/auth/jwt/login', formData);
-        if (response.status === 201) {
+        if (response.status === 200) {
           const accessToken = response.data.access_token;
           localStorage.setItem('accessToken', accessToken);
-          this.$router.push('/profile');
+          localStorage.setItem('username', this.username);
+          this.$router.push('/profile/me');
         }
       } catch (error) {
         if (error.response) {
@@ -108,7 +109,7 @@ export default {
 }
 
 .login h2 {
-  color: #0078d4;
+  color: #37a5de;
   font-size: 24px;
   margin-bottom: 20px;
 }
@@ -133,22 +134,22 @@ export default {
 }
 
 .btn-main {
-  padding: 14px 30px;
+  padding: 12px 30px;
   font-size: 16px;
   font-weight: bold;
   text-transform: uppercase;
+  color: #fff;
+  background-color: #37a5de;
   border: none;
   cursor: pointer;
   border-radius: 25px;
-  background-color: #0088cc;
-  color: white;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .btn-main:hover {
-  background-color: #007bb5;
+  background-color: #2a8fbe;
   transform: translateY(-4px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
 }
 
 @media (max-width: 600px) {

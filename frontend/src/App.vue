@@ -1,9 +1,25 @@
 <!-- src/App.vue -->
 <template>
+  <head>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <title>Live Chat</title>
+  </head>
   <div id="app">
+    <Header/>
     <router-view/>
   </div>
 </template>
+
+<script>
+import Header from './components/Header.vue';
+
+export default {
+  components: {
+    Header,
+  },
+};
+</script>
 
 <style>
 body {
