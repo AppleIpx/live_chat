@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.security import HTTPBearer
 from fastapi_users import models
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +14,13 @@ from live_chat.web.api.users.schemas import (
     UserUpdate,
 )
 from live_chat.web.api.users.utils.get_list_users import get_all_users, transformation
-from live_chat.web.api.users.utils.utils import api_users, auth_jwt, get_user_by_id
+from live_chat.web.api.users.utils.image_saver import ImageSaver
+from live_chat.web.api.users.utils.utils import (
+    api_users,
+    auth_jwt,
+    current_active_user,
+    get_user_by_id,
+)
 
 http_bearer = HTTPBearer(auto_error=False)
 router = APIRouter(dependencies=[Depends(http_bearer)])
@@ -68,3 +74,21 @@ async def get_users(
 async def get_user(user_id: UUID, user: models.UP = Depends(get_user_by_id)) -> User:
     """Gets a user by id without authentication."""
     return user
+
+
+@router.patch("/users/me/upload-image", tags=["users"])
+async def upload_user_image(
+    uploaded_image: UploadFile,
+    user: User = Depends(current_active_user),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> dict[str, str]:
+    """Update a user avatar."""
+    image_url = await ImageSaver().save_user_image(uploaded_image)
+    if not image_url:
+        raise HTTPException(status_code=400, detail="Invalid image upload")
+
+    user.user_image = image_url
+    existing_user = await db_session.merge(user)
+    db_session.add(existing_user)
+    await db_session.commit()
+    return {"image_url": image_url}
