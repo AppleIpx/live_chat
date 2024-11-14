@@ -1,7 +1,9 @@
 import uuid
+from typing import List
 
 from fastapi_users import BaseUserManager, UUIDIDMixin, schemas
 from fastapi_users_db_sqlalchemy import UUID_ID
+from pydantic import BaseModel
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.settings import settings
@@ -17,6 +19,12 @@ class BaseUserSchema:
 
 class UserRead(BaseUserSchema, schemas.BaseUser[UUID_ID]):
     """Represents a read command for a user."""
+
+
+class ListUserSchema(BaseModel):
+    """Represents a list command for a user."""
+
+    users: List[UserRead]
 
 
 class UserCreate(BaseUserSchema, schemas.BaseUserCreate):
