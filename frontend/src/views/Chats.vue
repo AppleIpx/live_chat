@@ -2,49 +2,55 @@
   <div class="chats">
     <div class="chats-container">
       <h2>Чаты</h2>
-      <div v-if="chats && chats.length">
-      <div class="chat-item" v-for="chat in chats" :key="chat.chat_id">
-        <div class="chat-header">
-            <span class="chat-type-icon"
-                  :title="chat.chat_type === 'direct' ? 'Личный чат' : 'Групповой чат'">
-        <i :class="chat.chat_type === 'direct' ? 'fas fa-user' : 'fas fa-users'"></i>
-      </span>
-          <strong>
-            <a :href="'/chats/' + chat.chat_id">
-              {{ getFirstLastNames(chat.users) }}
-            </a>
-          </strong>
-          <span class="timestamp">{{ formatDate(chat.created_at) }}</span>
+      <div v-if="isLoading">
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <p class="loading-text">Загрузка...</p>
         </div>
       </div>
+      <div v-else-if="chats && chats.length">
+        <div class="chat-item" v-for="chat in chats" :key="chat.chat_id">
+          <div class="chat-header">
+            <span class="chat-type-icon"
+                  :title="chat.chat_type === 'direct' ? 'Личный чат' : 'Групповой чат'">
+              <i :class="chat.chat_type === 'direct' ? 'fas fa-user' : 'fas fa-users'"></i>
+            </span>
+            <strong>
+              <a :href="'/chats/' + chat.chat_id">
+                {{ getFirstLastNames(chat.users) }}
+              </a>
+            </strong>
+            <span class="timestamp">{{ formatDate(chat.created_at) }}</span>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="error">
+        <p class="error-message">{{ error }}</p>
+      </div>
+      <div v-else>
+        <p>У вас еще нет чатов. Вы можете создать новый чат.</p>
+      </div>
+      <button @click="openSearch" class="btn-main">Создать чат</button>
+      <div v-if="isSearchOpen" class="search-container">
+        <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Поиск по имени пользователя..."
+            @input="filterUsers"
+        />
+        <ul v-if="filteredUsers.length" class="user-list">
+          <li
+              v-for="user in filteredUsers"
+              :key="user.id"
+              @click="selectUser(user)"
+              class="user-item"
+          >
+            {{ user.username }}
+          </li>
+        </ul>
+        <p v-else class="no-users-message">Пользователь не найден</p>
+      </div>
     </div>
-    <div v-else-if="error">
-      <p class="error-message">{{ error }}</p>
-    </div>
-    <div v-else>
-      <p>У вас еще нет чатов. Вы можете создать новый чат.</p>
-    </div>
-    <button @click="openSearch" class="btn-main">Создать чат</button>
-    <div v-if="isSearchOpen" class="search-container">
-      <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Поиск по имени пользователя..."
-          @input="filterUsers"
-      />
-      <ul v-if="filteredUsers.length" class="user-list">
-        <li
-            v-for="user in filteredUsers"
-            :key="user.id"
-            @click="selectUser(user)"
-            class="user-item"
-        >
-          {{ user.username }}
-        </li>
-      </ul>
-      <p v-else class="no-users-message">Пользователь не найден</p>
-    </div>
-  </div>
   </div>
 </template>
 
@@ -60,6 +66,7 @@ export default {
       filteredUsers: [],
       searchQuery: '',
       isSearchOpen: false,
+      isLoading: true,
       selectedUser: null,
     };
   },
@@ -76,17 +83,23 @@ export default {
           return;
         }
 
+        const timeout = setTimeout(() => {
+          this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
+          this.isLoading = false;
+        }, 10000);
+
         const response = await axios.get('http://0.0.0.0:8000/api/chats', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        console.log("chats:", response.data.chats)
+
+        clearTimeout(timeout);
         this.chats = response.data.chats.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-        console.log("sorted chats:", this.chats)
+        this.isLoading = false;
       } catch (error) {
-        console.error('Ошибка получения чатов:', error);
         this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
+        this.isLoading = false;
       }
     },
 
@@ -155,8 +168,7 @@ export default {
               },
             }
         );
-
-        this.chats.update(response.data);
+        this.chats.push(response.data);
         alert('Чат успешно создан!');
       } catch (error) {
         console.error('Ошибка при создании чата:', error);
@@ -238,8 +250,6 @@ export default {
 .chat-type-icon {
   font-size: 14px;
   color: #37a5de;
-  //justify-content: right;
-  //display: flex;
 }
 
 .error-message {

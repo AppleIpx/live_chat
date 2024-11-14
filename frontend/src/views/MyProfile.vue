@@ -125,6 +125,30 @@ export default {
   font-size: 18px;
 }
 
+.btn-main {
+  padding: 12px 30px;
+  display: inline;
+  font-size: 16px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #fff;
+  background-color: #37a5de;
+  border: none;
+  cursor: pointer;
+  border-radius: 25px;
+  transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-main:hover {
+  background-color: #2a8fbe;
+  transform: translateY(-4px);
+  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
+}
+
+.btn-main:active {
+  transform: translateY(1px);
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);

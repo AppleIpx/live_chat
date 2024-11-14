@@ -4,7 +4,7 @@
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       <h2>Вход</h2>
       <form @submit.prevent="loginUser" class="form">
-        <input v-model="username" placeholder="Имя пользователя" class="input-field"/>
+        <input v-model="username" placeholder="Email" class="input-field"/>
         <input v-model="password" type="password" placeholder="Пароль"
                class="input-field"/>
         <div class="buttons">

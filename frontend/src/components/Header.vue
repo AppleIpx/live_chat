@@ -3,6 +3,7 @@
   <header class="header">
     <router-link class="logo-link" to="/">
       <div class="logo">
+        <i class="fas fa-comments chat-icon"></i>
         <h1>Live Chat</h1>
       </div>
     </router-link>
@@ -54,11 +55,22 @@ export default {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+.logo {
+  display: flex;
+  align-items: center;
+}
+
 .header .logo h1 {
   font-size: 24px;
   margin: 0;
   font-weight: bold;
   letter-spacing: 1px;
+}
+
+.chat-icon {
+  font-size: 26px;
+  margin-right: 10px;
+  color: white;
 }
 
 .nav-links {
