@@ -49,7 +49,7 @@ router.include_router(
 @router.get(
     "/users",
     tags=["users"],
-    summary="Create a direct chat",
+    summary="Get all users",
     response_model=ListUserSchema,
 )
 async def get_users(

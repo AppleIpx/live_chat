@@ -6,6 +6,18 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     User,
 )
 from live_chat.db.models.enums import ChatType
+from live_chat.web.api.chat.schemas import GetChatSchema
+
+
+def transformation_chat(chat: Chat) -> GetChatSchema:
+    """Transformation of chat to the desired data type. Used to fixed mypy error."""
+    return GetChatSchema(
+        chat_id=chat.id,
+        chat_type=chat.chat_type,
+        created_at=chat.created_at,
+        updated_at=chat.updated_at,
+        users=chat.users,
+    )
 
 
 async def create_direct_chat(
