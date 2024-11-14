@@ -6,13 +6,13 @@ from sqlalchemy.orm import selectinload
 
 from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
 from live_chat.db.models.enums import ChatType
-from live_chat.web.api.chat.schemas import GetDetailChatSchema
+from live_chat.web.api.chat.schemas import GetListChatSchema
 
 
-def transformation(chats: List[Chat]) -> List[GetDetailChatSchema]:
+def transformation(chats: List[Chat]) -> List[GetListChatSchema]:
     """Transformation of chats to the desired data type. Used to fixed mypy error."""
     return [
-        GetDetailChatSchema(
+        GetListChatSchema(
             chat_id=chat.id,
             chat_type=chat.chat_type,
             created_at=chat.created_at,

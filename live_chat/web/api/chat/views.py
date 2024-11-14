@@ -7,7 +7,7 @@ from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.schemas import (
     CreateDirectChatSchema,
     DisplayChatSchema,
-    GetChatsSchema,
+    GetListChatsApiSchema,
 )
 from live_chat.web.api.chat.utils.check_direct_chat_exists import direct_chat_exists
 from live_chat.web.api.chat.utils.create_direct_chat import create_direct_chat
@@ -81,16 +81,16 @@ async def create_direct_chat_view(
 @chat_router.get(
     "/",
     summary="List chats",
-    response_model=GetChatsSchema,
+    response_model=GetListChatsApiSchema,
 )
 async def get_list_chats_view(
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
-) -> GetChatsSchema:
+) -> GetListChatsApiSchema:
     """Getting chats to which a user has been added."""
     chats: list[Chat] = await get_user_chats(db_session, current_user=current_user)
     chats_data = transformation(chats)
 
-    return GetChatsSchema(
+    return GetListChatsApiSchema(
         chats=chats_data,
     )
