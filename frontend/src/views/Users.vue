@@ -4,11 +4,11 @@
     <br>
     <div class="search-container">
       <input
-        type="text"
-        v-model="searchQuery"
-        @input="filterUsers"
-        placeholder="Поиск по имени пользователя..."
-        class="search-input"
+          type="text"
+          v-model="searchQuery"
+          @input="filterUsers"
+          placeholder="Поиск по имени пользователя..."
+          class="search-input"
       />
     </div>
     <div v-if="users.length" class="users-list">
@@ -18,8 +18,9 @@
             {{ user.username }}
           </a>
         </h3>
-        <p>Имя: {{ user.first_name }} {{ user.last_name }}</p>
-        <p>Email: {{ user.email }}</p>
+        <i>{{ user.first_name }} {{ user.last_name }}</i>
+        <br>
+        <a :href="'mailto:' + user.email">{{ user.email }}</a>
       </div>
     </div>
     <div v-else class="no-users">
@@ -68,7 +69,7 @@ export default {
     filterUsers() {
       const query = this.searchQuery.toLowerCase();
       this.filteredUsers = this.users.filter(user =>
-        user.username.toLowerCase().includes(query)
+          user.username.toLowerCase().includes(query)
       );
     },
   },
