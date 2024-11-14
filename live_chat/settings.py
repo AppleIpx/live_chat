@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     # Current environment
     environment: str = "dev"
     log_level: LogLevel = LogLevel.INFO
-    users_secret: str
+    users_secret: str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9"
     # Variables for the database
     postgres_host: str
     postgres_port: int = 5432
