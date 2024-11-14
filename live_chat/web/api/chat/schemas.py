@@ -32,8 +32,8 @@ class CreateDirectChatSchema(BaseModel):
     recipient_user_id: UUID
 
 
-class GetDetailChatSchema(BaseModel):
-    """Represents a get command for a direct chat."""
+class GetListChatSchema(BaseModel):
+    """Represents a get command for a all user's chats."""
 
     chat_id: UUID_ID
     chat_type: ChatType
@@ -45,10 +45,10 @@ class GetDetailChatSchema(BaseModel):
         from_attributes = True
 
 
-class GetChatsSchema(BaseModel):
-    """Represents a get command for a direct chats."""
+class GetListChatsApiSchema(BaseModel):
+    """Class for displaying a schema in an API."""
 
-    chats: list[GetDetailChatSchema]
+    chats: list[GetListChatSchema]
 
 
 class ReadMessageSchema(BaseModel):
