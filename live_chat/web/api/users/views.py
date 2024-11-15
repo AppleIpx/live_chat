@@ -83,7 +83,8 @@ async def upload_user_image(
     db_session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, str]:
     """Update a user avatar."""
-    image_url = await ImageSaver().save_user_image(uploaded_image)
+    image_saver = ImageSaver(user.id)
+    image_url = await image_saver.save_user_image(uploaded_image)
     if not image_url:
         raise HTTPException(status_code=400, detail="Invalid image upload")
 

@@ -1,17 +1,23 @@
 from pathlib import Path
-from uuid import uuid4
+from typing import Final
+from uuid import UUID
 
 import aiofiles
-import boto3
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
+from starlette import status
 
 from live_chat.settings import settings
+from live_chat.web.s3_client import s3_client
 
-DEFAULT_CHUNK_SIZE = 1024 * 1024 * 1  # 1 MB
+DEFAULT_CHUNK_SIZE: Final = 1024 * 1024 * 1  # 1 MB
+SUPPORTED_AVATAR_EXTENSIONS: Final = ("png", "jpg", "jpeg")
 
 
 class ImageSaver:
     """Saving user avatar."""
+
+    def __init__(self, user_id: UUID) -> None:
+        self.user_id = user_id
 
     async def save_user_image(self, uploaded_image: UploadFile) -> str | None:
         """Save an avatar sent by the user."""
@@ -20,36 +26,21 @@ class ImageSaver:
 
         # Generate a unique filename with the same extension
         ext = uploaded_image.filename.split(".")[-1]
-        filename = f"{uuid4().hex}.{ext}"
+        if ext not in SUPPORTED_AVATAR_EXTENSIONS:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"It is incorrect image extension. "
+                f"Required: {SUPPORTED_AVATAR_EXTENSIONS}",
+            )
+        filename = f"{self.user_id}.{ext}"
 
         # If using S3, upload to S3, else save locally
         if settings.use_s3:
-            return await self._upload_image_to_s3(uploaded_image, filename)
+            return await s3_client.upload_file(
+                uploaded_image.file,
+                f"avatars/{filename}",
+            )
         return await self._save_image_locally(uploaded_image, filename)
-
-    async def _upload_image_to_s3(
-        self,
-        uploaded_image: UploadFile,
-        filename: str,
-    ) -> str:
-        """Upload image to S3 bucket."""
-        bucket_name = settings.aws_bucket_name
-        s3_client = boto3.client(
-            "s3",
-            endpoint_url=settings.aws_s3_endpoint_url,
-            aws_access_key_id=settings.aws_access_key_id,
-            aws_secret_access_key=settings.aws_secret_access_key,
-            region_name=settings.aws_region_name,
-            verify=False,
-        )
-
-        s3_client.upload_fileobj(
-            uploaded_image.file,
-            bucket_name,
-            f"avatars/{filename}",
-        )
-
-        return f"{settings.minio_url}avatars/{filename}"
 
     async def _save_image_locally(
         self,
