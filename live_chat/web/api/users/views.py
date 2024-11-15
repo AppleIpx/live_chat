@@ -13,7 +13,10 @@ from live_chat.web.api.users.schemas import (
     UserRead,
     UserUpdate,
 )
-from live_chat.web.api.users.utils.get_list_users import get_all_users, transformation
+from live_chat.web.api.users.utils.get_list_users import (
+    get_all_users,
+    transformation_users,
+)
 from live_chat.web.api.users.utils.utils import api_users, auth_jwt, get_user_by_id
 
 http_bearer = HTTPBearer(auto_error=False)
@@ -60,7 +63,7 @@ async def get_users(
 ) -> ListUserSchema:
     """Gets a list of all users."""
     users: list[User] = await get_all_users(db_session)
-    users_data = transformation(users)
+    users_data = transformation_users(users)
     return ListUserSchema(users=users_data)
 
 
