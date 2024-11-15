@@ -13,16 +13,11 @@ from live_chat.web.api.users.schemas import (
     UserRead,
     UserUpdate,
 )
-<<<<<<< live_chat/web/api/users/views.py
 from live_chat.web.api.users.utils.get_list_users import (
     get_all_users,
     transformation_users,
 )
-
-=======
-from live_chat.web.api.users.utils.get_list_users import get_all_users, transformation
 from live_chat.web.api.users.utils.utils import api_users, auth_jwt, get_user_by_id
->>>>>>> live_chat/web/api/users/views.py
 
 http_bearer = HTTPBearer(auto_error=False)
 router = APIRouter(dependencies=[Depends(http_bearer)])
