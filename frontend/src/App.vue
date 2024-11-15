@@ -61,6 +61,10 @@ button {
   box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
 }
 
+#app {
+  padding-top: 10px;
+}
+
 button:hover {
   background-color: #007bb5;
 }

@@ -2,7 +2,7 @@ services:
   fastapi-live-chat-test:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: Dockerfile
     container_name:
       live_chat_fastapi_test
     restart: always

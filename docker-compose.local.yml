@@ -1,8 +1,17 @@
+networks:
+  live_chat_network:
+    driver: bridge
+
+volumes:
+  postgres-local-data:
+  redis-local-data:
+  minio_local_data:
+
 services:
   fastapi-live-chat-local:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: Dockerfile
     container_name:
       live_chat_fastapi_local
     restart: always
@@ -16,6 +25,10 @@ services:
         condition: service_healthy
       redis-live-chat-local:
         condition: service_healthy
+      minio-live-chat-local:
+        condition: service_healthy
+    networks:
+      - live_chat_network
 
   vue-live-chat-local:
     build:
@@ -27,6 +40,8 @@ services:
       - VUE_APP_BACKEND_URL=http://localhost:8000
     depends_on:
       - fastapi-live-chat-local
+    networks:
+      - live_chat_network
 
   postgres-live-chat-local:
     image: postgres:16.3-bullseye
@@ -41,6 +56,8 @@ services:
       interval: 2s
       timeout: 3s
       retries: 40
+    networks:
+      - live_chat_network
 
   migrator-live-chat-local:
     build:
@@ -53,6 +70,8 @@ services:
     depends_on:
       postgres-live-chat-local:
         condition: service_healthy
+    networks:
+      - live_chat_network
 
   redis-live-chat-local:
     image: bitnami/redis:6.2.5
@@ -68,7 +87,24 @@ services:
       interval: 1s
       timeout: 3s
       retries: 50
+    networks:
+      - live_chat_network
 
-volumes:
-  postgres-local-data:
-  redis-local-data:
+  minio-live-chat-local:
+    image: minio/minio:RELEASE.2024-11-07T00-52-20Z-cpuv1
+    container_name: minio_live_chat_local
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: mc ready local
+      interval: 10s
+      timeout: 20s
+      retries: 3
+    volumes:
+      - minio_local_data:/data
+    env_file:
+      - .envs/.local/.env
+    command: server --console-address ":9001" /data
+    networks:
+      - live_chat_network
