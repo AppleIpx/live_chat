@@ -1,4 +1,3 @@
-<!-- src/components/Header.vue -->
 <template>
   <header class="header">
     <router-link class="logo-link" to="/">
@@ -11,7 +10,7 @@
       <router-link to="/chats" class="nav-item">Чаты</router-link>
       <router-link to="/users" class="nav-item">Пользователи</router-link>
       <router-link to="/profile/me" class="nav-item">Мой профиль</router-link>
-      <button @click="handleAuth" class="btn-main">
+      <button @click="handleAuth" class="btn-auth">
         {{ isAuthenticated ? 'Выйти' : 'Войти' }}
       </button>
     </nav>
@@ -45,14 +44,20 @@ export default {
 
 <style scoped>
 .header {
-  background-color: #37a5de;
+  background: linear-gradient(135deg, #37a5de, #6dcfe1);
   color: white;
-  padding: 15px 20px;
+  padding: 20px 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-radius: 0 0 10px 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 0 0 15px 15px;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
 }
 
 .logo {
@@ -61,62 +66,80 @@ export default {
 }
 
 .header .logo h1 {
-  font-size: 24px;
+  font-size: 28px;
   margin: 0;
   font-weight: bold;
   letter-spacing: 1px;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .chat-icon {
-  font-size: 26px;
-  margin-right: 10px;
+  font-size: 32px;
+  margin-right: 12px;
   color: white;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .nav-links {
   display: flex;
-  gap: 20px;
+  gap: 25px;
   align-items: center;
 }
 
 .nav-item {
   font-size: 18px;
-  color: white;
+  color: rgba(255, 255, 255, 0.9);
   text-decoration: none;
-  transition: color 0.3s ease;
+  font-weight: 500;
+  transition: color 0.3s ease, transform 0.3s ease;
 }
 
 .nav-item:hover {
-  color: #fff;
-  text-decoration: underline;
+  color: #ece0e0;
+  transform: scale(1.05);
+  text-decoration: none;
 }
 
-.btn-main {
-  background-color: white;
+.btn-auth {
+  background: linear-gradient(135deg, #ffffff, #f0f8ff);
   color: #37a5de;
   border: none;
-  padding: 10px 20px;
+  padding: 10px 25px;
   font-size: 16px;
   cursor: pointer;
-  border-radius: 25px;
-  transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 30px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
 }
 
-.btn-main:hover {
-  background-color: #37a5de;
+.btn-auth:hover {
+  background: #37a5de;
   color: white;
-  transform: translateY(-4px);
-  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
 }
 
 .logo-link {
   color: white;
 }
 
-
 .logo-link:hover {
-  color: white;
   text-decoration: none;
 }
-</style>
 
+.logo-link:hover .chat-icon {
+  transform: scale(1.1);
+}
+
+</style>

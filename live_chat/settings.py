@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     host: str
     port: int
-    # quantity of workers for uvicorn
+    # Quantity of workers for uvicorn
     workers_count: int = 1
     # Enable uvicorn reloading
     reload: bool = False
@@ -51,8 +51,18 @@ class Settings(BaseSettings):
     redis_user: Optional[str] = None
     redis_pass: Optional[str] = None
     redis_base: Optional[int] = None
-    # authentication related
+    # Authentication related
     encryption_algorithm: str = "HS256"
+    # Media
+    media_url_prefix: str = "/media"
+    # AWS
+    use_s3: bool = False
+    aws_s3_endpoint_url: Optional[str] = None
+    aws_access_key_id: Optional[str] = None
+    aws_secret_access_key: Optional[str] = None
+    aws_region_name: Optional[str] = None
+    aws_bucket_name: Optional[str] = None
+    minio_url: Optional[str] = None
 
     @property
     def db_url(self) -> URL:

@@ -4,6 +4,20 @@
       <h2>Профиль пользователя</h2>
       <div v-if="user">
         <div class="profile-info">
+          <!-- Avatar Display -->
+          <div class="avatar-container">
+            <div class="avatar-wrapper">
+              <img
+                  v-if="user.user_image"
+                  :src="user.user_image"
+                  alt="Аватар"
+                  class="avatar-image"
+              />
+              <div v-else class="avatar-placeholder"></div>
+            </div>
+          </div>
+
+          <!-- Profile Information -->
           <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
           <p><strong>Email:</strong> {{ user.email }}</p>
           <p><strong>Имя:</strong> {{ user.first_name }}</p>
@@ -86,7 +100,7 @@ export default {
 }
 
 .profile h2 {
-  color: #0078d4;
+  color: #37a5de;
   font-size: 24px;
   text-align: center;
   margin-bottom: 20px;
@@ -103,7 +117,16 @@ export default {
 }
 
 .profile-info strong {
-  color: #0078d4;
+  color: #37a5de;
+}
+
+.profile-info input {
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 16px;
 }
 
 .loading-container {
@@ -112,7 +135,7 @@ export default {
 
 .loading-spinner {
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #0078d4;
+  border-top: 4px solid #37a5de;
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -121,7 +144,7 @@ export default {
 }
 
 .loading-text {
-  color: #0078d4;
+  color: #37a5de;
   font-size: 18px;
 }
 
@@ -148,4 +171,75 @@ export default {
     font-size: 14px;
   }
 }
+
+.avatar-container {
+  text-align: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.avatar-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 150px;
+  height: 150px;
+}
+
+.avatar-image,
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  background-color: #ddd;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.avatar-placeholder::after {
+  content: ' ';
+  display: block;
+}
+
+.btn-main {
+  padding: 12px 30px;
+  display: inline-block;
+  font-size: 16px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #fff;
+  background-color: #37a5de;
+  border: none;
+  cursor: pointer;
+  border-radius: 25px;
+  transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-main:hover {
+  background-color: #2a8fbe;
+  transform: translateY(-4px);
+  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
+}
+
+.btn-main:active {
+  transform: translateY(1px);
+}
+
+.button {
+  padding: 12px 30px;
+  background-color: #37a5de;
+  color: white;
+  font-size: 16px;
+  border-radius: 25px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+}
+
+.button:hover {
+  background-color: #2a8fbe;
+}
+
 </style>

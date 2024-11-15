@@ -1,26 +1,51 @@
 <template>
   <div class="chat">
     <div class="chat-container">
-      <h2>{{ chatName }}</h2>
-      <div v-if="messages.length">
-        <div class="message" v-for="message in messages" :key="message.id"
-             :class="{'mine': message.isMine, 'other': !message.isMine}">
-          <div class="message-header">
-            <strong>
-              <a v-if="message.user && message.user.username"
-                 :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
-                {{ message.user.username }}
-              </a>
-              <span v-else>Загрузка...</span>
-            </strong>
-            <span class="timestamp">{{ message.created_at }}</span>
-          </div>
-          <div class="message-content">{{ message.content }}</div>
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <button @click="goBack" class="back-button">
+          <i class="fa fa-arrow-left"></i>
+        </button>
+
+        <!-- User Info -->
+        <div class="user-info">
+          <span v-if="otherUser.id">{{ chatName }}</span>
+          <span v-else>Загрузка...</span>
+        </div>
+
+        <div class="user-photo">
+          <a v-if="otherUser.id" :href="`/profile/${otherUser.id}`">
+            <img :src="otherUser.user_image || '/default-avatar.jpg'" alt="Profile"/>
+          </a>
         </div>
       </div>
-      <div v-else>
-        <p class="no-messages">Нет сообщений...</p>
+
+      <!-- Messages Section -->
+      <div class="messages-container">
+        <div v-if="messages.length" class="messages-list" ref="messagesList">
+          <div class="message" v-for="message in messages" :key="message.id"
+               :class="{'mine': message.isMine, 'other': !message.isMine}">
+            <div class="message-header">
+              <strong>
+                <a v-if="message.user && message.user.username"
+                   :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
+                  {{
+                    message.user.username === user.username ? 'Вы' : message.user.username
+                  }}
+                </a>
+                <span v-else>Загрузка...</span>
+              </strong>
+              <span class="timestamp">{{ message.created_at }}</span>
+            </div>
+            <div class="message-content">{{ message.content }}</div>
+          </div>
+        </div>
+        <div v-else>
+          <p class="no-messages">Нет сообщений...</p>
+        </div>
       </div>
+
+      <!-- Message Input -->
       <div class="chat-input-container">
         <input
             v-model="messageText"
@@ -46,9 +71,17 @@ export default {
       socket: null,
       messages: [],
       messageText: "",
-      user: "",
+      user: null,
       chatId: null,
+      chatData: null,
       chatName: '',
+      otherUser: {
+        first_name: '',
+        last_name: '',
+        id: '',
+        user_image: null,
+      },
+      otherUserImage: '',
       users: {},
     };
   },
@@ -59,42 +92,85 @@ export default {
       return;
     }
     this.chatId = chatId;
-    this.fetchChatName(chatId);
+    this.fetchChatDetails(chatId);
     this.connectToWebSocket(chatId);
   },
   methods: {
+    goBack() {
+      this.$router.push('/chats');
+    },
+    scrollToBottom() {
+      this.$nextTick(() => {
+        const messagesList = this.$refs.messagesList;
+        if (messagesList) {
+          messagesList.scrollTop = messagesList.scrollHeight;
+        }
+      });
+    },
+    // Получаем имя пользователя по его ID из объекта users
     async getUsernameById(userId) {
-      if (this.users[userId]) {
-        return this.users[userId];
+      const user = this.users[userId];
+      if (user) {
+        return `${user.first_name} ${user.last_name}`;
       }
+      return null;
+    },
+
+    // Fetch chat details including users and messages
+    async fetchChatDetails(chatId) {
       const token = localStorage.getItem('accessToken');
       if (!token) {
-        this.$router.push('/login');
+        this.$router.push('/');
         return;
       }
       try {
-        const response = await axios.get(`http://0.0.0.0:8000/api/users/read/${userId}`, {
+        const response = await axios.get(`http://0.0.0.0:8000/api/chats/${chatId}/`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        const userData = await response.data;
-        this.users[userId] = userData.username;
-        return userData.username;
-      } catch (error) {
-        console.error("Ошибка получения username:", error);
-        return "Неизвестный пользователь";
-      }
-    },
-    async fetchChatName(chatId) {
-      try {
-        const response = await fetch(`http://localhost:8000/api/chats/${chatId}`);
-        const chatData = await response.json();
-        this.chatName = chatData.name;
+
+        const chatData = response.data;
+        this.chatData = chatData;
+        this.messages = chatData.messages
+            .map(message => {
+              const message_user = chatData.users.find(user => user.id === message.user_id);
+              return {
+                id: message.message_id,
+                user: message_user || {},
+                content: message.content,
+                created_at: new Date(message.created_at,).toLocaleString(),
+                isMine: message.user_id === this.user.id,
+              };
+            });
+
+        this.users = chatData.users.reduce((acc, user) => {
+          acc[user.id] = user;
+          return acc;
+        }, {});
+
+        this.user = JSON.parse(localStorage.getItem("user"));
+        this.otherUser = chatData.users.find(user => user.id !== this.user.id);
+        const response_user = await axios.get(`http://0.0.0.0:8000/api/users/read/${this.otherUser.id}/`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        this.otherUser.user_image = response_user.data.user_image;
+
+        if (!this.otherUser) {
+          console.error('Не удалось найти другого пользователя');
+        } else {
+          this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
+          console.log(this.chatName);
+        }
+
+        this.scrollToBottom();
       } catch (error) {
         console.error("Ошибка получения информации о чате:", error);
       }
     },
+
     async connectToWebSocket(chatId) {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
@@ -103,10 +179,9 @@ export default {
         console.error("Пользователь не найден в localStorage");
         return;
       }
+
       const wsUrl = `ws://localhost:8000/ws/${this.user.username}/${chatId}`;
       this.socket = new WebSocket(wsUrl);
-      console.log(this.socket)
-      console.log(storedUser)
 
       this.socket.onopen = () => {
         console.log(`Подключение к чату с ID ${chatId} установлено`);
@@ -114,11 +189,8 @@ export default {
 
       this.socket.onmessage = async (event) => {
         const data = JSON.parse(event.data);
-        console.log("Новое сообщение:", data);
         if (data && data.content) {
-          console.log(data)
           const username = await this.getUsernameById(data.user_id);
-          console.log("USER:", username)
           this.messages.push({
             id: data.id,
             user: {
@@ -129,6 +201,7 @@ export default {
             created_at: new Date(data.created_at).toLocaleString(),
             isMine: data.user_id === this.user.id,
           });
+          this.scrollToBottom()
         }
       };
 
@@ -140,26 +213,23 @@ export default {
         console.log("Соединение с WebSocket закрыто");
       };
     },
+
+    // Send a new message
     sendMessage() {
       if (this.messageText.trim() !== "") {
         const messageData = {
           action_type: "message:send",
           content: this.messageText,
-          user: {
-            id: this.user.id,
-            username: this.user.username,
-            email: this.user.email,
-            first_name: this.user.first_name,
-            last_name: this.user.last_name,
-            is_active: true,
-            is_verified: false,
-            is_superuser: false,
-          },
+          user: this.user,
           chat: {
             id: this.chatId,
-            chat_type: "direct",
+            chat_type: this.chatData.chat_type,
+            created_at: this.chatData.created_at,
+            updated_at: this.chatData.updated_at,
+            users: this.chatData.users,
           },
         };
+
         this.messages.push({
           id: Date.now(),
           user: {
@@ -171,6 +241,7 @@ export default {
         });
         this.socket.send(JSON.stringify(messageData));
         this.messageText = "";
+        this.scrollToBottom();
       }
     },
   },
@@ -189,25 +260,67 @@ export default {
 
 .chat-container {
   background-color: white;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 30px 40px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 600px;
+  max-width: 700px;
+  height: 80%;
+  max-height: 900px;
+  display: flex;
+  flex-direction: column;
 }
 
-.chat h2 {
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+
+.back-button {
+  background-color: transparent;
+  border: none;
   color: #0078d4;
   font-size: 24px;
+  cursor: pointer;
+}
+
+.user-info {
+  flex-grow: 1;
   text-align: center;
-  margin-bottom: 20px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+
+.user-photo img {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.messages-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 300px);
+  padding-right: 10px;
+}
+
+.messages-list {
+  max-height: 100%;
+  overflow-y: scroll;
+  padding: 0 15px;
 }
 
 .message {
   background-color: #e1f5fe;
-  margin: 10px 0;
-  padding: 10px;
-  border-radius: 8px;
+  margin: 12px 0;
+  padding: 15px 20px;
+  border-radius: 12px;
+  font-size: 16px;
+  color: #333;
 }
 
 .message-header {
@@ -223,9 +336,7 @@ export default {
 }
 
 .message-content {
-  font-size: 16px;
-  color: #333;
-  margin-top: 5px;
+  margin-top: 10px;
 }
 
 .message.mine {
@@ -250,10 +361,11 @@ export default {
 
 .chat-input {
   width: 85%;
-  padding: 10px;
+  padding: 12px 18px;
   font-size: 16px;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 12px;
+  background-color: #f4f6f9;
 }
 
 .send-button {
@@ -263,7 +375,7 @@ export default {
   background-color: transparent;
   color: #0078d4;
   border: none;
-  border-radius: 20%;
+  border-radius: 50%;
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -271,17 +383,17 @@ export default {
 }
 
 .send-button i {
-  font-size: 22px;
+  font-size: 24px;
 }
 
 @media (max-width: 600px) {
   .chat-container {
     padding: 20px;
-    width: 100%;
+    width: 90%;
   }
 
   .chat h2 {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .message {
@@ -304,3 +416,4 @@ export default {
 }
 
 </style>
+

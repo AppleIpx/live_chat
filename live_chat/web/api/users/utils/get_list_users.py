@@ -19,6 +19,7 @@ def transformation_users(users: List[User]) -> list[UserRead]:
             first_name=user.first_name,  # type: ignore[call-arg]
             last_name=user.last_name,  # type: ignore[call-arg]
             username=user.username,  # type: ignore[call-arg]
+            user_image=user.user_image,  # type: ignore[call-arg]
         )
         for user in users
     ]

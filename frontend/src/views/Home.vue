@@ -43,7 +43,6 @@ export default {
       const token = localStorage.getItem('accessToken');
       if (token) {
         this.isLoggedIn = true;
-        // Для примера получим имя пользователя из localStorage, если оно там хранится
         this.username = localStorage.getItem('username') || 'пользователь';
       }
     },
