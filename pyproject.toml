@@ -54,7 +54,6 @@ src_paths = ["live_chat",]
 [tool.coverage.run]
 include = ["live_chat/**"]
 omit = ["*/migrations/*", "*/tests/*"]
-#plugins = ["django_coverage_plugin"]
 
 [tool.mypy]
 strict = true
