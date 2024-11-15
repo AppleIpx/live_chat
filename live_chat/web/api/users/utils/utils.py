@@ -1,7 +1,7 @@
 import uuid
 
-from fastapi import Depends
-from fastapi_users import FastAPIUsers
+from fastapi import Depends, HTTPException
+from fastapi_users import FastAPIUsers, models
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
@@ -9,6 +9,7 @@ from fastapi_users.authentication import (
 )
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from live_chat.db.dependencies import get_db_session
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
@@ -38,6 +39,20 @@ async def get_user_manager(  # type: ignore[misc]
     :yields: an instance of UserManager.
     """
     yield UserManager(user_db)
+
+
+async def get_user_by_id(
+    user_id: uuid.UUID,
+    user_manager: UserManager = Depends(get_user_manager),
+) -> models.UP:
+    """Return user by his ID."""
+    user = await user_manager.get(user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    return user
 
 
 def get_jwt_strategy() -> JWTStrategy:  # type: ignore[type-arg]

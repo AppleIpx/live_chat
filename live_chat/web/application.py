@@ -1,6 +1,7 @@
 from importlib import metadata
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import UJSONResponse
 
 from live_chat.services.faststream import fast_stream_router
@@ -26,7 +27,16 @@ def get_app() -> FastAPI:
         openapi_url="/api/openapi.json",
         default_response_class=UJSONResponse,
     )
-
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:8080",
+            "http://0.0.0.0:8080",
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     # Main router for the API.
     app.include_router(router=api_router, prefix="/api")
     app.include_router(router=fast_stream_router)
