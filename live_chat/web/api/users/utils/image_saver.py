@@ -28,7 +28,7 @@ class ImageSaver:
         ext = uploaded_image.filename.split(".")[-1]
         if ext not in SUPPORTED_AVATAR_EXTENSIONS:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"It is incorrect image extension. "
                 f"Required: {SUPPORTED_AVATAR_EXTENSIONS}",
             )

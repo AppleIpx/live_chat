@@ -16,8 +16,11 @@
               <i :class="chat.chat_type === 'direct' ? 'fas fa-user' : 'fas fa-users'"></i>
             </span>
             <strong>
-              <a :href="'/chats/' + chat.chat_id">
-                {{ getFirstLastNames(chat.users) }}
+              <a :href="'/chats/' + chat.id" class="chat-item-link">
+                <div v-if="getUserAvatarDirect(chat.users)" class="user-avatar">
+                  <img :src="getUserAvatarDirect(chat.users)" alt="Avatar"/>
+                </div>
+                <span class="user-name">{{ getFirstLastNames(chat.users) }}</span>
               </a>
             </strong>
             <span class="timestamp">{{ formatDate(chat.created_at) }}</span>
@@ -93,7 +96,6 @@ export default {
             Authorization: `Bearer ${token}`,
           },
         });
-
         clearTimeout(timeout);
         this.chats = response.data.chats.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
         this.isLoading = false;
@@ -119,6 +121,21 @@ export default {
         this.error = 'Не удалось загрузить пользователей.';
       }
     },
+
+    getUserAvatarDirect(users) {
+      const instanceUser = JSON.parse(localStorage.getItem("user"));
+      if (!instanceUser) {
+        this.$router.push('/login');
+        alert("Пожалуйста, перезайдите в аккаунт");
+        return;
+      }
+
+      const user = users.find(user => user.username !== instanceUser.email.split("@")[0] && user.username !== instanceUser.username);
+
+      console.log("IMAGE", user.user_image)
+      return user ? user.user_image : '';
+    },
+
     getFirstLastNames(users) {
       const instanceUser = JSON.parse(localStorage.getItem("user"));
 
@@ -164,7 +181,8 @@ export default {
             {recipient_user_id: recipientUserId},
             {
               headers: {
-                Authorization: `Bearer ${token}`,
+                Authorization: `
+      Bearer ${token}`,
               },
             }
         );
@@ -193,11 +211,12 @@ export default {
 
 .chats-container {
   background-color: white;
-  padding: 30px;
+  padding: 50px;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 500px;
+  max-width: 800px;
+
   text-align: center;
 }
 
@@ -341,4 +360,25 @@ export default {
   margin-top: 10px;
   text-align: center;
 }
+
+
+.chat-item-link {
+  display: flex;
+  align-items: center;
+}
+
+.user-avatar {
+  margin-right: 10px;
+}
+
+.user-avatar img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.user-name {
+  font-weight: bold;
+}
+
 </style>

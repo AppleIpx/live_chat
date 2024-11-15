@@ -3,7 +3,7 @@ from typing import List
 
 from fastapi_users import BaseUserManager, UUIDIDMixin, schemas
 from fastapi_users_db_sqlalchemy import UUID_ID
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.settings import settings
@@ -15,7 +15,7 @@ class BaseUserSchema:
     first_name: str
     last_name: str
     username: str
-    user_image: str
+    user_image: HttpUrl | None
 
 
 class BaseUserUpdateSchema:
