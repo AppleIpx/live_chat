@@ -7,7 +7,7 @@ from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.web.api.users.schemas import UserRead
 
 
-def transformation(users: List[User]) -> list[UserRead]:
+def transformation_users(users: List[User]) -> list[UserRead]:
     """Transformation of users to the desired data type. Used to fixed mypy error."""
     return [
         UserRead(

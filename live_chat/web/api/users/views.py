@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.security import HTTPBearer
 from fastapi_users import models
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette import status
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
@@ -13,7 +14,10 @@ from live_chat.web.api.users.schemas import (
     UserRead,
     UserUpdate,
 )
-from live_chat.web.api.users.utils.get_list_users import get_all_users, transformation
+from live_chat.web.api.users.utils.get_list_users import (
+    get_all_users,
+    transformation_users,
+)
 from live_chat.web.api.users.utils.image_saver import ImageSaver
 from live_chat.web.api.users.utils.utils import (
     api_users,
@@ -66,7 +70,7 @@ async def get_users(
 ) -> ListUserSchema:
     """Gets a list of all users."""
     users: list[User] = await get_all_users(db_session)
-    users_data = transformation(users)
+    users_data = transformation_users(users)
     return ListUserSchema(users=users_data)
 
 
@@ -86,7 +90,10 @@ async def upload_user_image(
     image_saver = ImageSaver(user.id)
     image_url = await image_saver.save_user_image(uploaded_image)
     if not image_url:
-        raise HTTPException(status_code=400, detail="Invalid image upload")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid image upload",
+        )
 
     user.user_image = image_url
     existing_user = await db_session.merge(user)
