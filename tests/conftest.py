@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, Type
 
 import pytest
 from fakeredis import FakeServer
@@ -19,6 +19,7 @@ from live_chat.db.utils import create_database, drop_database
 from live_chat.services.redis.dependency import get_redis_pool
 from live_chat.settings import settings
 from live_chat.web.application import get_app
+from tests.factories import ChatFactory, MessageFactory, ReadStatusFactory, UserFactory
 
 
 @pytest.fixture(scope="session")
@@ -151,3 +152,65 @@ async def client(
     """
     async with AsyncClient(app=fastapi_app, base_url="http://test", timeout=2.0) as ac:
         yield ac
+
+
+@pytest.fixture
+def user_factory(dbsession: AsyncSession) -> Type[UserFactory]:
+    """A fixture for generating a user factory."""
+    UserFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    return UserFactory
+
+
+@pytest.fixture
+def chat_factory(dbsession: AsyncSession) -> Type[ChatFactory]:
+    """A fixture for generating a chat factory."""
+    ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    return ChatFactory
+
+
+@pytest.fixture
+def message_factory(dbsession: AsyncSession) -> Type[MessageFactory]:
+    """A fixture for generating a message factory."""
+    MessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    return MessageFactory
+
+
+@pytest.fixture
+async def create_message(
+    message_factory: Type[MessageFactory],
+    user_factory: Type[UserFactory],
+    chat_factory: Type[ChatFactory],
+) -> MessageFactory:
+    """Fixture for creating a message."""
+    user = user_factory.create()
+    chat = chat_factory.create()
+    return message_factory.create(
+        user=user,
+        chat=chat,
+        chat_id=chat.id,
+        user_id=user.id,
+    )
+
+
+@pytest.fixture
+def read_status_factory(dbsession: AsyncSession) -> Type[ReadStatusFactory]:
+    """A fixture for generating a read status factory."""
+    ReadStatusFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    return ReadStatusFactory
+
+
+@pytest.fixture
+async def create_read_status(
+    read_status_factory: Type[ReadStatusFactory],
+    user_factory: Type[UserFactory],
+    chat_factory: Type[ChatFactory],
+) -> ReadStatusFactory:
+    """Fixture for creating a read status."""
+    user = user_factory.create()
+    chat = chat_factory.create()
+    return read_status_factory.create(
+        user=user,
+        chat=chat,
+        user_id=user.id,
+        chat_id=chat.id,
+    )
