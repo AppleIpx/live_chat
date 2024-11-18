@@ -14,10 +14,9 @@ class TestReadStatus:
 
     async def test_check_fields_read_status(
         self,
-        create_read_status: ReadStatusFactory,
+        read_status: ReadStatusFactory,
     ) -> None:
         """Checking ReadStatus fields."""
-        read_status = create_read_status
         expected_attributes = {
             "id": read_status.id,
             "created_at": read_status.created_at,
@@ -32,21 +31,19 @@ class TestReadStatus:
 
     async def test_check_save_read_status(
         self,
-        create_read_status: ReadStatusFactory,
+        read_status: ReadStatusFactory,
         dbsession: AsyncGenerator[AsyncSession, None],
     ) -> None:
         """Checking whether the ReadStatus is saved in the db."""
-        _ = create_read_status
         count = await dbsession.execute(select(func.count(ReadStatus.id)))
         count = count.scalar()
         assert count == 1
 
     async def test_check_readstatus_init(
         self,
-        create_read_status: ReadStatusFactory,
+        read_status: ReadStatusFactory,
     ) -> None:
         """Checking the string representation of the readstatus."""
-        read_status = create_read_status
         expected_init = (
             f"User: {read_status.user_id}, Message: {read_status.last_read_message_id}"
         )

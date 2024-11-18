@@ -14,12 +14,10 @@ class TestUser:
 
     async def test_check_fields_user(
         self,
-        user_factory: UserFactory,
+        user: UserFactory,
         dbsession: AsyncGenerator[AsyncSession, None],
     ) -> None:
         """Checking user fields."""
-        user = user_factory.create()
-
         expected_attributes = {
             "id": user.id,
             "username": user.username,
@@ -39,11 +37,10 @@ class TestUser:
 
     async def test_check_save_user(
         self,
-        user_factory: UserFactory,
+        user: UserFactory,
         dbsession: AsyncGenerator[AsyncSession, None],
     ) -> None:
         """Checking whether the user is saved in the db."""
-        user_factory.create()
         count = await dbsession.execute(select(func.count(User.id)))
         count = count.scalar()
 
@@ -51,10 +48,9 @@ class TestUser:
 
     async def test_check_user_init(
         self,
-        user_factory: UserFactory,
+        user: UserFactory,
         dbsession: AsyncGenerator[AsyncSession, None],
     ) -> None:
         """Checking the string representation of the user."""
-        user = user_factory.create()
         expected_init = f"{user.username}"
         assert str(user) == expected_init
