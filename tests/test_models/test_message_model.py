@@ -13,7 +13,7 @@ class TestMessage:
     """Testing the Message model."""
 
     async def test_check_fields_message(self, message: MessageFactory) -> None:
-        """Проверка полей сообщения."""
+        """Checking message fields."""
         expected_attributes = {
             "id": message.id,
             "created_at": message.created_at,

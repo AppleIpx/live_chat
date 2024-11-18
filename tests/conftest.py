@@ -176,7 +176,7 @@ async def message(
 ) -> MessageFactory:
     """Fixture for creating a message."""
     MessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    return MessageFactory.create(
+    return MessageFactory(
         user=user,
         chat=chat,
         chat_id=chat.id,
@@ -192,7 +192,7 @@ async def read_status(
 ) -> ReadStatusFactory:
     """Fixture for creating a read status."""
     ReadStatusFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    return ReadStatusFactory.create(
+    return ReadStatusFactory(
         user=user,
         chat=chat,
         user_id=user.id,
