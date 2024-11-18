@@ -1,43 +1,48 @@
 <template>
   <div class="users-view">
     <div class="users-container">
-      <h2>Список пользователей</h2>
-      <div class="search-container">
-        <input
-            type="text"
-            v-model="searchQuery"
-            @input="filterUsers"
-            placeholder="Поиск по имени пользователя..."
-            class="search-input"
-        />
-      </div>
-      <div v-if="filteredUsers.length" class="users-list">
-        <div v-for="user in filteredUsers" :key="user.id" class="user-card">
-          <div class="avatar-container">
-            <div class="avatar-wrapper">
-              <img
-                  v-if="user.user_image"
-                  :src="user.user_image"
-                  alt="Аватар"
-                  class="avatar-image"
-              />
-              <div v-else class="avatar-placeholder"></div>
+      <div v-if="users">
+        <h2>Список пользователей</h2>
+        <div class="search-container">
+          <input
+              type="text"
+              v-model="searchQuery"
+              @input="filterUsers"
+              placeholder="Поиск по имени пользователя..."
+              class="search-input"
+          />
+        </div>
+        <div v-if="filteredUsers.length" class="users-list">
+          <div v-for="user in filteredUsers" :key="user.id" class="user-card">
+            <div class="avatar-container">
+              <div class="avatar-wrapper">
+                <img
+                    v-if="user.user_image"
+                    :src="user.user_image"
+                    alt="Аватар"
+                    class="avatar-image"
+                />
+                <div v-else class="avatar-placeholder"></div>
+              </div>
             </div>
+            <h3>
+              <a :href="user.username === currentUser.username ? '/profile/me' : '/profile/' + user.id">
+                {{ user.username }}
+              </a>
+            </h3>
+            <p><strong>Имя:</strong> {{ user.first_name }}</p>
+            <p><strong>Фамилия:</strong> {{ user.last_name }}</p>
+            <p><strong>Email:</strong> <a :href="'mailto:' + user.email">{{
+                user.email
+              }}</a></p>
           </div>
-          <h3>
-            <a :href="user.username === currentUser.username ? '/profile/me' : '/profile/' + user.id">
-              {{ user.username }}
-            </a>
-          </h3>
-          <p><strong>Имя:</strong> {{ user.first_name }}</p>
-          <p><strong>Фамилия:</strong> {{ user.last_name }}</p>
-          <p><strong>Email:</strong> <a :href="'mailto:' + user.email">{{
-              user.email
-            }}</a></p>
         </div>
       </div>
-      <div v-else class="no-users">
-        <p>Нет пользователей для отображения.</p>
+      <div v-else>
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <p class="loading-text">Загрузка...</p>
+        </div>
       </div>
     </div>
   </div>
@@ -93,7 +98,7 @@ export default {
 
 <style scoped>
 .users-view {
-  background-color: #f7f7f7;
+  background: linear-gradient(135deg, #73b5e1, #b6d5de);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -140,7 +145,7 @@ h2 {
 }
 
 .user-card {
-  background-color: #dce5ea;
+  background-color: #ddedf5;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -148,7 +153,7 @@ h2 {
 }
 
 .user-card h3 a {
-  color: #0078d4;
+  color: #489ddc;
   text-decoration: none;
   font-size: 20px;
   font-weight: bold;

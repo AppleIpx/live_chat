@@ -30,7 +30,7 @@
                 <a v-if="message.user && message.user.username"
                    :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
                   {{
-                    message.user.username === user.username ? 'Вы' : message.user.username
+                    message.user.username === user.username ? 'Вы' : chatName
                   }}
                 </a>
                 <span v-else>Загрузка...</span>
@@ -107,7 +107,6 @@ export default {
         }
       });
     },
-    // Получаем имя пользователя по его ID из объекта users
     async getUsernameById(userId) {
       const user = this.users[userId];
       if (user) {
@@ -250,7 +249,7 @@ export default {
 
 <style scoped>
 .chat {
-  background-color: #f7f7f7;
+  background: linear-gradient(135deg, #73b5e1, #b6d5de);
   display: flex;
   justify-content: center;
   align-items: center;
