@@ -52,43 +52,63 @@ export default {
 
 <style scoped>
 .home {
-  background-color: #f7f7f7;
+  background: linear-gradient(135deg, #73b5e1, #b6d5de);
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
   padding: 20px;
+  overflow: hidden;
 }
 
 .welcome-container {
-  background-color: #dbe3f3;
+  background: #ffffff;
   padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 600px;
   text-align: center;
+  animation: slideIn 0.8s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 h1 {
-  color: #333;
-  font-size: 32px;
+  color: #2d4a6e;
+  font-size: 34px;
   margin-bottom: 15px;
   font-weight: bold;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.2px;
+}
+
+h2 {
+  color: #3e5a7a;
+  font-size: 28px;
+  margin-bottom: 10px;
 }
 
 p {
   font-size: 18px;
-  color: #666;
-  margin-bottom: 30px;
+  color: #5b6d81;
+  margin-bottom: 25px;
+  line-height: 1.5;
 }
 
 .buttons {
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: 15px;
 }
 
 .btn-main {

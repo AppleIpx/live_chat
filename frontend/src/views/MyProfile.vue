@@ -101,6 +101,7 @@ export default {
         this.userForm.email = this.user.email;
         this.userForm.first_name = this.user.first_name;
         this.userForm.last_name = this.user.last_name;
+        localStorage.removeItem('user')
         localStorage.setItem('user', JSON.stringify(this.user));
         console.log(localStorage.getItem("user"))
       } catch (error) {
@@ -113,7 +114,7 @@ export default {
     async saveProfile() {
       const token = localStorage.getItem('accessToken');
       if (!token) {
-        this.$router.push('/');
+        this.$router.push('/login');
         return;
       }
       const promises = [];
@@ -160,11 +161,9 @@ export default {
 
       try {
         await Promise.all(promises);
-        await this.fetchUserProfile();
-        alert('Профиль успешно обновлен');
         this.selectedAvatar = null;
         this.selectedAvatarPreview = null;
-
+        await this.fetchUserProfile();
       } catch (error) {
         console.error('Ошибка сохранения профиля:', error);
         alert('Не удалось обновить профиль');
@@ -182,7 +181,7 @@ export default {
 
 <style scoped>
 .profile {
-  background-color: #f7f7f7;
+  background: linear-gradient(135deg, #73b5e1, #b6d5de);
   display: flex;
   justify-content: center;
   align-items: center;
