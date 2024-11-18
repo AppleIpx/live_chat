@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from pydantic import BaseModel
 from sqlalchemy import or_, select
@@ -48,6 +49,7 @@ class UsageModelMixin:
             chat_id=chat.id,
             user_id=user.id,
         )
+        chat.updated_at = datetime.now()
 
         db_session.add(message)
         await db_session.commit()

@@ -101,7 +101,7 @@ export default {
 
 <style scoped>
 .register {
-  background-color: #f7f7f7;
+  background: linear-gradient(135deg, #73b5e1, #b6d5de);
   display: flex;
   justify-content: center;
   align-items: center;
