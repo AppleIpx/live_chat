@@ -5,7 +5,7 @@ import pytest
 from fakeredis import FakeServer
 from fakeredis.aioredis import FakeConnection
 from fastapi import FastAPI
-from httpx import AsyncClient
+from httpx import AsyncClient, Response
 from redis.asyncio import ConnectionPool
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -15,11 +15,23 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from live_chat.db.dependencies import get_db_session
-from live_chat.db.utils import create_database, drop_database
+from live_chat.db.utils import create_database, drop_database, get_async_session
 from live_chat.services.redis.dependency import get_redis_pool
 from live_chat.settings import settings
 from live_chat.web.application import get_app
 from tests.factories import ChatFactory, MessageFactory, ReadStatusFactory, UserFactory
+
+registration_payload = {
+    "email": "user@example.com",
+    "password": "string",
+    "is_active": True,
+    "is_superuser": False,
+    "is_verified": False,
+    "first_name": "string",
+    "last_name": "string",
+    "username": "string",
+    "user_image": None,
+}
 
 
 @pytest.fixture(scope="session")
@@ -155,14 +167,22 @@ async def client(
 
 
 @pytest.fixture
-def user(dbsession: AsyncSession) -> UserFactory:
+async def user(dbsession: AsyncSession) -> UserFactory:
     """A fixture for generating a user factory."""
     UserFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
     return UserFactory()
 
 
 @pytest.fixture
-def chat(dbsession: AsyncSession) -> ChatFactory:
+async def some_users(dbsession: AsyncSession) -> UserFactory:
+    """A fixture for generating five users factory."""
+    UserFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    await dbsession.commit()
+    return UserFactory.create_batch(5)
+
+
+@pytest.fixture
+async def chat(dbsession: AsyncSession) -> ChatFactory:
     """A fixture for generating a chat factory."""
     ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
     return ChatFactory()
@@ -198,3 +218,39 @@ async def read_status(
         user_id=user.id,
         chat_id=chat.id,
     )
+
+
+@pytest.fixture
+async def registered_user(client: AsyncClient) -> Response:
+    """Fixture for user registration."""
+    return await client.post("/api/auth/register", json=registration_payload)
+
+
+@pytest.fixture
+async def authorized_client(client: AsyncClient) -> AsyncClient:
+    """Fixture for user registration and authorization."""
+    await client.post("/api/auth/register", json=registration_payload)
+    login_payload = {
+        "username": "user@example.com",
+        "password": "string",
+    }
+    response = await client.post("/api/auth/jwt/login", data=login_payload)
+
+    token = response.json().get("access_token")
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    yield client
+
+
+@pytest.fixture
+def override_get_async_session(
+    dbsession: AsyncSession,
+    fastapi_app: FastAPI,
+) -> AsyncGenerator[AsyncSession, None]:
+    """Overrides the get_async_session dependency to use the session from dbsession."""
+
+    async def _override_get_db() -> AsyncGenerator[AsyncSession, None]:
+        yield dbsession
+
+    fastapi_app.dependency_overrides[get_async_session] = _override_get_db
+    yield
+    fastapi_app.dependency_overrides.pop(get_async_session)
