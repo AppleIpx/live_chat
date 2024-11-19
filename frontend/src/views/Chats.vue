@@ -117,7 +117,7 @@ export default {
           },
         });
 
-        this.users = response.data.users.slice(0, 5);
+        this.users = response.data.users.slice(0, 10);
         this.filteredUsers = this.users;
       } catch (error) {
         console.error('Ошибка получения пользователей:', error);
