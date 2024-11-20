@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, AsyncGenerator
+from typing import Any, AsyncGenerator, List
 
 import pytest
 from fakeredis import FakeServer
@@ -7,6 +7,7 @@ from fakeredis.aioredis import FakeConnection
 from fastapi import FastAPI
 from httpx import AsyncClient, Response
 from redis.asyncio import ConnectionPool
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from live_chat.db.dependencies import get_db_session
+from live_chat.db.models.chat import User
 from live_chat.db.utils import create_database, drop_database, get_async_session
 from live_chat.services.redis.dependency import get_redis_pool
 from live_chat.settings import settings
@@ -32,6 +34,15 @@ registration_payload = {
     "username": "string",
     "user_image": None,
 }
+
+
+async def get_user_from_client(
+    dbsession: AsyncSession,
+) -> User | None:
+    """Helper function that returns the user who submitted the request."""
+    query = select(User).where(User.email == registration_payload["email"])
+    result = await dbsession.execute(query)
+    return result.scalar_one_or_none()
 
 
 @pytest.fixture(scope="session")
@@ -174,10 +185,9 @@ async def user(dbsession: AsyncSession) -> UserFactory:
 
 
 @pytest.fixture
-async def some_users(dbsession: AsyncSession) -> UserFactory:
+async def some_users(dbsession: AsyncSession) -> List[UserFactory]:
     """A fixture for generating five users factory."""
     UserFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    await dbsession.commit()
     return UserFactory.create_batch(5)
 
 
@@ -186,6 +196,30 @@ async def chat(dbsession: AsyncSession) -> ChatFactory:
     """A fixture for generating a chat factory."""
     ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
     return ChatFactory()
+
+
+@pytest.fixture
+async def chat_with_users(
+    dbsession: AsyncSession,
+    user: UserFactory,
+) -> ChatFactory:
+    """A fixture for generating a chat factory with sender and recipient and message."""
+    ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    sender: User | None = await get_user_from_client(dbsession)
+    recipient = user
+    return ChatFactory(users=[sender, recipient])
+
+
+@pytest.fixture
+async def some_chats_with_users(
+    dbsession: AsyncSession,
+    some_users: List[UserFactory],
+    authorized_client: AsyncClient,
+) -> List[ChatFactory]:
+    """A fixture for generating five chats factory."""
+    sender: User | None = await get_user_from_client(dbsession)
+    ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    return [ChatFactory(users=[sender, recipient]) for recipient in some_users]
 
 
 @pytest.fixture
@@ -201,6 +235,22 @@ async def message(
         chat=chat,
         chat_id=chat.id,
         user_id=user.id,
+    )
+
+
+@pytest.fixture
+async def chat_with_message(
+    dbsession: AsyncSession,
+    chat_with_users: ChatFactory,
+) -> MessageFactory:
+    """Fixture for creating a chat message."""
+    MessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    sender = chat_with_users.users[0]
+    return MessageFactory(
+        user=sender,
+        user_id=sender.id,
+        chat=chat_with_users,
+        chat_id=chat_with_users.id,
     )
 
 

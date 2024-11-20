@@ -1,5 +1,5 @@
 import secrets
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List
 
 import pytest
 from fastapi import status
@@ -81,7 +81,7 @@ class TestUsersViews:
     async def test_get_all_users(
         self,
         authorized_client: AsyncClient,
-        some_users: UserFactory,
+        some_users: List[UserFactory],
         override_get_async_session: AsyncGenerator[AsyncSession, None],
     ) -> None:
         """Test get all users."""
@@ -93,7 +93,7 @@ class TestUsersViews:
     async def test_get_user_by_id(
         self,
         authorized_client: AsyncClient,
-        some_users: UserFactory,
+        some_users: List[UserFactory],
         override_get_async_session: AsyncGenerator[AsyncSession, None],
     ) -> None:
         """Test get user by id."""
