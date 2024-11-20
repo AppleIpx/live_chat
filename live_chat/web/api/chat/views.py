@@ -39,6 +39,7 @@ chat_router = APIRouter()
     "/create/direct/",
     summary="Create a direct chat",
     response_model=ChatSchema,
+    status_code=status.HTTP_201_CREATED,
 )
 async def create_direct_chat_view(
     create_direct_chat_schema: CreateDirectChatSchema,

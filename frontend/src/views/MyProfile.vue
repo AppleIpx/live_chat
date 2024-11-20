@@ -29,10 +29,10 @@
           </div>
 
           <form @submit.prevent="saveProfile" class="profile-form">
-            <label><strong>Username</strong></label>
+            <label><strong>Логин</strong></label>
             <input v-model="userForm.username" type="email" readonly/>
             <br>
-            <label><strong>Email</strong></label>
+            <label><strong>Почта</strong></label>
             <input v-model="userForm.email" type="email" required/>
             <br>
 
