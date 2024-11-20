@@ -21,20 +21,22 @@ async def create_direct_chat(
     and recipient users to the chat.
     It also creates initial read status records for both users.
     """
+    initiator_user = await db_session.get(User, initiator_user.id)
+    recipient_user = await db_session.get(User, recipient_user.id)
+
     try:
         chat = Chat(chat_type=ChatType.DIRECT)
         chat.users.append(initiator_user)
         chat.users.append(recipient_user)
-        new_chat = await db_session.merge(chat)
-        db_session.add(new_chat)
+        db_session.add(chat)
         await db_session.flush()
 
         initiator_read_status = ReadStatus(
-            chat_id=new_chat.id,
+            chat_id=chat.id,
             user_id=initiator_user.id,
         )
         recipient_read_status = ReadStatus(
-            chat_id=new_chat.id,
+            chat_id=chat.id,
             user_id=recipient_user.id,
         )
         db_session.add_all([initiator_read_status, recipient_read_status])
@@ -45,4 +47,4 @@ async def create_direct_chat(
         raise exc_info
 
     else:
-        return new_chat
+        return chat
