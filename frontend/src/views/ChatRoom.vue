@@ -27,7 +27,7 @@
                :class="{'mine': message.isMine, 'other': !message.isMine}">
             <div class="message-header">
               <strong>
-                <a v-if="message.user && message.user.username"
+                <a v-if="message.user || message.user_id"
                    :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
                   {{
                     message.user.username === user.username ? 'Вы' : chatName
@@ -68,7 +68,6 @@ import axios from "axios";
 export default {
   data() {
     return {
-      socket: null,
       messages: [],
       messageText: "",
       user: null,
@@ -93,7 +92,7 @@ export default {
     }
     this.chatId = chatId;
     this.fetchChatDetails(chatId);
-    this.connectToWebSocket(chatId);
+    this.connectToSSE(chatId);
   },
   methods: {
     goBack() {
@@ -128,7 +127,7 @@ export default {
             Authorization: `Bearer ${token}`,
           },
         });
-
+        this.user = JSON.parse(localStorage.getItem("user"));
         const chatData = response.data;
         this.chatData = chatData;
         this.messages = chatData.messages
@@ -148,7 +147,6 @@ export default {
           return acc;
         }, {});
 
-        this.user = JSON.parse(localStorage.getItem("user"));
         this.otherUser = chatData.users.find(user => user.id !== this.user.id);
         const response_user = await axios.get(`http://0.0.0.0:8000/api/users/read/${this.otherUser.id}/`, {
           headers: {
@@ -161,7 +159,6 @@ export default {
           console.error('Не удалось найти другого пользователя');
         } else {
           this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
-          console.log(this.chatName);
         }
 
         this.scrollToBottom();
@@ -169,66 +166,70 @@ export default {
         console.error("Ошибка получения информации о чате:", error);
       }
     },
-
-    async connectToWebSocket(chatId) {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        this.user = JSON.parse(storedUser);
-      } else {
-        console.error("Пользователь не найден в localStorage");
+    async connectToSSE(chatId) {
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        this.$router.push('/');
         return;
       }
+      const eventSource = new EventSource(
+          `http://0.0.0.0:8000/api/chats/${chatId}/events/?token=${encodeURIComponent(token)}`
+      );
+      eventSource.addEventListener('new_message', async (event) => {
+        const message = JSON.parse(event.data);
+        console.log(message)
 
-      const wsUrl = `ws://localhost:8000/ws/${this.user.username}/${chatId}`;
-      this.socket = new WebSocket(wsUrl);
-
-      this.socket.onopen = () => {
-        console.log(`Подключение к чату с ID ${chatId} установлено`);
-      };
-
-      this.socket.onmessage = async (event) => {
-        const data = JSON.parse(event.data);
-        if (data && data.content) {
-          const username = await this.getUsernameById(data.user_id);
-          this.messages.push({
-            id: data.id,
-            user: {
-              id: data.user_id,
-              username: username,
+        if (message.user_id !== this.user.id) {
+          const responseOtherUser = await axios.get(`http://0.0.0.0:8000/api/users/read/${message.user_id}/`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
             },
-            content: data.content,
-            created_at: new Date(data.created_at).toLocaleString(),
-            isMine: data.user_id === this.user.id,
           });
-          this.scrollToBottom()
+          this.chatName = `${responseOtherUser.data.first_name} ${responseOtherUser.data.last_name}`;
+          this.messages.push({
+            id: message.message_id,
+            user: {
+              id: message.user_id,
+            },
+            content: message.content,
+            created_at: new Date(message.created_at).toLocaleString(),
+            isMine: false,
+          });
+          this.scrollToBottom();
         }
-      };
+      });
 
-      this.socket.onerror = (error) => {
-        console.error("Ошибка WebSocket:", error);
-      };
-
-      this.socket.onclose = () => {
-        console.log("Соединение с WebSocket закрыто");
-      };
+      eventSource.onerror = function () {
+        console.log('Connection lost, reconnecting...');
+        eventSource.close()
+        setTimeout(() => {
+          new EventSource('/api/chats/1/events/');
+        }, 5000);
+      }
     },
 
-    // Send a new message
-    sendMessage() {
-      if (this.messageText.trim() !== "") {
-        const messageData = {
-          action_type: "message:send",
-          content: this.messageText,
-          user: this.user,
-          chat: {
-            id: this.chatId,
-            chat_type: this.chatData.chat_type,
-            created_at: this.chatData.created_at,
-            updated_at: this.chatData.updated_at,
-            users: this.chatData.users,
-          },
-        };
+    // Send message
+    async sendMessage() {
+      if (this.messageText.trim() === "") return;
 
+      const token = localStorage.getItem('accessToken');
+      console.log("token", token)
+      try {
+        await axios.post(
+            `http://0.0.0.0:8000/api/chats/${this.chatId}/messages/`,
+            {
+              content: this.messageText,
+              user: this.user,
+              chat: this.chatData,
+              is_read: false,
+              is_new: true,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+        );
         this.messages.push({
           id: Date.now(),
           user: {
@@ -238,11 +239,13 @@ export default {
           created_at: new Date().toLocaleString(),
           isMine: true,
         });
-        this.socket.send(JSON.stringify(messageData));
         this.messageText = "";
         this.scrollToBottom();
+      } catch (error) {
+        console.error("Error sending message:", error);
       }
-    },
+    }
+    ,
   },
 };
 </script>

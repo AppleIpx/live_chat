@@ -132,10 +132,7 @@ export default {
         alert("Пожалуйста, перезайдите в аккаунт");
         return;
       }
-
       const user = users.find(user => user.username !== instanceUser.email.split("@")[0] && user.username !== instanceUser.username);
-
-      console.log("IMAGE", user.user_image)
       return user ? user.user_image : '';
     },
 

@@ -3,6 +3,8 @@ from typing import AsyncGenerator
 from redis.asyncio import Redis
 from starlette.requests import Request
 
+from live_chat.settings import settings
+
 
 async def get_redis_pool(
     request: Request,
@@ -24,3 +26,6 @@ async def get_redis_pool(
     :returns:  redis connection pool.
     """
     return request.app.state.redis_pool
+
+
+redis = Redis(host=settings.redis_host, port=settings.redis_port, decode_responses=True)
