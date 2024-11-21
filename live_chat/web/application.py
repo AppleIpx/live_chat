@@ -7,7 +7,6 @@ from fastapi.responses import UJSONResponse
 from live_chat.services.faststream import fast_stream_router
 from live_chat.web.api.router import api_router
 from live_chat.web.lifespan import lifespan_setup
-from live_chat.web.websocket.messages.views import websocket_router
 
 
 def get_app() -> FastAPI:
@@ -40,6 +39,5 @@ def get_app() -> FastAPI:
     # Main router for the API.
     app.include_router(router=api_router, prefix="/api")
     app.include_router(router=fast_stream_router)
-    app.include_router(router=websocket_router)
 
     return app

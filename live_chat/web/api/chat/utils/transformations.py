@@ -1,21 +1,7 @@
 from typing import List
 
-from live_chat.db.models.chat import Chat, Message  # type: ignore[attr-defined]
-from live_chat.web.api.chat.schemas import ChatSchema, GetMessageSchema
-
-
-def transformation_message(messages: List[Message]) -> List[GetMessageSchema]:
-    """Transform a list of Message objects into a list of GetMessageSchema objects."""
-    return [
-        GetMessageSchema(
-            message_id=msg.id,
-            content=msg.content,
-            created_at=msg.created_at,
-            chat_id=msg.chat.id,
-            user_id=msg.user.id,
-        )
-        for msg in messages
-    ]
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
+from live_chat.web.api.chat.schemas import ChatSchema
 
 
 def transformation_list_chats(chats: List[Chat]) -> List[ChatSchema]:
