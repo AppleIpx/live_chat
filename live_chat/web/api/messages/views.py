@@ -1,36 +1,38 @@
-import asyncio
 import json
 import logging
-from typing import Any, AsyncGenerator
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.encoders import jsonable_encoder
-from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette import EventSourceResponse
 
 from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
 from live_chat.services.faststream.router import fast_stream_broker
-from live_chat.settings import settings
-from live_chat.web.api.chat.utils.check_user_in_chat import validate_user_access_to_chat
-from live_chat.web.api.chat.utils.get_chat_by_id import get_chat_by_id
-from live_chat.web.api.chat.utils.get_users_chats import get_user_chats
-from live_chat.web.api.messages import CreateMessageSchema, GetMessageSchema
+from live_chat.services.redis import redis
+from live_chat.web.api.chat.utils import (
+    get_chat_by_id,
+    get_user_chats,
+    validate_user_access_to_chat,
+)
 from live_chat.web.api.messages.constants import (
     REDIS_CHANNEL_PREFIX,
     REDIS_SSE_KEY_PREFIX,
 )
-from live_chat.web.api.messages.utils import transformation_message
-from live_chat.web.api.messages.utils.get_user_from_token import get_user_from_token
-from live_chat.web.api.messages.utils.save_message_to_db import save_message_to_db
+from live_chat.web.api.messages.schemas import CreateMessageSchema, GetMessageSchema
+from live_chat.web.api.messages.utils import (
+    get_user_from_token,
+    message_generator,
+    save_message_to_db,
+    transformation_message,
+)
 from live_chat.web.api.users.schemas import UserManager
 from live_chat.web.api.users.utils.utils import get_user_manager
 
 message_router = APIRouter()
 logger = logging.getLogger(__name__)
-redis = Redis(host=settings.redis_host, port=settings.redis_port, decode_responses=True)
 
 
 @message_router.post("/chats/{chat_id}/messages/")
@@ -69,17 +71,6 @@ async def process_message(message: Any) -> None:
     )
 
 
-async def event_generator(redis_key: str) -> AsyncGenerator[dict[str, Any], None]:
-    """Event generator for sending SSE."""
-    try:
-        while True:
-            if message := await redis.lpop(redis_key):  # type: ignore[misc]
-                yield {"event": "new_message", "data": message}
-            await asyncio.sleep(0.1)
-    except asyncio.CancelledError:
-        pass
-
-
 @message_router.get("/chats/{chat_id}/events/")
 async def sse_events(
     chat_id: UUID,
@@ -100,4 +91,4 @@ async def sse_events(
         raise HTTPException(status_code=403, detail="User is not part of the chat")
 
     redis_key = f"{REDIS_SSE_KEY_PREFIX}{chat.id}_{current_user.id}"
-    return EventSourceResponse(event_generator(redis_key), ping=60)
+    return EventSourceResponse(message_generator(redis_key), ping=60)
