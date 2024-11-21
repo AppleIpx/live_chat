@@ -5,7 +5,7 @@ from live_chat.services.redis import redis
 
 
 async def message_generator(redis_key: str) -> AsyncGenerator[dict[str, Any], None]:
-    """Event generator for sending SSE."""
+    """Event generator for sending message in SSE."""
     try:
         while True:
             if message := await redis.lpop(redis_key):  # type: ignore[misc]
