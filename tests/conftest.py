@@ -7,7 +7,6 @@ from fakeredis.aioredis import FakeConnection
 from fastapi import FastAPI
 from httpx import AsyncClient, Response
 from redis.asyncio import ConnectionPool
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -22,6 +21,7 @@ from live_chat.services.redis.dependency import get_redis_pool
 from live_chat.settings import settings
 from live_chat.web.application import get_app
 from tests.factories import ChatFactory, MessageFactory, ReadStatusFactory, UserFactory
+from tests.utils import get_first_user_from_db
 
 registration_payload = {
     "email": "user@example.com",
@@ -34,15 +34,6 @@ registration_payload = {
     "username": "string",
     "user_image": None,
 }
-
-
-async def get_user_from_client(
-    dbsession: AsyncSession,
-) -> User | None:
-    """Helper function that returns the user who submitted the request."""
-    query = select(User).where(User.email == registration_payload["email"])
-    result = await dbsession.execute(query)
-    return result.scalar_one_or_none()
 
 
 @pytest.fixture(scope="session")
@@ -200,24 +191,24 @@ async def chat(dbsession: AsyncSession) -> ChatFactory:
 
 @pytest.fixture
 async def chat_with_users(
-    dbsession: AsyncSession,
     user: UserFactory,
+    dbsession: AsyncSession,
 ) -> ChatFactory:
     """A fixture for generating a chat factory with sender and recipient and message."""
     ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    sender: User | None = await get_user_from_client(dbsession)
+    sender: User | None = await get_first_user_from_db(dbsession)
     recipient = user
     return ChatFactory(users=[sender, recipient])
 
 
 @pytest.fixture
 async def some_chats_with_users(
-    dbsession: AsyncSession,
-    some_users: List[UserFactory],
     authorized_client: AsyncClient,
+    some_users: List[UserFactory],
+    dbsession: AsyncSession,
 ) -> List[ChatFactory]:
     """A fixture for generating five chats factory."""
-    sender: User | None = await get_user_from_client(dbsession)
+    sender: User | None = await get_first_user_from_db(dbsession)
     ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
     return [ChatFactory(users=[sender, recipient]) for recipient in some_users]
 
@@ -277,15 +268,18 @@ async def registered_user(client: AsyncClient) -> Response:
 
 
 @pytest.fixture
-async def authorized_client(client: AsyncClient) -> AsyncClient:
+async def authorized_client(
+    client: AsyncClient,
+    registered_user: Response,
+) -> AsyncClient:
     """Fixture for user registration and authorization."""
-    await client.post("/api/auth/register", json=registration_payload)
-    login_payload = {
-        "username": "user@example.com",
-        "password": "string",
-    }
-    response = await client.post("/api/auth/jwt/login", data=login_payload)
-
+    response = await client.post(
+        "/api/auth/jwt/login",
+        data={
+            "username": "user@example.com",
+            "password": "string",
+        },
+    )
     token = response.json().get("access_token")
     client.headers.update({"Authorization": f"Bearer {token}"})
     yield client
