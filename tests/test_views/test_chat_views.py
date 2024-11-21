@@ -5,9 +5,9 @@ from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from live_chat.web.api.chat.utils import get_chat_by_id
 from live_chat.web.api.chat.utils.get_message_by_id import get_message_by_id
 from live_chat.web.api.users.utils.get_user_by_id import get_user_by_id
-from live_chat.web.websocket.utils import get_chat_by_id
 from tests.factories import ChatFactory, MessageFactory, UserFactory
 from tests.utils import get_first_chat_from_db, get_first_user_from_db
 
