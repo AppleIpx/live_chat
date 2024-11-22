@@ -16,6 +16,7 @@ class ChatDirectSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
     users: list[UserRead]  # type: ignore[type-arg]
+    last_message_content: str | None
 
     class Config:
         from_attributes = True

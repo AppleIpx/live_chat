@@ -173,4 +173,5 @@ async def get_detail_chat_view(
         updated_at=chat.updated_at,
         users=users_data,
         messages=messages_data,
+        last_message_content=chat.messages[-1].content if chat.messages else None,
     )

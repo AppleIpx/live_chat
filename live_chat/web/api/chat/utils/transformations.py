@@ -62,4 +62,5 @@ async def transformation_chat_direct(chat: Chat) -> ChatDirectSchema:
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         users=chat.users,
+        last_message_content=None,
     )

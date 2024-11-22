@@ -8,60 +8,66 @@
           <p class="loading-text">Загрузка...</p>
         </div>
       </div>
-    <div v-else-if="chats && chats.length">
-      <div class="chat-item" v-for="chat in chats" :key="chat.chat_id">
-        <a :href="'/chats/' + chat.id" class="chat-item-link">
-          <div class="chat-header">
-          <span
-              class="chat-type-icon"
-              :title="chat.chat_type === 'direct' ? 'Личный чат' : 'Групповой чат'"
+      <div v-else-if="chats && chats.length">
+        <div class="chat-item" v-for="chat in chats" :key="chat.chat_id">
+          <a :href="'/chats/' + chat.id" class="chat-item-link">
+            <div class="chat-header">
+              <span
+                  class="chat-type-icon"
+                  :title="chat.chat_type === 'direct' ? 'Личный чат' : 'Групповой чат'"
+              >
+                <i :class="chat.chat_type === 'direct' ? 'fas fa-user' : 'fas fa-users'"></i>
+              </span>
+              <strong>
+                <div class="user-info">
+                  <div v-if="getUserAvatarDirect(chat.users)" class="user-avatar">
+                    <img :src="getUserAvatarDirect(chat.users)" alt="Avatar"/>
+                  </div>
+                  <span class="user-name">{{ getFirstLastNames(chat.users) }}</span>
+                </div>
+              </strong>
+              <span class="timestamp">{{ formatDate(chat.updated_at) }}</span>
+            </div>
+            <p class="last-message">{{
+                chat.last_message_content || 'Нет сообщений'
+              }}</p>
+          </a>
+        </div>
+      </div>
+      <div v-else-if="error">
+        <p class="error-message">{{ error }}</p>
+      </div>
+      <div v-else>
+        <p class="no-chats-message">У вас ещё нет чатов. Вы можете создать новый
+          чат.</p>
+      </div>
+      <button @click="openSearch" class="btn-main">Создать чат</button>
+      <div v-if="isSearchOpen" class="search-container">
+        <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Поиск по имени пользователя..."
+            @input="filterUsers"
+        />
+        <ul v-if="filteredUsers.length" class="user-list">
+          <li
+              v-for="user in filteredUsers"
+              :key="user.id"
+              @click="selectUser(user)"
+              class="user-item"
           >
-              <i :class="chat.chat_type === 'direct' ? 'fas fa-user' : 'fas fa-users'"></i>
-          </span>
-            <strong>
-              <div v-if="getUserAvatarDirect(chat.users)" class="user-avatar">
-                <img :src="getUserAvatarDirect(chat.users)" alt="Avatar"/>
-              </div>
-              <span class="user-name">{{ getFirstLastNames(chat.users) }}</span>
-            </strong>
-            <span class="timestamp">{{ formatDate(chat.updated_at) }}</span>
-          </div>
-        </a>
+            {{ user.username }}
+          </li>
+        </ul>
+        <p v-else class="no-users-message">Пользователь не найден</p>
       </div>
     </div>
-    <div v-else-if="error">
-      <p class="error-message">{{ error }}</p>
-    </div>
-    <div v-else>
-      <p class="no-chats-message">У вас ещё нет чатов. Вы можете создать новый
-        чат.</p>
-    </div>
-    <button @click="openSearch" class="btn-main">Создать чат</button>
-    <div v-if="isSearchOpen" class="search-container">
-      <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Поиск по имени пользователя..."
-          @input="filterUsers"
-      />
-      <ul v-if="filteredUsers.length" class="user-list">
-        <li
-            v-for="user in filteredUsers"
-            :key="user.id"
-            @click="selectUser(user)"
-            class="user-item"
-        >
-          {{ user.username }}
-        </li>
-      </ul>
-      <p v-else class="no-users-message">Пользователь не найден</p>
-    </div>
-  </div>
   </div>
 </template>
 
 <script>
 import axios from 'axios';
+import store from "@/store";
 
 export default {
   data() {
@@ -74,6 +80,7 @@ export default {
       isSearchOpen: false,
       isLoading: true,
       selectedUser: null,
+      sseConnections: {},
     };
   },
   mounted() {
@@ -102,10 +109,47 @@ export default {
         clearTimeout(timeout);
         this.chats = response.data.chats.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
         this.isLoading = false;
+
+        this.chats.forEach(chat => {
+          this.connectToSSE(chat.id);
+        });
       } catch (error) {
         this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
         this.isLoading = false;
       }
+    },
+    async connectToSSE(chatId) {
+      const token = localStorage.getItem('accessToken');
+      const eventSource = new EventSource(
+          `http://0.0.0.0:8000/api/chats/${chatId}/events/?token=${encodeURIComponent(token)}`
+      );
+      eventSource.addEventListener('new_message', async event => {
+            const message = JSON.parse(event.data);
+            const user = localStorage.getItem("user")
+            if (message.user_id !== user.id) {
+              await store.dispatch('receiveMessage', message);
+              const chatIndex = this.chats.findIndex(c => c.id === chatId);
+              if (chatIndex !== -1) {
+                const chat = this.chats[chatIndex];
+                chat.last_message_content = message.content;
+                chat.updated_at = message.created_at;
+                this.chats.splice(chatIndex, 1);
+                this.chats.unshift(chat);
+              }
+            }
+            const chat = this.chats.find(c => c.id === chatId);
+            if (chat) {
+              chat.last_message = message.content;
+            }
+          },
+      )
+      eventSource.onerror = () => {
+        console.log(`SSE для чата ${chatId} отключено. Переподключение...`);
+        setTimeout(() => {
+          this.connectToSSE(chatId);
+        }, 5000);
+      };
+      this.sseConnections[chatId] = eventSource;
     },
 
     async fetchUsers() {
@@ -193,8 +237,7 @@ export default {
         alert('Не удалось создать чат. Пожалуйста, попробуйте позже.');
       }
     },
-  }
-  ,
+  },
 }
 ;
 </script>
@@ -232,6 +275,8 @@ h2 {
   background: #f8f9fa;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-item:hover {
@@ -242,7 +287,14 @@ h2 {
 .chat-header {
   display: flex;
   justify-content: space-between;
-  align-items: center; /* Это выравнивает элементы по вертикали */
+  align-items: center;
+  margin-bottom: 10px;
+  padding-right: 10px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
 }
 
 .user-avatar {
@@ -263,8 +315,8 @@ h2 {
 .user-name {
   color: #37a5de;
   display: compact;
-  justify-content: center;
-  padding: 5px 5px 5px;
+  justify-content: right;
+  padding: 15px 10px 15px;
 }
 
 .chat-type-icon {
@@ -343,6 +395,15 @@ h2 {
   display: block;
   text-decoration: none;
   color: inherit;
+}
+
+.last-message {
+  font-size: 20px;
+  color: #8c8787;
+  margin-top: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chat-item-link:hover .chat-item {

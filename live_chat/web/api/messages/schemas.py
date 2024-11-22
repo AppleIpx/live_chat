@@ -23,11 +23,7 @@ class GetListMessagesDirectSchema(ChatDirectSchema):
     messages: list[GetMessageSchema]
 
 
-class CreateMessageSchema(BaseModel):
+class PostMessageSchema(BaseModel):
     """Represents a message for create."""
 
     content: str
-    user: UserRead  # type: ignore[type-arg]
-    chat: ChatDirectSchema
-    is_read: bool | None = False
-    is_new: bool | None = True

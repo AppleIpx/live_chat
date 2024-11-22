@@ -5,44 +5,38 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import Chat
+from live_chat.web.api.chat.utils import get_chat_by_id
 from tests.factories import ChatFactory
 
 
 @pytest.mark.anyio
-class TestChat:
-    """Testing the Chat model."""
+async def test_check_fields_chat(
+    chat: ChatFactory,
+    dbsession: AsyncSession,
+) -> None:
+    """Checking chat fields."""
+    chat_db = await get_chat_by_id(chat_id=chat.id, db_session=dbsession)
+    assert chat.id == chat_db.id
+    assert chat.chat_type == chat_db.chat_type
+    assert chat.updated_at == chat_db.updated_at
+    assert chat.created_at == chat_db.created_at
 
-    async def test_check_fields_chat(
-        self,
-        chat: ChatFactory,
-        dbsession: AsyncGenerator[AsyncSession, None],
-    ) -> None:
-        """Checking chat fields."""
-        expected_attributes = {
-            "id": chat.id,
-            "created_at": chat.created_at,
-            "updated_at": chat.updated_at,
-            "chat_type": chat.chat_type,
-        }
-        for attr, expected_value in expected_attributes.items():
-            assert getattr(chat, attr) == expected_value
 
-    async def test_check_save_chat(
-        self,
-        chat: ChatFactory,
-        dbsession: AsyncGenerator[AsyncSession, None],
-    ) -> None:
-        """Checking whether the chat is saved in the db."""
-        count = await dbsession.execute(select(func.count(Chat.id)))
-        count = count.scalar()
+@pytest.mark.anyio
+async def test_check_save_chat(
+    chat: ChatFactory,
+    dbsession: AsyncSession,
+) -> None:
+    """Checking whether the chat is saved in the db."""
+    count = await dbsession.execute(select(func.count(Chat.id)))
+    assert count.scalar() == 1
 
-        assert count == 1
 
-    async def test_check_chat_init(
-        self,
-        chat: ChatFactory,
-        dbsession: AsyncGenerator[AsyncSession, None],
-    ) -> None:
-        """Checking the string representation of the chat."""
-        expected_init = f"{chat.chat_type.value.title()} {chat.id}"
-        assert str(chat) == expected_init
+@pytest.mark.anyio
+async def test_check_chat_init(
+    chat: ChatFactory,
+    dbsession: AsyncGenerator[AsyncSession, None],
+) -> None:
+    """Checking the string representation of the chat."""
+    expected_init = f"{chat.chat_type.value.title()} {chat.id}"
+    assert str(chat) == expected_init

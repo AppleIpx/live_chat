@@ -47,12 +47,13 @@
 
       <!-- Message Input -->
       <div class="chat-input-container">
-        <input
+        <textarea
             v-model="messageText"
             @keydown.enter="sendMessage"
             placeholder="Напишите сообщение..."
             class="chat-input"
-        />
+            rows="3"
+        ></textarea>
         <button @click="sendMessage" class="send-button">
           <i class="fa fa-paper-plane"></i>
         </button>
@@ -64,6 +65,8 @@
 
 <script>
 import axios from "axios";
+import store from '../store';
+
 
 export default {
   data() {
@@ -82,9 +85,11 @@ export default {
       },
       otherUserImage: '',
       users: {},
+      isChatOpen: false
     };
   },
   mounted() {
+    this.isChatOpen = true;
     const chatId = this.$route.params.chat_id;
     if (!chatId) {
       console.error("chat_id отсутствует.");
@@ -93,6 +98,9 @@ export default {
     this.chatId = chatId;
     this.fetchChatDetails(chatId);
     this.connectToSSE(chatId);
+  },
+  beforeUnmount() {
+    this.isChatOpen = false;
   },
   methods: {
     goBack() {
@@ -148,7 +156,7 @@ export default {
         }, {});
 
         this.otherUser = chatData.users.find(user => user.id !== this.user.id);
-        const response_user = await axios.get(`http://0.0.0.0:8000/api/users/read/${this.otherUser.id}/`, {
+        const response_user = await axios.get(`http://0.0.0.0:8000/api/users/read/${this.otherUser.id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -180,7 +188,10 @@ export default {
         console.log(message)
 
         if (message.user_id !== this.user.id) {
-          const responseOtherUser = await axios.get(`http://0.0.0.0:8000/api/users/read/${message.user_id}/`, {
+          if (!this.isChatOpen) {
+            await store.dispatch('receiveMessage', message);
+          }
+          const responseOtherUser = await axios.get(`http://0.0.0.0:8000/api/users/read/${message.user_id}`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -219,10 +230,6 @@ export default {
             `http://0.0.0.0:8000/api/chats/${this.chatId}/messages/`,
             {
               content: this.messageText,
-              user: this.user,
-              chat: this.chatData,
-              is_read: false,
-              is_new: true,
             },
             {
               headers: {
@@ -244,8 +251,7 @@ export default {
       } catch (error) {
         console.error("Error sending message:", error);
       }
-    }
-    ,
+    },
   },
 };
 </script>
@@ -368,6 +374,11 @@ export default {
   border: 1px solid #ddd;
   border-radius: 12px;
   background-color: #f4f6f9;
+  font-family: Arial, sans-serif;
+  resize: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .send-button {
