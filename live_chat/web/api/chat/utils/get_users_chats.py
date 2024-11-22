@@ -18,7 +18,10 @@ async def get_query(current_user: User, chat_type: str) -> Select[tuple[Chat]]:
                 Chat.chat_type == chat_type,
             ),
         )
-        .options(selectinload(Chat.users))
+        .options(
+            selectinload(Chat.users),
+            selectinload(Chat.messages),
+        )
         .order_by(Chat.updated_at.desc())
     )
 
