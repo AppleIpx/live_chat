@@ -13,6 +13,7 @@ def transformation_list_chats(chats: List[Chat]) -> List[ChatSchema]:
             created_at=chat.created_at,
             updated_at=chat.updated_at,
             users=chat.users,
+            last_message_content=chat.messages[-1].content if chat.messages else None,
         )
         for chat in chats
     ]
@@ -26,4 +27,5 @@ def transformation_chat(chat: Chat) -> ChatSchema:
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         users=chat.users,
+        last_message_content=chat.messages[-1].content if chat.messages else None,
     )
