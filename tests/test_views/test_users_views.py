@@ -1,5 +1,6 @@
 import secrets
 from typing import AsyncGenerator, List
+from unittest.mock import Mock
 
 import pytest
 from fastapi import status
@@ -51,6 +52,7 @@ async def test_login_users(
     client: AsyncClient,
     registered_user: Response,
     dbsession: AsyncSession,
+    mocker: Mock,
 ) -> None:
     """Test to verify user login."""
     user = await get_first_user_from_db(dbsession)
@@ -61,10 +63,11 @@ async def test_login_users(
             "password": "string",
         },
     )
-    data = response.json()
     assert response.status_code == status.HTTP_200_OK
-    assert "access_token" in data
-    assert data["access_token"] is not None
+    assert response.json() == {
+        "access_token": mocker.ANY,
+        "token_type": "bearer",
+    }
 
 
 @pytest.mark.anyio
@@ -99,10 +102,9 @@ async def test_get_all_users(
 ) -> None:
     """Test get all users."""
     response = await authorized_client.get("/api/users")
-    data = response.json()
     assert response.status_code == status.HTTP_200_OK
-    assert len(data["users"]) == 6
-    for user_data in data["users"]:
+    assert len(response.json()["users"]) == 6
+    for user_data in response.json()["users"]:
         user = await get_user_by_id(user_id=user_data["id"], db_session=dbsession)
         assert user_data == {
             "id": str(user.id),
@@ -127,10 +129,9 @@ async def test_get_user_by_id(
     """Test get user by id."""
     selected_user = secrets.choice(some_users)
     response = await authorized_client.get(f"/api/users/read/{selected_user.id}")
-    data = response.json()
     assert response.status_code == status.HTTP_200_OK
     user = await get_user_by_id(user_id=selected_user.id, db_session=dbsession)
-    assert data == {
+    assert response.json() == {
         "id": str(user.id),
         "email": user.email,
         "is_active": user.is_active,

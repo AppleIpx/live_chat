@@ -20,16 +20,14 @@ async def test_create_direct_chat(
     dbsession: AsyncSession,
 ) -> None:
     """Test create and check user's direct chat."""
-    recipient = user
     response = await authorized_client.post(
         "/api/chats/create/direct/",
-        json={"recipient_user_id": f"{recipient.id}"},
+        json={"recipient_user_id": f"{user.id}"},
     )
     chat = await get_first_chat_from_db(dbsession)
     sender = await get_first_user_from_db(dbsession)
-    data = response.json()
     assert response.status_code == status.HTTP_201_CREATED
-    assert data == {
+    assert response.json() == {
         "id": str(chat.id),
         "chat_type": chat.chat_type.value,
         "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
@@ -47,17 +45,18 @@ async def test_create_direct_chat(
                 "user_image": sender.user_image,
             },
             {
-                "id": str(recipient.id),
-                "email": recipient.email,
-                "is_active": recipient.is_active,
-                "is_superuser": recipient.is_superuser,
-                "is_verified": recipient.is_verified,
-                "first_name": recipient.first_name,
-                "last_name": recipient.last_name,
-                "username": recipient.username,
-                "user_image": recipient.user_image,
+                "id": str(user.id),
+                "email": user.email,
+                "is_active": user.is_active,
+                "is_superuser": user.is_superuser,
+                "is_verified": user.is_verified,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "username": user.username,
+                "user_image": user.user_image,
             },
         ],
+        "last_message_content": None,
     }
 
 
@@ -76,9 +75,8 @@ async def test_get_list_chats(
         for user_id in recipient_ids
     }
     response = await authorized_client.get("/api/chats/")
-    data = response.json()
     assert response.status_code == status.HTTP_200_OK
-    for chat_api in data["chats"]:
+    for chat_api in response.json()["chats"]:
         recipient = recipients[str(chat_api["users"][1]["id"])]
         chat = await get_chat_by_id(chat_id=chat_api["id"], db_session=dbsession)
         assert chat_api == {
@@ -110,6 +108,9 @@ async def test_get_list_chats(
                     "user_image": recipient.user_image,
                 },
             ],
+            "last_message_content": (
+                chat.messages[-1].content if chat.messages else None
+            ),
         }
 
 
@@ -130,9 +131,8 @@ async def test_get_detail_chat(
         db_session=dbsession,
     )
     response = await authorized_client.get(f"api/chats/{chat_id}/")
-    data = response.json()
     assert response.status_code == status.HTTP_200_OK
-    assert data == {
+    assert response.json() == {
         "id": str(chat.id),
         "chat_type": chat.chat_type.value,
         "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
@@ -161,6 +161,7 @@ async def test_get_detail_chat(
                 "user_image": recipient.user_image,
             },
         ],
+        "last_message_content": chat.messages[-1].content if chat.messages else None,
         "messages": [
             {
                 "message_id": str(message.id),
