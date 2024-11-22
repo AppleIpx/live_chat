@@ -66,10 +66,11 @@ export default {
         if (!this.currentNotification) {
           this.showNextNotification();
         } else {
-          // Если пришло новое уведомление, сбрасываем таймер и прерываем старую анимацию
+
           clearTimeout(this.timeout);
           this.currentNotification = this.notificationQueue.shift();
           this.showNextNotification();
+
         }
       } catch (error) {
         console.error("Ошибка при загрузке данных пользователя:", error);
@@ -141,10 +142,10 @@ export default {
 
 .content {
   flex: 1;
-  white-space: nowrap; /* Запрещает перенос текста */
-  overflow: hidden; /* Скрывает текст, который выходит за пределы контейнера */
-  text-overflow: ellipsis; /* Добавляет многоточие в случае обрезки */
-  max-width: calc(100% - 75px); /* Устанавливает максимальную ширину, учитывая размер аватара */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 75px);
 }
 
 .message {
