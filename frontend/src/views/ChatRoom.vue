@@ -219,10 +219,6 @@ export default {
             `http://0.0.0.0:8000/api/chats/${this.chatId}/messages/`,
             {
               content: this.messageText,
-              user: this.user,
-              chat: this.chatData,
-              is_read: false,
-              is_new: true,
             },
             {
               headers: {
