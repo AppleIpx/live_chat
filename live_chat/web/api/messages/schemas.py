@@ -4,7 +4,6 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from live_chat.web.api.chat.schemas import ChatSchema
-from live_chat.web.api.users.schemas import UserRead
 
 
 class GetMessageSchema(BaseModel):
@@ -23,11 +22,7 @@ class GetListMessagesSchema(ChatSchema):
     messages: list[GetMessageSchema]
 
 
-class CreateMessageSchema(BaseModel):
+class PostMessageSchema(BaseModel):
     """Represents a message for create."""
 
     content: str
-    user: UserRead  # type: ignore[type-arg]
-    chat: ChatSchema
-    is_read: bool | None = False
-    is_new: bool | None = True

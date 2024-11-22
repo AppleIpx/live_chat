@@ -1,28 +1,29 @@
 import logging
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import Chat, Message, User  # type: ignore[attr-defined]
-from live_chat.web.api.messages import CreateMessageSchema
 
 
 async def save_message_to_db(
     db_session: AsyncSession,
-    message: CreateMessageSchema,
+    message_content: str,
+    chat_id: UUID,
+    current_user: User,
 ) -> Message | None:
     """Save the message to the database."""
-    chat = await db_session.get(Chat, message.chat.id)
-    user = await db_session.get(User, message.user.id)
+    chat = await db_session.get(Chat, chat_id)
 
-    if not chat or not user:
+    if not chat:
         logging.error("Data error. Chat or user not found.", exc_info=True)
         return None
 
     message = Message(
-        content=message.content,
-        chat_id=chat.id,
-        user_id=user.id,
+        content=message_content,
+        chat_id=chat_id,
+        user_id=current_user.id,
     )
     chat.updated_at = datetime.now()
 

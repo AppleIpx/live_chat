@@ -8,7 +8,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette import EventSourceResponse
 
-from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
+from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
 from live_chat.services.faststream.router import fast_stream_broker
 from live_chat.services.redis import redis
@@ -21,7 +21,10 @@ from live_chat.web.api.messages.constants import (
     REDIS_CHANNEL_PREFIX,
     REDIS_SSE_KEY_PREFIX,
 )
-from live_chat.web.api.messages.schemas import CreateMessageSchema, GetMessageSchema
+from live_chat.web.api.messages.schemas import (
+    GetMessageSchema,
+    PostMessageSchema,
+)
 from live_chat.web.api.messages.utils import (
     get_user_from_token,
     message_generator,
@@ -29,7 +32,7 @@ from live_chat.web.api.messages.utils import (
     transformation_message,
 )
 from live_chat.web.api.users.schemas import UserManager
-from live_chat.web.api.users.utils.utils import get_user_manager
+from live_chat.web.api.users.utils.utils import current_active_user, get_user_manager
 
 message_router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -37,12 +40,18 @@ logger = logging.getLogger(__name__)
 
 @message_router.post("/chats/{chat_id}/messages/")
 async def post_message(
-    message: CreateMessageSchema,
+    message: PostMessageSchema,
     chat: Chat = Depends(validate_user_access_to_chat),
+    current_user: User = Depends(current_active_user),
     db_session: AsyncSession = Depends(get_async_session),
-) -> dict[str, str] | None:
+) -> dict[str, str]:
     """Post message in FastStream."""
-    if created_message := await save_message_to_db(db_session, message):
+    if created_message := await save_message_to_db(
+        db_session,
+        message.content,
+        chat.id,
+        current_user,
+    ):
         message_data: GetMessageSchema = transformation_message([created_message])[0]
         for user in chat.users:
             target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{user.id!s}"
