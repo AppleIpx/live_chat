@@ -84,7 +84,7 @@ async def create_direct_chat_view(
         initiator_user=current_user,
         recipient_user=recipient_user,
     )
-    return transformation_chat(chat)
+    return await transformation_chat(chat)
 
 
 @chat_router.get(
@@ -98,7 +98,7 @@ async def get_list_chats_view(
 ) -> GetListChatsSchema:
     """Getting chats to which a user has been added."""
     chats: List[Chat] = await get_user_chats(db_session, current_user=current_user)
-    chats_data: List[ChatSchema] = transformation_list_chats(chats)
+    chats_data: List[ChatSchema] = await transformation_list_chats(chats)
 
     return GetListChatsSchema(chats=chats_data)
 
