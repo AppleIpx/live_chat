@@ -21,6 +21,9 @@ def transformation_list_chats(chats: List[Chat]) -> ChatsSchema:
                     created_at=chat.created_at,
                     updated_at=chat.updated_at,
                     users=chat.users,
+                    last_message_content=(
+                        chat.messages[-1].content if chat.messages else None
+                    ),
                 ),
             )
         else:
@@ -33,6 +36,9 @@ def transformation_list_chats(chats: List[Chat]) -> ChatsSchema:
                     created_at=chat.created_at,
                     updated_at=chat.updated_at,
                     users=chat.users,
+                    last_message_content=(
+                        chat.messages[-1].content if chat.messages else None
+                    ),
                 ),
             )
     return ChatsSchema(
@@ -51,6 +57,7 @@ async def transformation_chat_group(chat: Chat) -> ChatGroupSchema:
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         users=chat.users,
+        last_message_content=None,
     )
 
 

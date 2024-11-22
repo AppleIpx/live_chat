@@ -4,7 +4,6 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from live_chat.web.api.chat.schemas import ChatDirectSchema
-from live_chat.web.api.users.schemas import UserRead
 
 
 class GetMessageSchema(BaseModel):
