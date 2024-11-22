@@ -7,16 +7,20 @@
   </head>
   <div id="app">
     <Header/>
+    <ChatNotification/>
     <router-view/>
   </div>
 </template>
 
 <script>
 import Header from './components/Header.vue';
+import ChatNotification from './components/ChatNotification.vue';
+
 
 export default {
   components: {
     Header,
+    ChatNotification,
   },
 };
 </script>
