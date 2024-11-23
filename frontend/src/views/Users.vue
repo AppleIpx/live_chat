@@ -49,7 +49,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import {userService} from "@/services/apiService";
 
 export default {
   data() {
@@ -62,21 +62,9 @@ export default {
   },
   async mounted() {
     try {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        this.$router.push("/");
-        return;
-      }
-
       const currentUsername = localStorage.getItem("username").split("@")[0];
       this.currentUser = {username: currentUsername};
-
-      const response = await axios.get("http://0.0.0.0:8000/api/users", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
+      const response = await userService.fetchUsers()
       this.users = response.data.users.filter(
           (user) => user.username !== currentUsername
       );
@@ -113,7 +101,7 @@ export default {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 600px;
-  margin-top: 70px; /* Добавляет отступ сверху */
+  margin-top: 70px;
 
 }
 
@@ -197,9 +185,4 @@ h2 {
   border-radius: 50%;
 }
 
-.no-users {
-  text-align: center;
-  font-size: 18px;
-  color: #666;
-}
 </style>

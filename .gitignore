@@ -144,6 +144,7 @@ cython_debug/
 ### Frontend ###
 node_modules
 /dist
+/frontend/.env
 
 # Log files
 npm-debug.log*

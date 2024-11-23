@@ -66,8 +66,8 @@
 </template>
 
 <script>
-import axios from 'axios';
-import store from "@/store";
+import SSEManager from "@/services/sseService";
+import {chatService, userService} from "@/services/apiService";
 
 export default {
   data() {
@@ -80,87 +80,40 @@ export default {
       isSearchOpen: false,
       isLoading: true,
       selectedUser: null,
-      sseConnections: {},
+      isChatOpen: false,
     };
   },
-  mounted() {
-    this.fetchChats();
-    this.fetchUsers();
+  async mounted() {
+    await this.fetchChats();
+    this.$store.state.chats.forEach((chat) => {
+      SSEManager.connect(chat.id, this.isChatOpenCallback);
+    });
+    await this.fetchUsers()
   },
   methods: {
+    isChatOpenCallback() {
+      return false;
+    },
     async fetchChats() {
       try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-          this.$router.push('/login');
-          return;
-        }
-
         const timeout = setTimeout(() => {
           this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
           this.isLoading = false;
         }, 10000);
-
-        const response = await axios.get('http://0.0.0.0:8000/api/chats', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await this.$store.dispatch("StoreFetchChats");
         clearTimeout(timeout);
         this.chats = response.data.chats.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
         this.isLoading = false;
-
-        this.chats.forEach(chat => {
-          this.connectToSSE(chat.id);
-        });
       } catch (error) {
+        console.log(error)
         this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
         this.isLoading = false;
       }
     },
-    async connectToSSE(chatId) {
-      const token = localStorage.getItem('accessToken');
-      const eventSource = new EventSource(
-          `http://0.0.0.0:8000/api/chats/${chatId}/events/?token=${encodeURIComponent(token)}`
-      );
-      eventSource.addEventListener('new_message', async event => {
-            const message = JSON.parse(event.data);
-            const user = localStorage.getItem("user")
-            if (message.user_id !== user.id) {
-              await store.dispatch('receiveMessage', message);
-              const chatIndex = this.chats.findIndex(c => c.id === chatId);
-              if (chatIndex !== -1) {
-                const chat = this.chats[chatIndex];
-                chat.last_message_content = message.content;
-                chat.updated_at = message.created_at;
-                this.chats.splice(chatIndex, 1);
-                this.chats.unshift(chat);
-              }
-            }
-            const chat = this.chats.find(c => c.id === chatId);
-            if (chat) {
-              chat.last_message = message.content;
-            }
-          },
-      )
-      eventSource.onerror = () => {
-        console.log(`SSE для чата ${chatId} отключено. Переподключение...`);
-        setTimeout(() => {
-          this.connectToSSE(chatId);
-        }, 5000);
-      };
-      this.sseConnections[chatId] = eventSource;
-    },
 
     async fetchUsers() {
       try {
-        const token = localStorage.getItem('accessToken');
-        const response = await axios.get('http://0.0.0.0:8000/api/users', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
+        const response = await userService.fetchUsers()
         this.users = response.data.users.slice(0, 10);
         this.filteredUsers = this.users;
       } catch (error) {
@@ -217,19 +170,9 @@ export default {
     },
     async createChat(recipientUserId) {
       try {
-        const token = localStorage.getItem('accessToken');
         if (!recipientUserId) return;
-
-        const response = await axios.post(
-            'http://0.0.0.0:8000/api/chats/create/direct/',
-            {recipient_user_id: recipientUserId},
-            {
-              headers: {
-                Authorization: `
-      Bearer ${token}`,
-              },
-            }
-        );
+        const recipientData = {recipient_user_id: recipientUserId}
+        const response = await chatService.createChat(recipientData)
         this.chats.push(response.data);
         alert('Чат успешно создан!');
       } catch (error) {

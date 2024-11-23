@@ -64,8 +64,9 @@
 
 
 <script>
-import axios from "axios";
-import store from '../store';
+import {chatService} from "@/services/apiService";
+import {userService} from "@/services/apiService";
+import SSEManager from "@/services/sseService";
 
 
 export default {
@@ -85,27 +86,37 @@ export default {
       },
       otherUserImage: '',
       users: {},
-      isChatOpen: false
+      isChatOpen: true,
     };
+  },
+  watch: {
+    chatId: {
+      immediate: true,
+      handler(newChatId, oldChatId) {
+        if (oldChatId) {
+          SSEManager.disconnect(oldChatId);
+        }
+        SSEManager.connect(newChatId, this.isChatOpenCallback);
+      },
+    },
   },
   mounted() {
     this.isChatOpen = true;
-    const chatId = this.$route.params.chat_id;
-    if (!chatId) {
-      console.error("chat_id отсутствует.");
-      return;
-    }
-    this.chatId = chatId;
-    this.fetchChatDetails(chatId);
-    this.connectToSSE(chatId);
+    this.chatId = this.$route.params.chat_id;
+    this.fetchChatDetails(this.chatId);
   },
   beforeUnmount() {
-    this.isChatOpen = false;
+    SSEManager.disconnect(this.chatId);
   },
   methods: {
+    isChatOpenCallback(chatId) {
+      return chatId === this.chatId && this.isChatOpen;
+    },
+
     goBack() {
       this.$router.push('/chats');
     },
+
     scrollToBottom() {
       this.$nextTick(() => {
         const messagesList = this.$refs.messagesList;
@@ -114,33 +125,16 @@ export default {
         }
       });
     },
-    async getUsernameById(userId) {
-      const user = this.users[userId];
-      if (user) {
-        return `${user.first_name} ${user.last_name}`;
-      }
-      return null;
-    },
 
     // Fetch chat details including users and messages
     async fetchChatDetails(chatId) {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        this.$router.push('/');
-        return;
-      }
       try {
-        const response = await axios.get(`http://0.0.0.0:8000/api/chats/${chatId}/`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const chatResponse = await chatService.fetchChatDetails(chatId);
         this.user = JSON.parse(localStorage.getItem("user"));
-        const chatData = response.data;
-        this.chatData = chatData;
-        this.messages = chatData.messages
+        this.chatData = chatResponse.data;
+        this.messages = this.chatData.messages
             .map(message => {
-              const message_user = chatData.users.find(user => user.id === message.user_id);
+              const message_user = this.chatData.users.find(user => user.id === message.user_id);
               return {
                 id: message.message_id,
                 user: message_user || {},
@@ -150,93 +144,32 @@ export default {
               };
             });
 
-        this.users = chatData.users.reduce((acc, user) => {
+        this.users = this.chatData.users.reduce((acc, user) => {
           acc[user.id] = user;
           return acc;
         }, {});
-
-        this.otherUser = chatData.users.find(user => user.id !== this.user.id);
-        const response_user = await axios.get(`http://0.0.0.0:8000/api/users/read/${this.otherUser.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        this.otherUser.user_image = response_user.data.user_image;
-
+        this.otherUser = this.chatData.users.find(user => user.id !== this.user.id);
+        const userResponse = await userService.fetchUserDetails(this.otherUser.id);
+        this.otherUser.user_image = userResponse.data.user_image;
         if (!this.otherUser) {
           console.error('Не удалось найти другого пользователя');
         } else {
           this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
         }
-
         this.scrollToBottom();
       } catch (error) {
         console.error("Ошибка получения информации о чате:", error);
-      }
-    },
-    async connectToSSE(chatId) {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        this.$router.push('/');
-        return;
-      }
-      const eventSource = new EventSource(
-          `http://0.0.0.0:8000/api/chats/${chatId}/events/?token=${encodeURIComponent(token)}`
-      );
-      eventSource.addEventListener('new_message', async (event) => {
-        const message = JSON.parse(event.data);
-        console.log(message)
-
-        if (message.user_id !== this.user.id) {
-          if (!this.isChatOpen) {
-            await store.dispatch('receiveMessage', message);
-          }
-          const responseOtherUser = await axios.get(`http://0.0.0.0:8000/api/users/read/${message.user_id}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          this.chatName = `${responseOtherUser.data.first_name} ${responseOtherUser.data.last_name}`;
-          this.messages.push({
-            id: message.message_id,
-            user: {
-              id: message.user_id,
-            },
-            content: message.content,
-            created_at: new Date(message.created_at).toLocaleString(),
-            isMine: false,
-          });
-          this.scrollToBottom();
-        }
-      });
-
-      eventSource.onerror = function () {
-        console.log('Connection lost, reconnecting...');
-        eventSource.close()
-        setTimeout(() => {
-          new EventSource('/api/chats/1/events/');
-        }, 5000);
       }
     },
 
     // Send message
     async sendMessage() {
       if (this.messageText.trim() === "") return;
-
-      const token = localStorage.getItem('accessToken');
-      console.log("token", token)
       try {
-        await axios.post(
-            `http://0.0.0.0:8000/api/chats/${this.chatId}/messages/`,
-            {
-              content: this.messageText,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-        );
+        const messageData = {
+          content: this.messageText,
+        }
+        await chatService.sendMessage(this.chatId, messageData)
         this.messages.push({
           id: Date.now(),
           user: {

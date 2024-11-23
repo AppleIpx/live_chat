@@ -16,7 +16,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import {authService} from "@/services/apiService";
 
 export default {
   data() {
@@ -29,11 +29,10 @@ export default {
   methods: {
     async loginUser() {
       try {
-        const formData = new FormData();
-        formData.append('username', this.username);
-        formData.append('password', this.password);
-
-        const response = await axios.post('http://0.0.0.0:8000/api/auth/jwt/login', formData);
+        const loginData = new FormData();
+        loginData.append('username', this.username);
+        loginData.append('password', this.password);
+        const response = await authService.loginUser(loginData)
         if (response.status === 200) {
           const accessToken = response.data.access_token;
           localStorage.setItem('accessToken', accessToken);

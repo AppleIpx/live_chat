@@ -18,7 +18,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import {userService} from "@/services/apiService";
 
 export default {
   data() {
@@ -46,13 +46,7 @@ export default {
   methods: {
     async addNotificationToQueue(message) {
       try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(
-            `http://0.0.0.0:8000/api/users/read/${message.user_id}`,
-            {
-              headers: {Authorization: `Bearer ${token}`},
-            }
-        );
+        const response = await userService.fetchUserDetails(message.user_id)
 
         const notification = {
           userAvatar: response.data.user_image,
@@ -104,7 +98,7 @@ export default {
 <style scoped>
 .chat-notification {
   top: 10%;
-  left: 14%;
+  left: 250px;
   transform: translateX(-50%);
   background-color: #ffffff;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
@@ -116,14 +110,6 @@ export default {
   cursor: pointer;
   z-index: 1000;
   position: fixed;
-}
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.5s ease;
-}
-
-.fade-enter, .fade-leave-to {
-  opacity: 0;
 }
 
 .avatar {
