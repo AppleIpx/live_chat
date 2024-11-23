@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from live_chat.web.api.chat.schemas import ChatSchema
+from live_chat.web.api.chat.schemas import ChatDirectSchema
 
 
 class GetMessageSchema(BaseModel):
@@ -16,7 +16,7 @@ class GetMessageSchema(BaseModel):
     created_at: datetime
 
 
-class GetListMessagesSchema(ChatSchema):
+class GetListMessagesDirectSchema(ChatDirectSchema):
     """Represents a get command for a messages."""
 
     messages: list[GetMessageSchema]
