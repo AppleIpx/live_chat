@@ -1,7 +1,7 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -39,6 +39,7 @@ from live_chat.web.api.users.utils.collect_users_for_group import (
 )
 from live_chat.web.api.users.utils.get_list_users import transformation_users
 from live_chat.web.api.users.utils.get_user_by_id import get_user_by_id
+from live_chat.web.api.users.utils.image_saver import ImageSaver
 from live_chat.web.api.users.utils.utils import current_active_user
 
 chat_router = APIRouter()
@@ -175,3 +176,40 @@ async def get_detail_chat_view(
         messages=messages_data,
         last_message_content=chat.messages[-1].content if chat.messages else None,
     )
+
+
+@chat_router.patch("/{chat_id}/upload-image", summary="Update group image")
+async def upload_group_image(
+    chat_id: UUID,
+    uploaded_image: UploadFile,
+    user: User = Depends(current_active_user),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> dict[str, str]:
+    """Update group image."""
+
+    image_saver = ImageSaver(chat_id)
+    image_url = await image_saver.save_image(uploaded_image, "group_images")
+
+    if not image_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid image upload",
+        )
+
+    chat = await db_session.get(Chat, chat_id)
+    if not chat:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Group not found",
+        )
+    if chat.chat_type == "direct":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You can't specify a photo for direct chat",
+        )
+
+    chat.image_group = image_url
+    db_session.add(chat)
+    await db_session.commit()
+
+    return {"image_url": image_url}
