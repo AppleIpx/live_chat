@@ -651,9 +651,9 @@ h2 {
 }
 
 .image-preview {
-  display: flex; /* Используем flexbox для центровки */
-  justify-content: center; /* Центрируем содержимое по горизонтали */
-  align-items: center; /* Центрируем содержимое по вертикали */
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin-top: 15px;
   width: 150px;
   height: 150px;
