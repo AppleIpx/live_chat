@@ -67,7 +67,7 @@ async def test_create_direct_chat_with_failed_user(
     override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test that handles an error with a non-existent user."""
-    random_recipients_id = str(uuid.uuid4())
+    random_recipients_id = uuid.uuid4()
     response = await authorized_client.post(
         "/api/chats/create/direct/",
         json={"recipient_user_id": f"{random_recipients_id}"},
@@ -86,7 +86,7 @@ async def test_create_direct_chat_with_existing_user(
     dbsession: AsyncSession,
 ) -> None:
     """Test create direct chat with existing user."""
-    recipients_id = str(direct_chat_with_users.users[1].id)
+    recipients_id = direct_chat_with_users.users[1].id
     response = await authorized_client.post(
         "/api/chats/create/direct/",
         json={"recipient_user_id": f"{recipients_id}"},
