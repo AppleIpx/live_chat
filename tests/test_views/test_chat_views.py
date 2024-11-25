@@ -61,6 +61,53 @@ async def test_create_direct_chat(
 
 
 @pytest.mark.anyio
+async def test_create_group_chat(
+    authorized_client: AsyncClient,
+    some_users: List[UserFactory],
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to create a group chat and users in it."""
+    recipient_user_ids = [str(user.id) for user in some_users]
+    response = await authorized_client.post(
+        "/api/chats/create/group/",
+        json={
+            "recipient_user_ids": recipient_user_ids,
+            "name_group": "string",
+            "image_group": None,
+        },
+    )
+    chat = await get_first_chat_from_db(dbsession)
+    sender = await get_first_user_from_db(dbsession)
+    expected_users = [
+        {
+            "id": str(user.id),
+            "email": user.email,
+            "is_active": user.is_active,
+            "is_superuser": user.is_superuser,
+            "is_verified": user.is_verified,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "username": user.username,
+            "user_image": user.user_image,
+        }
+        for user in [sender, *some_users]
+    ]
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json() == {
+        "id": str(chat.id),
+        "chat_type": chat.chat_type.value,
+        "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
+        "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
+        "users": expected_users,
+        "last_message_content": None,
+        "image_group": chat.image,
+        "name_group": chat.name,
+    }
+
+
+@pytest.mark.anyio
 async def test_get_list_chats(
     authorized_client: AsyncClient,
     some_chats_with_users: List[ChatFactory],
