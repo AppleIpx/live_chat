@@ -88,7 +88,7 @@ async def upload_user_image(
 ) -> dict[str, str]:
     """Update a user avatar."""
     image_saver = ImageSaver(user.id)
-    image_url = await image_saver.save_user_image(uploaded_image)
+    image_url = await image_saver.save_image(uploaded_image, "avatars")
     if not image_url:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

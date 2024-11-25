@@ -16,10 +16,14 @@ SUPPORTED_AVATAR_EXTENSIONS: Final = ("png", "jpg", "jpeg")
 class ImageSaver:
     """Saving user avatar."""
 
-    def __init__(self, user_id: UUID) -> None:
-        self.user_id = user_id
+    def __init__(self, object_id: UUID) -> None:
+        self.object_id = object_id
 
-    async def save_user_image(self, uploaded_image: UploadFile) -> str | None:
+    async def save_image(
+        self,
+        uploaded_image: UploadFile,
+        directory: str,
+    ) -> str | None:
         """Save an avatar sent by the user."""
         if not uploaded_image.filename:
             return None
@@ -32,13 +36,13 @@ class ImageSaver:
                 detail=f"It is incorrect image extension. "
                 f"Required: {SUPPORTED_AVATAR_EXTENSIONS}",
             )
-        filename = f"{self.user_id}.{ext}"
+        filename = f"{self.object_id}.{ext}"
 
         # If using S3, upload to S3, else save locally
         if settings.use_s3:
             return await s3_client.upload_file(
                 uploaded_image.file,
-                f"avatars/{filename}",
+                f"{directory}/{filename}",
             )
         return await self._save_image_locally(uploaded_image, filename)
 
