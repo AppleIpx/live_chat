@@ -2,13 +2,13 @@
   <div class="chats">
     <div class="chats-container">
       <h2>Чаты</h2>
-      <!-- Кнопки создания чатов -->
 
+      <!-- Chat Creation Buttons -->
       <button @click="openSearch('direct')" class="btn-main">Создать личный чат</button>
       <button @click="openSearch('group')" class="btn-main">Создать группу</button>
       <br>
 
-      <!-- Поиск пользователей -->
+      <!-- Creating a direct chat -->
       <div v-if="isCreatingDirect" class="search-container">
         <input
             v-model="searchQuery"
@@ -29,7 +29,7 @@
         <p v-else class="no-users-message">Пользователь не найден</p>
       </div>
 
-      <!-- Создание группы -->
+      <!-- Creating a group -->
       <div v-if="isCreatingGroup" class="group-creation-container">
         <input
             v-model="groupName"
@@ -74,7 +74,7 @@
         </button>
       </div>
 
-      <!-- Список чатов -->
+      <!-- Chat List -->
       <div v-if="isLoading">
         <div class="loading-container">
           <div class="loading-spinner"></div>
