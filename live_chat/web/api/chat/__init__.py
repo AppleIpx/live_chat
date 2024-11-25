@@ -1,15 +1,15 @@
 """API for checking project status."""
 
 from live_chat.web.api.chat.schemas import (
-    ChatDirectSchema,
-    CreateChatDirectSchema,
+    ChatSchema,
+    CreateDirectChatSchema,
     GetListChatsSchema,
 )
 from live_chat.web.api.chat.views import chat_router
 
 __all__ = (
     "chat_router",
-    "CreateChatDirectSchema",
+    "CreateDirectChatSchema",
     "GetListChatsSchema",
-    "ChatDirectSchema",
+    "ChatSchema",
 )
