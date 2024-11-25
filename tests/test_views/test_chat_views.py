@@ -5,6 +5,7 @@ from fastapi import status
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from live_chat.db.models.enums import ChatType
 from live_chat.web.api.chat.utils import get_chat_by_id
 from live_chat.web.api.chat.utils.get_message_by_id import get_message_by_id
 from live_chat.web.api.users.utils.get_user_by_id import get_user_by_id
@@ -162,6 +163,7 @@ async def test_get_detail_chat(
     """Test get detail chat."""
     chat_id = chat_with_message.chat.id
     chat = await get_chat_by_id(chat_id=chat_id, db_session=dbsession)
+    chat.chat_type = ChatType.DIRECT
     sender = await get_user_by_id(user_id=chat.users[0].id, db_session=dbsession)
     recipient = await get_user_by_id(user_id=chat.users[1].id, db_session=dbsession)
     message = await get_message_by_id(
