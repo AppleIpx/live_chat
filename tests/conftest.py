@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import (
 
 from live_chat.db.dependencies import get_db_session
 from live_chat.db.models.chat import User
+from live_chat.db.models.enums import ChatType
 from live_chat.db.utils import create_database, drop_database, get_async_session
 from live_chat.services.redis.dependency import get_redis_pool
 from live_chat.settings import settings
@@ -190,15 +191,38 @@ async def chat(dbsession: AsyncSession) -> ChatFactory:
 
 
 @pytest.fixture
-async def chat_with_users(
+async def any_chat_with_users(
     user: UserFactory,
     dbsession: AsyncSession,
 ) -> ChatFactory:
-    """A fixture for generating a chat factory with sender and recipient and message."""
+    """A fixture for generating a chat factory with sender and recipient."""
     ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
     sender: User | None = await get_first_user_from_db(dbsession)
     recipient = user
     return ChatFactory(users=[sender, recipient])
+
+
+@pytest.fixture
+async def direct_chat_with_users(
+    user: UserFactory,
+    dbsession: AsyncSession,
+) -> ChatFactory:
+    """A fixture for generating a chat factory with sender and recipient."""
+    ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    sender: User | None = await get_first_user_from_db(dbsession)
+    recipient = user
+    return ChatFactory(users=[sender, recipient], chat_type=ChatType.DIRECT)
+
+
+@pytest.fixture
+async def group_chat_with_users(
+    some_users: UserFactory,
+    dbsession: AsyncSession,
+) -> ChatFactory:
+    """A fixture for generating a chat factory with sender and recipient."""
+    ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    sender: User | None = await get_first_user_from_db(dbsession)
+    return ChatFactory(users=[sender, *some_users], chat_type=ChatType.GROUP)
 
 
 @pytest.fixture
@@ -232,16 +256,16 @@ async def message(
 @pytest.fixture
 async def chat_with_message(
     dbsession: AsyncSession,
-    chat_with_users: ChatFactory,
+    any_chat_with_users: ChatFactory,
 ) -> MessageFactory:
     """Fixture for creating a chat message."""
     MessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    sender = chat_with_users.users[0]
+    sender = any_chat_with_users.users[0]
     return MessageFactory(
         user=sender,
         user_id=sender.id,
-        chat=chat_with_users,
-        chat_id=chat_with_users.id,
+        chat=any_chat_with_users,
+        chat_id=any_chat_with_users.id,
     )
 
 
