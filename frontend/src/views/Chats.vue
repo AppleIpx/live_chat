@@ -154,7 +154,7 @@ export default {
         }, 10000);
         const response = await this.$store.dispatch("StoreFetchChats");
         clearTimeout(timeout);
-        this.chats = [...response.data.chats.groups, ...response.data.chats.directs];
+        this.chats = response.data.chats
         this.chats.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
         this.isLoading = false;
       } catch (error) {
@@ -261,6 +261,9 @@ export default {
         this.chats.push(response.data);
         alert('Чат успешно создан!');
       } catch (error) {
+        if (error.status === 409) {
+          alert(`У вас уже есть этот чат.`);
+        }
         console.error('Ошибка при создании чата:', error);
         alert('Не удалось создать чат. Пожалуйста, попробуйте позже.');
       }

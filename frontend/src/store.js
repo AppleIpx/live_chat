@@ -63,7 +63,7 @@ const store = createStore({
             async StoreFetchChats({commit}) {
                 try {
                     const response = await chatService.fetchChats();
-                    const chats = [...response.data.chats.groups, ...response.data.chats.directs];
+                    const chats = response.data.chats;
                     commit("setChats", chats);
                     return response;
                 } catch (error) {
