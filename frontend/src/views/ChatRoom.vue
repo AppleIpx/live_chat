@@ -7,16 +7,72 @@
           <i class="fa fa-arrow-left"></i>
         </button>
 
-        <!-- User Info -->
-        <div class="user-info">
-          <span v-if="otherUser.id">{{ chatName }}</span>
-          <span v-else>Загрузка...</span>
+        <!-- Chat Info -->
+        <div class="chat-info">
+          <span v-if="chatData">
+            <span
+                v-if="chatData.chat_type === 'group'"
+                class="group-name"
+                @mouseover="showGroupTooltip = true"
+                @mouseleave="onGroupMouseLeave"
+            >
+              {{ chatData.name_group }}
+            </span>
+            <div
+                v-if="showGroupTooltip"
+                class="group-tooltip"
+                @mouseover="showGroupTooltip = true"
+                @mouseleave="onTooltipMouseLeave"
+            >
+              <ul>
+                <li v-for="user in chatData.users" :key="user.id" class="tooltip-user">
+                  <a v-if="user && user.id"
+                     :href="user.username === this.user.username ? '/profile/me' : '/profile/' + user.id">
+                    <img v-if="user.user_image" :src="user.user_image"
+                         alt="User Avatar" class="user-avatar">
+                    {{ user.first_name }} {{ user.last_name }}
+                  </a>
+                </li>
+              </ul>
+              <div class="tooltip-actions">
+                <button class="tooltip-button"
+                        @click.prevent>Изменить название (заглушка)</button>
+                <div>
+                  <button class="tooltip-button" @click.prevent="openImageUploadModal">
+                    Изменить фото
+                  </button>
+                  <div v-if="isImageUploadModalOpen" class="modal-overlay">
+                    <div class="modal-content">
+                      <h2>Загрузить фото группы</h2>
+                      <div class="group-image-upload">
+                        <input type="file" @change="handleImageUpload"/>
+                        <div v-if="groupImagePreview" class="image-preview">
+                          <img :src="groupImagePreview" alt="Preview"/>
+                        </div>
+                      </div>
+                      <div class="modal-actions">
+                        <button @click="uploadGroupImage">Загрузить</button>
+                        <button @click="closeImageUploadModal">Отмена</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+            </div>
+            </div>
+            <span v-if="chatData.chat_type==='direct'">{{ chatName }}</span>
+          </span>
         </div>
 
-        <div class="user-photo">
-          <a v-if="otherUser.id" :href="`/profile/${otherUser.id}`">
-            <img :src="otherUser.user_image || '/default-avatar.jpg'" alt="Profile"/>
-          </a>
+        <div class="chat-photo">
+          <template
+              v-if="chatData && chatData.chat_type === 'group' && chatData.image_group">
+            <img :src="chatData.image_group" alt="Group image"/>
+          </template>
+          <template v-else-if="chatData && otherUser && otherUser.user_image">
+            <a :href="`/profile/${otherUser.id}`">
+              <img :src="otherUser.user_image" alt="Profile"/>
+            </a>
+          </template>
         </div>
       </div>
 
@@ -29,9 +85,7 @@
               <strong>
                 <a v-if="message.user || message.user_id"
                    :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
-                  {{
-                    message.user.username === user.username ? 'Вы' : chatName
-                  }}
+                  {{ message.user.id === user.id ? 'Вы' : message.user.username }}
                 </a>
                 <span v-else>Загрузка...</span>
               </strong>
@@ -65,7 +119,6 @@
 
 <script>
 import {chatService} from "@/services/apiService";
-import {userService} from "@/services/apiService";
 import SSEManager from "@/services/sseService";
 
 
@@ -77,17 +130,19 @@ export default {
       user: null,
       chatId: null,
       chatData: null,
+      otherUser: null,
       chatName: '',
-      otherUser: {
-        first_name: '',
-        last_name: '',
-        id: '',
-        user_image: null,
-      },
-      otherUserImage: '',
-      users: {},
       isChatOpen: true,
+      showGroupTooltip: false,
+      isImageUploadModalOpen: false,
+      groupImage: null,
+      groupImagePreview: null,
     };
+  },
+  computed: {
+    isMouseOverTooltip() {
+      return this.showGroupTooltip;
+    },
   },
   watch: {
     chatId: {
@@ -96,7 +151,7 @@ export default {
         if (oldChatId) {
           SSEManager.disconnect(oldChatId);
         }
-        SSEManager.connect(newChatId, this.isChatOpenCallback);
+        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage);
       },
     },
   },
@@ -109,8 +164,21 @@ export default {
     SSEManager.disconnect(this.chatId);
   },
   methods: {
-    isChatOpenCallback(chatId) {
-      return chatId === this.chatId && this.isChatOpen;
+    onGroupMouseLeave() {
+      setTimeout(() => {
+        if (!this.isMouseOverTooltip) {
+          this.showGroupTooltip = false;
+        }
+      }, 200);
+    },
+
+    onTooltipMouseLeave() {
+      this.isMouseOverTooltip = false;
+      this.showGroupTooltip = false;
+    },
+
+    isChatOpenCallback() {
+      return this.isChatOpen;
     },
 
     goBack() {
@@ -129,7 +197,7 @@ export default {
     // Fetch chat details including users and messages
     async fetchChatDetails(chatId) {
       try {
-        const chatResponse = await chatService.fetchChatDetails(chatId);
+        const chatResponse = await this.$store.dispatch("StoreFetchChatDetail", chatId);
         this.user = JSON.parse(localStorage.getItem("user"));
         this.chatData = chatResponse.data;
         this.messages = this.chatData.messages
@@ -144,22 +212,72 @@ export default {
               };
             });
 
-        this.users = this.chatData.users.reduce((acc, user) => {
-          acc[user.id] = user;
-          return acc;
-        }, {});
-        this.otherUser = this.chatData.users.find(user => user.id !== this.user.id);
-        const userResponse = await userService.fetchUserDetails(this.otherUser.id);
-        this.otherUser.user_image = userResponse.data.user_image;
-        if (!this.otherUser) {
-          console.error('Не удалось найти другого пользователя');
-        } else {
+        // Set the other user for direct chats
+        if (this.chatData.chat_type === "direct") {
+          this.otherUser = this.chatData.users.find(user => user.id !== this.user.id);
           this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
         }
         this.scrollToBottom();
       } catch (error) {
-        console.error("Ошибка получения информации о чате:", error);
+        console.error("Error fetching chat details:", error);
       }
+    },
+
+    handleNewMessage(newMessage) {
+      const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
+      const message = {
+        id: newMessage.message_id,
+        user: message_user || {},
+        content: newMessage.content,
+        created_at: new Date(newMessage.created_at).toLocaleString(),
+        isMine: newMessage.user_id === this.user.id,
+      };
+      this.messages.push(message);
+      this.scrollToBottom();
+    },
+
+    openImageUploadModal() {
+      this.isImageUploadModalOpen = true;
+    },
+
+    closeImageUploadModal() {
+      this.isImageUploadModalOpen = false;
+      this.resetImageUploadState();
+    },
+
+    handleImageUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        this.groupImage = file;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          this.groupImagePreview = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    },
+
+    async uploadGroupImage() {
+      if (!this.groupImage) {
+        alert("Пожалуйста, выберите изображение для загрузки.");
+        return;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append("uploaded_image", this.groupImage);
+        await chatService.updateGroupImage(this.chatData.id, formData);
+        alert("Изображение успешно обновлено!");
+        this.closeImageUploadModal();
+      } catch (error) {
+        console.error("Ошибка при загрузке изображения:", error);
+        alert("Не удалось загрузить изображение группы. Пожалуйста, попробуйте позже.");
+      }
+    },
+
+    resetImageUploadState() {
+      this.groupImage = null;
+      this.groupImagePreview = null;
     },
 
     // Send message
@@ -173,6 +291,7 @@ export default {
         this.messages.push({
           id: Date.now(),
           user: {
+            id: this.user.id,
             username: this.user.username,
           },
           content: this.messageText,
@@ -227,7 +346,7 @@ export default {
   cursor: pointer;
 }
 
-.user-info {
+.chat-info {
   flex-grow: 1;
   text-align: center;
   font-size: 20px;
@@ -235,7 +354,7 @@ export default {
   color: #333;
 }
 
-.user-photo img {
+.chat-photo img {
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -327,6 +446,115 @@ export default {
   justify-content: center;
   align-items: center;
 }
+
+.group-name {
+  position: relative;
+  cursor: pointer;
+  color: #0078d4;
+  text-decoration: underline;
+}
+
+.group-tooltip {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 2px 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  z-index: 20;
+  width: 400px;
+}
+
+.group-tooltip h4 {
+  margin-bottom: 10px;
+  font-size: 16px;
+  color: #333;
+}
+
+.group-tooltip ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.group-tooltip ul li {
+  font-size: 14px;
+  padding: 5px 0;
+  color: #555;
+}
+
+.tooltip-actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.tooltip-button {
+  background: #55ace1;
+  color: #fff;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tooltip-button:hover {
+  background: #005bb5;
+}
+
+.tooltip-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ddd;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+}
+
+.image-preview img {
+  max-width: 50%;
+  height: auto;
+  margin-top: 10px;
+}
+
+.modal-actions button {
+  margin: 5px;
+}
+
 
 .send-button i {
   font-size: 24px;

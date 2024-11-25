@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
+from live_chat.db.models.enums import ChatType
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat import (
     ChatDirectSchema,
@@ -32,6 +33,7 @@ from live_chat.web.api.chat.utils.transformations import (
     transformation_list_chats,
 )
 from live_chat.web.api.messages import GetListMessagesDirectSchema, GetMessageSchema
+from live_chat.web.api.messages.schemas import GetListMessagesGroupSchema
 from live_chat.web.api.messages.utils import transformation_message
 from live_chat.web.api.users.schemas import UserRead
 from live_chat.web.api.users.utils.collect_users_for_group import (
@@ -144,13 +146,13 @@ async def get_list_chats_view(
 @chat_router.get(
     "/{chat_id}/",
     summary="Detail chat by id",
-    response_model=GetListMessagesDirectSchema,
+    response_model=GetListMessagesDirectSchema | GetListMessagesGroupSchema,
 )
 async def get_detail_chat_view(
     chat_id: UUID,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
-) -> GetListMessagesDirectSchema:
+) -> GetListMessagesGroupSchema | GetListMessagesDirectSchema:
     """Get detail chat by id."""
     chat: Chat | None = await get_chat_by_id(db_session, chat_id=chat_id)
     if not chat:
@@ -167,7 +169,18 @@ async def get_detail_chat_view(
     users_data: List[UserRead] = transformation_users(chat.users)
     messages_data: List[GetMessageSchema] = transformation_message(chat.messages)
 
-    return GetListMessagesDirectSchema(
+    message_schema_map = {
+        ChatType.GROUP: GetListMessagesGroupSchema,
+        ChatType.DIRECT: GetListMessagesDirectSchema,
+    }
+
+    if not (message_schema := message_schema_map.get(chat.chat_type)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An invalid chat_type has been determined",
+        )
+
+    return message_schema(
         id=chat.id,
         chat_type=chat.chat_type,
         created_at=chat.created_at,
@@ -175,6 +188,8 @@ async def get_detail_chat_view(
         users=users_data,
         messages=messages_data,
         last_message_content=chat.messages[-1].content if chat.messages else None,
+        name_group=chat.name,
+        image_group=chat.image,
     )
 
 
@@ -208,7 +223,7 @@ async def upload_group_image(
             detail="You can't specify a photo for direct chat",
         )
 
-    chat.image_group = image_url
+    chat.image = image_url
     db_session.add(chat)
     await db_session.commit()
 
