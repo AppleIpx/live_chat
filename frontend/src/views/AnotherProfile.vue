@@ -43,7 +43,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import {userService} from "@/services/apiService";
 
 export default {
   data() {
@@ -58,18 +58,8 @@ export default {
   methods: {
     async fetchUserProfile() {
       try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-          this.$router.push('/login');
-          return;
-        }
-        const id = this.$route.params.user_id;
-        console.log(this.$route.params)
-        const response = await axios.get(`http://0.0.0.0:8000/api/users/read/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const user_id = this.$route.params.user_id;
+        const response = await userService.fetchUserDetails(user_id)
         this.user = response.data;
       } catch (error) {
         console.error('Ошибка получения профиля:', error);
@@ -201,30 +191,6 @@ export default {
 .avatar-placeholder::after {
   content: ' ';
   display: block;
-}
-
-.btn-main {
-  padding: 12px 30px;
-  display: inline-block;
-  font-size: 16px;
-  font-weight: bold;
-  text-transform: uppercase;
-  color: #fff;
-  background-color: #37a5de;
-  border: none;
-  cursor: pointer;
-  border-radius: 25px;
-  transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.btn-main:hover {
-  background-color: #2a8fbe;
-  transform: translateY(-4px);
-  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
-}
-
-.btn-main:active {
-  transform: translateY(1px);
 }
 
 .button {

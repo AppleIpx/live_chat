@@ -61,7 +61,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import {userService} from "@/services/apiService";
 
 export default {
   data() {
@@ -84,18 +84,8 @@ export default {
   },
   methods: {
     async fetchUserProfile() {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        this.$router.push('/');
-        return;
-      }
-
       try {
-        const response = await axios.get('http://0.0.0.0:8000/api/users/me', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await userService.fetchUserMe()
         this.user = response.data;
         this.userForm.username = this.user.username;
         this.userForm.email = this.user.email;
@@ -103,7 +93,6 @@ export default {
         this.userForm.last_name = this.user.last_name;
         localStorage.removeItem('user')
         localStorage.setItem('user', JSON.stringify(this.user));
-        console.log(localStorage.getItem("user"))
       } catch (error) {
         console.error('Ошибка загрузки профиля:', error);
         alert('Не удалось загрузить данные профиля. Попробуйте снова.');
@@ -112,11 +101,6 @@ export default {
     },
 
     async saveProfile() {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        this.$router.push('/login');
-        return;
-      }
       const promises = [];
 
       if (this.selectedAvatar) {
@@ -127,20 +111,9 @@ export default {
           alert('Неверное расширение файла. Требуются: PNG, JPG, JPEG.');
           return;
         }
-        const formData = new FormData();
-        formData.append('uploaded_image', this.selectedAvatar);
-        promises.push(
-            axios.patch(
-                'http://0.0.0.0:8000/api/users/me/upload-image',
-                formData,
-                {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data',
-                  },
-                }
-            )
-        );
+        const userImageForm = new FormData();
+        userImageForm.append('uploaded_image', this.selectedAvatar);
+        promises.push(userService.updateUserImage(userImageForm))
       }
 
       if (
@@ -148,15 +121,7 @@ export default {
           this.userForm.first_name !== this.user.first_name ||
           this.userForm.last_name !== this.user.last_name
       ) {
-        promises.push(
-            axios.patch(
-                'http://0.0.0.0:8000/api/users/me',
-                this.userForm,
-                {
-                  headers: {Authorization: `Bearer ${token}`},
-                }
-            )
-        );
+        promises.push(userService.updateUserInfo(this.userForm))
       }
 
       try {

@@ -17,7 +17,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import {authService} from "@/services/apiService";
 
 export default {
   data() {
@@ -59,14 +59,15 @@ export default {
       }
 
       try {
-        const response = await axios.post('http://0.0.0.0:8000/api/auth/register', {
+        const registerData = {
           username: this.username,
           password: this.password,
           email: this.email,
           first_name: this.first_name,
           last_name: this.last_name,
           user_image: null,
-        });
+        }
+        const response = await authService.registerUser(registerData)
 
         if (response.status === 201) {
           this.$router.push("/login");

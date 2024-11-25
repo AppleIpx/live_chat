@@ -1,0 +1,183 @@
+import axios from "axios";
+
+const apiClient = axios.create({
+    baseURL: process.env.VUE_APP_BACKEND_URL,
+    withCredentials: true
+
+});
+
+const apiClientWithoutAuth = axios.create({
+    baseURL: process.env.VUE_APP_BACKEND_URL,
+});
+
+apiClient.interceptors.request.use((config) => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+        return Promise.reject(new Error("Нет токена доступа"));
+    }
+    config.headers.Authorization = `Bearer ${token}`;
+    return config;
+});
+
+export const chatService = {
+    async fetchChatDetails(chatId) {
+        try {
+            return await apiClient.get(`/api/chats/${chatId}/`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async sendMessage(chatId, messageData) {
+        try {
+            return await apiClient.post(`/api/chats/${chatId}/messages/`, messageData);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async fetchChats() {
+        try {
+            return await apiClient.get(`/api/chats/`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async createChat(recipientData) {
+        try {
+            return await apiClient.post('/api/chats/create/direct/', recipientData)
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async createGroupChat(groupData) {
+        try {
+            return await apiClient.post('/api/chats/create/group/', groupData)
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async updateGroupImage(chatId, formData) {
+        try {
+            return await apiClient.patch(
+                `/api/chats/${chatId}/upload-image`,
+                formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    }
+                }
+            );
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    }
+};
+
+export const userService = {
+    async fetchUserDetails(userId) {
+        try {
+            return await apiClient.get(`/api/users/read/${userId}`);
+
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async fetchUsers() {
+        try {
+            return await apiClient.get('/api/users')
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async fetchUserMe() {
+        try {
+            return await apiClient.get('/api/users/me')
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async updateUserImage(userImageForm) {
+        try {
+            return await apiClient.patch(
+                '/api/users/me/upload-image',
+                userImageForm,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    },
+                })
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async updateUserInfo(userForm) {
+        try {
+            return await apiClient.patch('/api/users/me', userForm)
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+};
+
+export const authService = {
+    async loginUser(loginData) {
+        return await apiClientWithoutAuth.post('/api/auth/jwt/login', loginData)
+    },
+    async registerUser(registerData) {
+        return await apiClientWithoutAuth.post('/api/auth/register', registerData)
+    }
+}
+
+
+apiClient.interceptors.request.use(
+    (config) => {
+        console.log("Отправка запроса:", config);
+        return config;
+    },
+    (error) => {
+        console.error("Ошибка перед запросом:", error);
+        return Promise.reject(error);
+    }
+);
+
+apiClient.interceptors.response.use(
+    (response) => {
+        console.log("Получен ответ:", response);
+        return response;
+    },
+    (error) => {
+        console.error("Ошибка в ответе:", error.response || error);
+        return Promise.reject(error);
+    }
+);
