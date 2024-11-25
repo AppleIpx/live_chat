@@ -1,3 +1,4 @@
+import uuid
 from typing import AsyncGenerator, List
 
 import pytest
@@ -61,6 +62,56 @@ async def test_create_direct_chat(
 
 
 @pytest.mark.anyio
+async def test_create_direct_chat_with_failed_user(
+    authorized_client: AsyncClient,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+) -> None:
+    """Test that handles an error with a non-existent user."""
+    random_recipients_id = str(uuid.uuid4())
+    response = await authorized_client.post(
+        "/api/chats/create/direct/",
+        json={"recipient_user_id": f"{random_recipients_id}"},
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {
+        "detail": f"There is no recipient user with id [{random_recipients_id}]",
+    }
+
+
+@pytest.mark.anyio
+async def test_create_direct_chat_with_existing_user(
+    authorized_client: AsyncClient,
+    direct_chat_with_users: ChatFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Test create direct chat with existing user."""
+    recipients_id = str(direct_chat_with_users.users[1].id)
+    response = await authorized_client.post(
+        "/api/chats/create/direct/",
+        json={"recipient_user_id": f"{recipients_id}"},
+    )
+    assert response.status_code == status.HTTP_409_CONFLICT
+    assert response.json() == {
+        "detail": f"Chat with recipient user exists [{recipients_id}]",
+    }
+
+
+@pytest.mark.anyio
+async def test_create_direct_chat_without_auth(
+    client: AsyncClient,
+    user: UserFactory,
+) -> None:
+    """Testing to create a direct chat without auth."""
+    response = await client.post(
+        "/api/chats/create/direct/",
+        json={"recipient_user_id": f"{user.id}"},
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json() == {"detail": "Unauthorized"}
+
+
+@pytest.mark.anyio
 async def test_create_group_chat(
     authorized_client: AsyncClient,
     some_users: List[UserFactory],
@@ -105,6 +156,44 @@ async def test_create_group_chat(
         "image_group": chat.image,
         "name_group": chat.name,
     }
+
+
+@pytest.mark.anyio
+async def test_create_group_chat_with_existing_user(
+    authorized_client: AsyncClient,
+    group_chat_with_users: ChatFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+) -> None:
+    """Testing to create a group chat with existing user."""
+    recipient_user_ids = [str(user.id) for user in group_chat_with_users.users]
+    response = await authorized_client.post(
+        "/api/chats/create/group/",
+        json={
+            "recipient_user_ids": recipient_user_ids[1::],
+            "name_group": "string",
+            "image_group": None,
+        },
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+
+@pytest.mark.anyio
+async def test_create_group_chat_without_auth(
+    client: AsyncClient,
+    some_users: List[UserFactory],
+) -> None:
+    """Testing to create a group chat without auth."""
+    recipient_user_ids = [str(user.id) for user in some_users]
+    response = await client.post(
+        "/api/chats/create/group/",
+        json={
+            "recipient_user_ids": recipient_user_ids,
+            "name_group": "string",
+            "image_group": None,
+        },
+    )
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json() == {"detail": "Unauthorized"}
 
 
 @pytest.mark.anyio
@@ -200,6 +289,17 @@ async def test_get_list_chats(
 
 
 @pytest.mark.anyio
+async def test_get_list_chats_without_auth(
+    client: AsyncClient,
+    any_chat_with_users: ChatFactory,
+) -> None:
+    """Test get list of chats without auth."""
+    response = await client.get("/api/chats/")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json() == {"detail": "Unauthorized"}
+
+
+@pytest.mark.anyio
 async def test_get_detail_chat(
     authorized_client: AsyncClient,
     chat_with_message: MessageFactory,
@@ -257,3 +357,14 @@ async def test_get_detail_chat(
             },
         ],
     }
+
+
+@pytest.mark.anyio
+async def test_get_detail_chat_without_auth(
+    client: AsyncClient,
+    any_chat_with_users: ChatFactory,
+) -> None:
+    """Test get detail chat without auth."""
+    response = await client.get(f"api/chats/{any_chat_with_users.id}/")
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    assert response.json() == {"detail": "Unauthorized"}
