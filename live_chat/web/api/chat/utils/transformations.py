@@ -21,21 +21,7 @@ def transformation_list_chats(chats: List[Chat]) -> list[ChatSchema]:
     ]
 
 
-async def transformation_chat_group(chat: Chat) -> ChatSchema:
-    """Transform a  Chat objects into a ChatGroupDirectSchema objects."""
-    return ChatSchema(
-        id=chat.id,
-        chat_type=chat.chat_type,
-        name_group=chat.name,
-        image_group=chat.image,
-        created_at=chat.created_at,
-        updated_at=chat.updated_at,
-        users=chat.users,
-        last_message_content=None,
-    )
-
-
-async def transformation_chat_direct(chat: Chat) -> ChatSchema:
+async def transformation_chat(chat: Chat) -> ChatSchema:
     """Transform a  Chat objects into a ChatSchema objects."""
     return ChatSchema(
         id=chat.id,

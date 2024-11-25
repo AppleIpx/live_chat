@@ -25,8 +25,7 @@ from live_chat.web.api.chat.utils.get_users_chats import (
     get_user_chats,
 )
 from live_chat.web.api.chat.utils.transformations import (
-    transformation_chat_direct,
-    transformation_chat_group,
+    transformation_chat,
     transformation_list_chats,
 )
 from live_chat.web.api.messages import GetListMessagesSchema, GetMessageSchema
@@ -93,7 +92,7 @@ async def create_direct_chat_view(
         initiator_user=current_user,
         recipient_user=recipient_user,
     )
-    return await transformation_chat_direct(chat)
+    return await transformation_chat(chat)
 
 
 @chat_router.post(
@@ -120,7 +119,7 @@ async def create_group_chat_view(
         recipient_users=recipient_users,
         create_group_chat_schema=create_group_chat_schema,
     )
-    return await transformation_chat_group(chat)
+    return await transformation_chat(chat)
 
 
 @chat_router.get(
