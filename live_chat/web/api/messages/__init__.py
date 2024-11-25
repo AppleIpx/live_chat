@@ -1,7 +1,7 @@
 """Messages API."""
 
 from live_chat.web.api.messages.schemas import (
-    GetListMessagesDirectSchema,
+    GetListMessagesSchema,
     GetMessageSchema,
     PostMessageSchema,
 )
@@ -9,7 +9,7 @@ from live_chat.web.api.messages.views import message_router
 
 __all__ = (
     "PostMessageSchema",
-    "GetListMessagesDirectSchema",
+    "GetListMessagesSchema",
     "GetMessageSchema",
     "message_router",
 )

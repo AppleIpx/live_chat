@@ -8,11 +8,13 @@ from live_chat.db.models.enums import ChatType
 from live_chat.web.api.users.schemas import UserRead
 
 
-class ChatDirectSchema(BaseModel):
-    """Represents a get command for a direct chat."""
+class ChatSchema(BaseModel):
+    """Represents a get command for a direct/group chat."""
 
     id: UUID
     chat_type: ChatType
+    image_group: HttpUrl | None
+    name_group: str | None
     created_at: datetime
     updated_at: datetime
     users: list[UserRead]  # type: ignore[type-arg]
@@ -22,21 +24,7 @@ class ChatDirectSchema(BaseModel):
         from_attributes = True
 
 
-class ChatGroupSchema(ChatDirectSchema):
-    """Represents a get command for a group chat."""
-
-    image_group: HttpUrl | None
-    name_group: str | None
-
-
-class ChatsSchema(BaseModel):
-    """Scheme including group and direct chats."""
-
-    directs: List[ChatDirectSchema]
-    groups: List[ChatGroupSchema]
-
-
-class CreateChatDirectSchema(BaseModel):
+class CreateDirectChatSchema(BaseModel):
     """Represents a create command for a direct chat."""
 
     recipient_user_id: UUID
@@ -53,4 +41,4 @@ class CreateGroupChatSchema(BaseModel):
 class GetListChatsSchema(BaseModel):
     """Represents a get command for a all user's chats."""
 
-    chats: ChatsSchema
+    chats: list[ChatSchema]

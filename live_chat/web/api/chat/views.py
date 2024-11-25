@@ -6,16 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
-from live_chat.db.models.enums import ChatType
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat import (
-    ChatDirectSchema,
-    CreateChatDirectSchema,
+    ChatSchema,
+    CreateDirectChatSchema,
     GetListChatsSchema,
 )
 from live_chat.web.api.chat.schemas import (
-    ChatGroupSchema,
-    ChatsSchema,
     CreateGroupChatSchema,
 )
 from live_chat.web.api.chat.utils.check_direct_chat_exists import direct_chat_exists
@@ -28,12 +25,10 @@ from live_chat.web.api.chat.utils.get_users_chats import (
     get_user_chats,
 )
 from live_chat.web.api.chat.utils.transformations import (
-    transformation_chat_direct,
-    transformation_chat_group,
+    transformation_chat,
     transformation_list_chats,
 )
-from live_chat.web.api.messages import GetListMessagesDirectSchema, GetMessageSchema
-from live_chat.web.api.messages.schemas import GetListMessagesGroupSchema
+from live_chat.web.api.messages import GetListMessagesSchema, GetMessageSchema
 from live_chat.web.api.messages.utils import transformation_message
 from live_chat.web.api.users.schemas import UserRead
 from live_chat.web.api.users.utils.collect_users_for_group import (
@@ -50,14 +45,14 @@ chat_router = APIRouter()
 @chat_router.post(
     "/create/direct/",
     summary="Create a direct chat",
-    response_model=ChatDirectSchema,
+    response_model=ChatSchema,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_direct_chat_view(
-    create_direct_chat_schema: CreateChatDirectSchema,
+    create_direct_chat_schema: CreateDirectChatSchema,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
-) -> ChatDirectSchema | HTTPException:
+) -> ChatSchema | HTTPException:
     """Create a new direct chat between the current user and a recipient user.
 
     This endpoint allows the current user to initiate a direct chat with another user.
@@ -66,7 +61,7 @@ async def create_direct_chat_view(
     the two users before creating a new chat.
 
     Returns:
-        ChatDirectSchema: The newly created chat information,
+        ChatSchema: The newly created chat information,
         serialized according to the response model.
     """
     # check if another user (recipient) exists
@@ -77,7 +72,7 @@ async def create_direct_chat_view(
     )
     # must check that recipient user is not the same as initiator
     if not recipient_user:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"There is no recipient user with id [{recipient_user_id}]",
         )
@@ -97,20 +92,20 @@ async def create_direct_chat_view(
         initiator_user=current_user,
         recipient_user=recipient_user,
     )
-    return await transformation_chat_direct(chat)
+    return await transformation_chat(chat)
 
 
 @chat_router.post(
     "/create/group/",
     summary="Create a group chat",
-    response_model=ChatGroupSchema,
+    response_model=ChatSchema,
     status_code=status.HTTP_201_CREATED,
 )
 async def create_group_chat_view(
     create_group_chat_schema: CreateGroupChatSchema,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
-) -> ChatGroupSchema | HTTPException:
+) -> ChatSchema:
     """Create a new group chat."""
     # check if another user (recipient) exists
     recipient_users_id: List[UUID] = create_group_chat_schema.recipient_user_ids
@@ -124,7 +119,7 @@ async def create_group_chat_view(
         recipient_users=recipient_users,
         create_group_chat_schema=create_group_chat_schema,
     )
-    return await transformation_chat_group(chat)
+    return await transformation_chat(chat)
 
 
 @chat_router.get(
@@ -138,21 +133,19 @@ async def get_list_chats_view(
 ) -> GetListChatsSchema:
     """Getting chats to which a user has been added."""
     chats: List[Chat] = await get_user_chats(db_session, current_user=current_user)
-    chats_data: ChatsSchema = transformation_list_chats(chats)
-
-    return GetListChatsSchema(chats=chats_data)
+    return GetListChatsSchema(chats=transformation_list_chats(chats))
 
 
 @chat_router.get(
     "/{chat_id}/",
     summary="Detail chat by id",
-    response_model=GetListMessagesDirectSchema | GetListMessagesGroupSchema,
+    response_model=GetListMessagesSchema,
 )
 async def get_detail_chat_view(
     chat_id: UUID,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
-) -> GetListMessagesGroupSchema | GetListMessagesDirectSchema:
+) -> GetListMessagesSchema:
     """Get detail chat by id."""
     chat: Chat | None = await get_chat_by_id(db_session, chat_id=chat_id)
     if not chat:
@@ -169,27 +162,16 @@ async def get_detail_chat_view(
     users_data: List[UserRead] = transformation_users(chat.users)
     messages_data: List[GetMessageSchema] = transformation_message(chat.messages)
 
-    message_schema_map = {
-        ChatType.GROUP: GetListMessagesGroupSchema,
-        ChatType.DIRECT: GetListMessagesDirectSchema,
-    }
-
-    if not (message_schema := message_schema_map.get(chat.chat_type)):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An invalid chat_type has been determined",
-        )
-
-    return message_schema(
+    return GetListMessagesSchema(
         id=chat.id,
         chat_type=chat.chat_type,
+        name_group=chat.name,
+        image_group=chat.image,
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         users=users_data,
         messages=messages_data,
         last_message_content=chat.messages[-1].content if chat.messages else None,
-        name_group=chat.name,
-        image_group=chat.image,
     )
 
 
