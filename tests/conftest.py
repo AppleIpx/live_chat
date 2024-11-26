@@ -1,5 +1,6 @@
 import uuid
 from typing import Any, AsyncGenerator, List
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fakeredis import FakeServer
@@ -322,3 +323,13 @@ def override_get_async_session(
     fastapi_app.dependency_overrides[get_async_session] = _override_get_db
     yield
     fastapi_app.dependency_overrides.pop(get_async_session)
+
+
+@pytest.fixture
+def mocked_publish_message() -> AsyncMock:
+    """Mock publish message in redis."""
+    with patch(
+        "live_chat.web.api.messages.views.fast_stream_broker.publish",
+        new=AsyncMock(),
+    ) as mock_publish:
+        yield mock_publish
