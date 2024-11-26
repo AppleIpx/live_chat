@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, AsyncGenerator, List
+from typing import Any, AsyncGenerator
 
 import pytest
 from fakeredis import FakeServer
@@ -15,26 +15,10 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from live_chat.db.dependencies import get_db_session
-from live_chat.db.models.chat import User
-from live_chat.db.models.enums import ChatType
 from live_chat.db.utils import create_database, drop_database, get_async_session
 from live_chat.services.redis.dependency import get_redis_pool
 from live_chat.settings import settings
 from live_chat.web.application import get_app
-from tests.factories import ChatFactory, MessageFactory, ReadStatusFactory, UserFactory
-from tests.utils import get_first_user_from_db
-
-registration_payload = {
-    "email": "user@example.com",
-    "password": "string",
-    "is_active": True,
-    "is_superuser": False,
-    "is_verified": False,
-    "first_name": "string",
-    "last_name": "string",
-    "username": "string",
-    "user_image": None,
-}
 
 
 @pytest.fixture(scope="session")
@@ -167,128 +151,6 @@ async def client(
     """
     async with AsyncClient(app=fastapi_app, base_url="http://test", timeout=2.0) as ac:
         yield ac
-
-
-@pytest.fixture
-async def user(dbsession: AsyncSession) -> UserFactory:
-    """A fixture for generating a user factory."""
-    UserFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    return UserFactory()
-
-
-@pytest.fixture
-async def some_users(dbsession: AsyncSession) -> List[UserFactory]:
-    """A fixture for generating five users factory."""
-    UserFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    return UserFactory.create_batch(5)
-
-
-@pytest.fixture
-async def chat(dbsession: AsyncSession) -> ChatFactory:
-    """A fixture for generating a chat factory."""
-    ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    return ChatFactory()
-
-
-@pytest.fixture
-async def any_chat_with_users(
-    user: UserFactory,
-    dbsession: AsyncSession,
-) -> ChatFactory:
-    """A fixture for generating a chat factory with sender and recipient."""
-    ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    sender: User | None = await get_first_user_from_db(dbsession)
-    recipient = user
-    return ChatFactory(users=[sender, recipient])
-
-
-@pytest.fixture
-async def direct_chat_with_users(
-    user: UserFactory,
-    dbsession: AsyncSession,
-) -> ChatFactory:
-    """A fixture for generating a chat factory with sender and recipient."""
-    ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    sender: User | None = await get_first_user_from_db(dbsession)
-    recipient = user
-    return ChatFactory(users=[sender, recipient], chat_type=ChatType.DIRECT)
-
-
-@pytest.fixture
-async def group_chat_with_users(
-    some_users: UserFactory,
-    dbsession: AsyncSession,
-) -> ChatFactory:
-    """A fixture for generating a chat factory with sender and recipient."""
-    ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    sender: User | None = await get_first_user_from_db(dbsession)
-    return ChatFactory(users=[sender, *some_users], chat_type=ChatType.GROUP)
-
-
-@pytest.fixture
-async def some_chats_with_users(
-    authorized_client: AsyncClient,
-    some_users: List[UserFactory],
-    dbsession: AsyncSession,
-) -> List[ChatFactory]:
-    """A fixture for generating five chats factory."""
-    sender: User | None = await get_first_user_from_db(dbsession)
-    ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    return [ChatFactory(users=[sender, recipient]) for recipient in some_users]
-
-
-@pytest.fixture
-async def message(
-    dbsession: AsyncSession,
-    user: UserFactory,
-    chat: ChatFactory,
-) -> MessageFactory:
-    """Fixture for creating a message."""
-    MessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    return MessageFactory(
-        user=user,
-        chat=chat,
-        chat_id=chat.id,
-        user_id=user.id,
-    )
-
-
-@pytest.fixture
-async def chat_with_message(
-    dbsession: AsyncSession,
-    any_chat_with_users: ChatFactory,
-) -> MessageFactory:
-    """Fixture for creating a chat message."""
-    MessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    sender = any_chat_with_users.users[0]
-    return MessageFactory(
-        user=sender,
-        user_id=sender.id,
-        chat=any_chat_with_users,
-        chat_id=any_chat_with_users.id,
-    )
-
-
-@pytest.fixture
-async def read_status(
-    dbsession: AsyncSession,
-    user: UserFactory,
-    chat: ChatFactory,
-) -> ReadStatusFactory:
-    """Fixture for creating a read status."""
-    ReadStatusFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    return ReadStatusFactory(
-        user=user,
-        chat=chat,
-        user_id=user.id,
-        chat_id=chat.id,
-    )
-
-
-@pytest.fixture
-async def registered_user(client: AsyncClient) -> Response:
-    """Fixture for user registration."""
-    return await client.post("/api/auth/register", json=registration_payload)
 
 
 @pytest.fixture
