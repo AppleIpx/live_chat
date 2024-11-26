@@ -28,6 +28,8 @@ async def test_create_direct_chat(
     assert response.json() == {
         "id": str(chat.id),
         "chat_type": chat.chat_type.value,
+        "image_group": chat.image,
+        "name_group": chat.name,
         "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
         "users": [

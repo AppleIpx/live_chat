@@ -26,51 +26,16 @@ async def test_get_list_chats(
         for user_id in recipient_ids
     }
     response = await authorized_client.get("/api/chats/")
+
     assert response.status_code == status.HTTP_200_OK
-    for chat_direct in response.json()["chats"]["directs"]:
-        recipient = recipients[str(chat_direct["users"][1]["id"])]
-        chat = await get_chat_by_id(chat_id=chat_direct["id"], db_session=dbsession)
-        assert chat_direct == {
+    for chat_data in response.json()["chats"]:
+        recipient = recipients[str(chat_data["users"][1]["id"])]
+        chat = await get_chat_by_id(chat_id=chat_data["id"], db_session=dbsession)
+        assert chat_data == {
             "id": str(chat.id),
             "chat_type": chat.chat_type.value,
-            "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
-            "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
-            "users": [
-                {
-                    "id": str(sender.id),
-                    "email": sender.email,
-                    "is_active": sender.is_active,
-                    "is_superuser": sender.is_superuser,
-                    "is_verified": sender.is_verified,
-                    "first_name": sender.first_name,
-                    "last_name": sender.last_name,
-                    "username": sender.username,
-                    "user_image": sender.user_image,
-                },
-                {
-                    "id": str(recipient.id),
-                    "email": recipient.email,
-                    "is_active": recipient.is_active,
-                    "is_superuser": recipient.is_superuser,
-                    "is_verified": recipient.is_verified,
-                    "first_name": recipient.first_name,
-                    "last_name": recipient.last_name,
-                    "username": recipient.username,
-                    "user_image": recipient.user_image,
-                },
-            ],
-            "last_message_content": (
-                chat.messages[-1].content if chat.messages else None
-            ),
-        }
-    for chat_group in response.json()["chats"]["groups"]:
-        recipient = recipients[str(chat_group["users"][1]["id"])]
-        chat = await get_chat_by_id(chat_id=chat_group["id"], db_session=dbsession)
-        assert chat_group == {
-            "id": str(chat.id),
             "image_group": chat.image,
             "name_group": chat.name,
-            "chat_type": chat.chat_type.value,
             "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
             "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
             "users": [
