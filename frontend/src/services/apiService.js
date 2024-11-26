@@ -158,26 +158,3 @@ export const authService = {
         return await apiClientWithoutAuth.post('/api/auth/register', registerData)
     }
 }
-
-
-apiClient.interceptors.request.use(
-    (config) => {
-        console.log("Отправка запроса:", config);
-        return config;
-    },
-    (error) => {
-        console.error("Ошибка перед запросом:", error);
-        return Promise.reject(error);
-    }
-);
-
-apiClient.interceptors.response.use(
-    (response) => {
-        console.log("Получен ответ:", response);
-        return response;
-    },
-    (error) => {
-        console.error("Ошибка в ответе:", error.response || error);
-        return Promise.reject(error);
-    }
-);
