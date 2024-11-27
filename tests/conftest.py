@@ -333,3 +333,18 @@ def mocked_publish_message() -> AsyncMock:
         new=AsyncMock(),
     ) as mock_publish:
         yield mock_publish
+
+
+@pytest.fixture
+def message_data(
+    message: MessageFactory,
+    direct_chat_with_users: ChatFactory,
+) -> dict[str, Any]:
+    """Return dict with message data."""
+    return {
+        "message_id": f"{message.id}",
+        "user_id": f"{direct_chat_with_users.users[0].id}",
+        "chat_id": f"{direct_chat_with_users.id}",
+        "content": "Test message",
+        "created_at": message.created_at.isoformat(),
+    }

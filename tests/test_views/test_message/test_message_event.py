@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 from unittest.mock import patch
 
 import pytest
@@ -9,46 +9,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.web.api.messages.utils import message_generator
-from tests.factories import ChatFactory, MessageFactory
+from tests.factories import ChatFactory
 
 
 @pytest.mark.anyio
 async def test_get_message_event(
     authorized_client: AsyncClient,
     direct_chat_with_users: ChatFactory,
-    message: MessageFactory,
+    message_data: dict[str, Any],
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
     """Testing get message event."""
-    chat_id = direct_chat_with_users.id
     access_token = authorized_client.headers.get("Authorization").split(" ")[1]
-    message_data = {
-        "event": "new_message",
-        "data": {
-            "message_id": f"{message.id}",
-            "user_id": f"{direct_chat_with_users.users[0].id}",
-            "chat_id": f"{chat_id}",
-            "content": "Test message",
-            "created_at": message.created_at.isoformat(),
-        },
-    }
+    event_data = {"event": "new_message", "data": message_data}
 
     with patch(
         "live_chat.web.api.messages.views.message_generator",
-        return_value=iter([message_data]),
+        return_value=iter([event_data]),
     ):
         async with authorized_client.stream(
             "GET",
-            f"/api/chats/{chat_id}/events/?token={access_token}",
+            f"/api/chats/{direct_chat_with_users.id}/events/?token={access_token}",
         ) as response:
             data = await response.aread()
 
             assert response.status_code == status.HTTP_200_OK
             assert "text/event-stream" in response.headers["content-type"]
             assert data.decode() == (
-                f"event: {message_data["event"]}\r\n"
-                f"data: {message_data["data"]}\r\n\r\n"
+                f"event: new_message\r\ndata: {message_data}\r\n\r\n"
             )
 
 
@@ -71,30 +60,20 @@ async def test_message_generator() -> None:
 async def test_get_message_event_bad_token(
     authorized_client: AsyncClient,
     direct_chat_with_users: ChatFactory,
-    message: MessageFactory,
+    message_data: dict[str, Any],
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
     """Testing get message event."""
-    chat_id = direct_chat_with_users.id
-    message_data = {
-        "event": "new_message",
-        "data": {
-            "message_id": f"{message.id}",
-            "user_id": f"{direct_chat_with_users.users[0].id}",
-            "chat_id": f"{chat_id}",
-            "content": "Test message",
-            "created_at": message.created_at.isoformat(),
-        },
-    }
+    event_data = {"event": "new_message", "data": message_data}
 
     with patch(
         "live_chat.web.api.messages.views.message_generator",
-        return_value=iter([message_data]),
+        return_value=iter([event_data]),
     ):
         async with authorized_client.stream(
             "GET",
-            f"/api/chats/{chat_id}/events/?token=invalid token",
+            f"/api/chats/{direct_chat_with_users.id}/events/?token=invalid token",
         ) as response:
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
             assert (
@@ -106,61 +85,45 @@ async def test_get_message_event_bad_token(
 async def test_get_message_event_nonexistent_user_in_chat(
     authorized_client: AsyncClient,
     chat: ChatFactory,
-    message: MessageFactory,
+    message_data: dict[str, Any],
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
     """Testing get message event."""
     access_token = authorized_client.headers.get("Authorization").split(" ")[1]
-    message_data = {
-        "event": "new_message",
-        "data": {
-            "message_id": f"{message.id}",
-            "user_id": f"{uuid.uuid4()}",
-            "chat_id": f"{chat.id}",
-            "content": "Test message",
-            "created_at": message.created_at.isoformat(),
-        },
-    }
+    message_data["user_id"] = f"{uuid.uuid4()}"
+    message_data["chat_id"] = f"{chat.id}"
+    event_data = {"event": "new_message", "data": message_data}
 
     with patch(
         "live_chat.web.api.messages.views.message_generator",
-        return_value=iter([message_data]),
+        return_value=iter([event_data]),
     ):
         async with authorized_client.stream(
             "GET",
             f"/api/chats/{chat.id}/events/?token={access_token}",
         ) as response:
+            data = await response.aread()
             assert response.status_code == status.HTTP_403_FORBIDDEN
-            assert (
-                await response.aread()
-                == b"""{"detail":"User is not part of the chat"}"""
-            )
+            assert data == b"""{"detail":"User is not part of the chat"}"""
 
 
 @pytest.mark.anyio
 async def test_get_message_event_nonexistent_chat(
     authorized_client: AsyncClient,
-    message: MessageFactory,
+    message_data: dict[str, Any],
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
     """Testing get message event."""
     access_token = authorized_client.headers.get("Authorization").split(" ")[1]
-    message_data = {
-        "event": "new_message",
-        "data": {
-            "message_id": f"{message.id}",
-            "user_id": f"{uuid.uuid4()}",
-            "chat_id": f"{uuid.uuid4()}",
-            "content": "Test message",
-            "created_at": message.created_at.isoformat(),
-        },
-    }
+    message_data["user_id"] = f"{uuid.uuid4()}"
+    message_data["chat_id"] = f"{uuid.uuid4()}"
+    event_data = {"event": "new_message", "data": message_data}
 
     with patch(
         "live_chat.web.api.messages.views.message_generator",
-        return_value=iter([message_data]),
+        return_value=iter([event_data]),
     ):
         async with authorized_client.stream(
             "GET",
