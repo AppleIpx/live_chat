@@ -21,20 +21,17 @@ async def some_users(dbsession: AsyncSession) -> List[UserFactory]:
     return UserFactory.create_batch(5)
 
 
-registration_payload = {
-    "email": "user@example.com",
-    "password": "string",
-    "is_active": True,
-    "is_superuser": False,
-    "is_verified": False,
-    "first_name": "string",
-    "last_name": "string",
-    "username": "string",
-    "user_image": None,
-}
-
-
 @pytest.fixture
 async def registered_user(client: AsyncClient) -> Response:
     """Fixture for user registration."""
-    return await client.post("/api/auth/register", json=registration_payload)
+    return await client.post(
+        "/api/auth/register",
+        json={
+            "email": "user1@example.com",
+            "password": "string_123",
+            "first_name": "string",
+            "last_name": "string",
+            "username": "username123!",
+            "user_image": None,
+        },
+    )

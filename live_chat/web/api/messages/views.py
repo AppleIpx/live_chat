@@ -31,7 +31,7 @@ from live_chat.web.api.messages.utils import (
     save_message_to_db,
     transformation_message,
 )
-from live_chat.web.api.users.schemas import UserManager
+from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils.utils import current_active_user, get_user_manager
 
 message_router = APIRouter()

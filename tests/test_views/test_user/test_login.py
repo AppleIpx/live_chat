@@ -21,7 +21,7 @@ async def test_login_users(
         "/api/auth/jwt/login",
         data={
             "username": user.email,
-            "password": "string",
+            "password": "string_123",
         },
     )
     assert response.status_code == status.HTTP_200_OK
