@@ -7,7 +7,7 @@ from tests.utils import get_first_user_from_db, payload
 
 
 @pytest.mark.anyio
-async def test_registrations_users(
+async def test_registration_user(
     client: AsyncClient,
     dbsession: AsyncSession,
 ) -> None:
@@ -25,6 +25,36 @@ async def test_registrations_users(
         "last_name": user.last_name,
         "username": user.username,
         "user_image": user.user_image,
+    }
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "invalid_password, expected_error",
+    [
+        ("short", "Password must be at least 8 characters long."),
+        ("password", "Password must include at least one digit."),
+        ("12345678", "Password must include at least one letter."),
+        ("password123", "Password must include at least one special character."),
+        ("user1@example.com", "Password should not be similar to email."),
+        ("username123!", "Password should not be similar to username."),
+    ],
+)
+async def test_registration_user_invalid_password(
+    client: AsyncClient,
+    dbsession: AsyncSession,
+    invalid_password: str,
+    expected_error: str,
+) -> None:
+    """Test registration user with invalid password."""
+    payload["password"] = invalid_password
+    response = await client.post("/api/auth/register", json=payload)
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {
+        "detail": {
+            "code": "REGISTER_INVALID_PASSWORD",
+            "reason": expected_error,
+        },
     }
 
 

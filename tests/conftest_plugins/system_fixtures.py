@@ -162,8 +162,8 @@ async def authorized_client(
     response = await client.post(
         "/api/auth/jwt/login",
         data={
-            "username": "user@example.com",
-            "password": "string",
+            "username": "user1@example.com",
+            "password": "string_123",
         },
     )
     token = response.json().get("access_token")

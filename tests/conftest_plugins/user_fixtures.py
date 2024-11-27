@@ -5,6 +5,7 @@ from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.factories import UserFactory
+from tests.utils import payload
 
 
 @pytest.fixture
@@ -21,20 +22,7 @@ async def some_users(dbsession: AsyncSession) -> List[UserFactory]:
     return UserFactory.create_batch(5)
 
 
-registration_payload = {
-    "email": "user@example.com",
-    "password": "string",
-    "is_active": True,
-    "is_superuser": False,
-    "is_verified": False,
-    "first_name": "string",
-    "last_name": "string",
-    "username": "string",
-    "user_image": None,
-}
-
-
 @pytest.fixture
 async def registered_user(client: AsyncClient) -> Response:
     """Fixture for user registration."""
-    return await client.post("/api/auth/register", json=registration_payload)
+    return await client.post("/api/auth/register", json=payload)

@@ -1,8 +1,15 @@
 import uuid
-from typing import Any
+from typing import Any, Union
 
 from fastapi import HTTPException
-from fastapi_users import BaseUserManager, UUIDIDMixin, exceptions, models
+from fastapi_users import (
+    BaseUserManager,
+    InvalidPasswordException,
+    UUIDIDMixin,
+    exceptions,
+    models,
+    schemas,
+)
 from starlette import status
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
@@ -43,7 +50,43 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                 except exceptions.UserAlreadyExists as error:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Username already exists",
+                        detail="UPDATE_USERNAME_ALREADY_EXISTS",
                     ) from error
 
         return await super()._update(user, update_dict)
+
+    async def validate_password(
+        self,
+        password: str,
+        user: Union[schemas.UC, models.UP],
+    ) -> None:
+        """Validate password."""
+        if len(password) < 8:
+            raise InvalidPasswordException(
+                reason="Password must be at least 8 characters long.",
+            )
+
+        if not any(char.isdigit() for char in password):
+            raise InvalidPasswordException(
+                reason="Password must include at least one digit.",
+            )
+
+        if not any(char.isalpha() for char in password):
+            raise InvalidPasswordException(
+                reason="Password must include at least one letter.",
+            )
+
+        if not any(char in "!@#$%^&*()_+-=[]{}|;':\",.<>?/`~" for char in password):
+            raise InvalidPasswordException(
+                reason="Password must include at least one special character.",
+            )
+
+        if password == user.email:
+            raise InvalidPasswordException(
+                reason="Password should not be similar to email.",
+            )
+
+        if password == user.username:  # type: ignore[union-attr]
+            raise InvalidPasswordException(
+                reason="Password should not be similar to username.",
+            )

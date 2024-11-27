@@ -31,38 +31,14 @@ async def test_get_users_me(
 
 
 @pytest.mark.anyio
-async def test_patch_users_me_400(
-    authorized_client: AsyncClient,
-    user: UserFactory,
-) -> None:
-    """Test patch with exists email."""
-    new_data = {
-        "email": f"{user.email}",
-        "password": "new_string",
-        "is_active": True,
-        "is_superuser": True,
-        "is_verified": True,
-        "first_name": "new_string",
-        "last_name": "new_string",
-        "username": "string",
-        "user_image": None,
-    }
-    response = await authorized_client.patch("/api/users/me", json=new_data)
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json() == {"detail": "UPDATE_USER_EMAIL_ALREADY_EXISTS"}
-
-
-# TODO нужно будет доделать после обновления ручки patch(/api/users/me)
-# TODO не обновляются is_active, username
-@pytest.mark.anyio
-async def test_patch_users_me_200(
+async def test_patch_users_me_correct(
     authorized_client: AsyncClient,
     dbsession: AsyncSession,
 ) -> None:
     """Test patch users me."""
     user = await get_first_user_from_db(dbsession)
     response = await authorized_client.patch("/api/users/me", json=new_payload)
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "id": str(user.id),
         "email": user.email,
@@ -77,7 +53,68 @@ async def test_patch_users_me_200(
 
 
 @pytest.mark.anyio
-async def test_patch_users_me_401(
+async def test_patch_users_me_existing_email(
+    authorized_client: AsyncClient,
+    user: UserFactory,
+) -> None:
+    """Test patch users me with existing email."""
+    response = await authorized_client.patch(
+        "/api/users/me",
+        json={"email": user.email},
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"detail": "UPDATE_USER_EMAIL_ALREADY_EXISTS"}
+
+
+@pytest.mark.anyio
+async def test_patch_users_me_existing_username(
+    authorized_client: AsyncClient,
+    user: UserFactory,
+    dbsession: AsyncSession,
+) -> None:
+    """Test patch users me with existing username."""
+    response = await authorized_client.patch(
+        "/api/users/me",
+        json={"username": user.username},
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"detail": "UPDATE_USERNAME_ALREADY_EXISTS"}
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "invalid_password, expected_error",
+    [
+        ("short", "Password must be at least 8 characters long."),
+        ("password", "Password must include at least one digit."),
+        ("12345678", "Password must include at least one letter."),
+        ("password123", "Password must include at least one special character."),
+        ("user1@example.com", "Password should not be similar to email."),
+        ("username123!", "Password should not be similar to username."),
+    ],
+)
+async def test_patch_users_me_invalid_password(
+    authorized_client: AsyncClient,
+    dbsession: AsyncSession,
+    invalid_password: str,
+    expected_error: str,
+) -> None:
+    """Test patch users me with invalid password."""
+    response = await authorized_client.patch(
+        "/api/users/me",
+        json={"password": invalid_password},
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {
+        "detail": {
+            "code": "UPDATE_USER_INVALID_PASSWORD",
+            "reason": expected_error,
+        },
+    }
+
+
+@pytest.mark.anyio
+async def test_patch_users_me_unauthorized_user(
     client: AsyncClient,
 ) -> None:
     """Test patch users me without authentication."""
