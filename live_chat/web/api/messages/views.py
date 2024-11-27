@@ -62,7 +62,7 @@ async def get_messages(
 async def get_last_message(
     chat: Chat = Depends(validate_user_access_to_chat),
 ) -> GetMessageSchema | None:
-    """Get messages in chat by pagination."""
+    """Get last message in chat."""
     return transformation_message([chat.messages[-1]])[0] if chat.messages else None
 
 
