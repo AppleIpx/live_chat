@@ -5,7 +5,7 @@ from httpx import AsyncClient, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from tests.utils import get_first_user_from_db
+from tests.utils import get_first_user_from_db, new_payload
 
 
 @pytest.mark.anyio
@@ -84,3 +84,27 @@ async def test_login_missing_fields(
         detail.get("loc") == ["body", missing_field]
         for detail in response.json()["detail"]
     )
+
+
+@pytest.mark.anyio
+async def test_login_with_changed_data(
+    authorized_client: AsyncClient,
+    dbsession: AsyncSession,
+    mocker: Mock,
+) -> None:
+    """Testing to receive a token after changing fields in patch users/me."""
+    user = await get_first_user_from_db(dbsession)
+    response = await authorized_client.patch("/api/users/me", json=new_payload)
+    assert response.status_code == 200
+    response = await authorized_client.post(
+        "/api/auth/jwt/login",
+        data={
+            "username": user.email,
+            "password": new_payload["password"],
+        },
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "access_token": mocker.ANY,
+        "token_type": "bearer",
+    }

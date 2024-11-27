@@ -3,19 +3,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from tests.utils import get_first_user_from_db
-
-payload = {
-    "email": "user@example.com",
-    "password": "string",
-    "is_active": True,
-    "is_superuser": False,
-    "is_verified": False,
-    "first_name": "string",
-    "last_name": "string",
-    "username": "string",
-    "user_image": None,
-}
+from tests.utils import get_first_user_from_db, payload
 
 
 @pytest.mark.anyio
@@ -51,8 +39,19 @@ async def test_register_missing_fields(
     missing_field: str,
 ) -> None:
     """Test registration with missing required fields."""
-    payload.pop(missing_field)
-    response = await client.post("/api/auth/register", json=payload)
+    new_payload = {
+        "email": "user@example.com",
+        "password": "string",
+        "is_active": True,
+        "is_superuser": False,
+        "is_verified": False,
+        "first_name": "string",
+        "last_name": "string",
+        "username": "string",
+        "user_image": None,
+    }
+    new_payload.pop(missing_field)
+    response = await client.post("/api/auth/register", json=new_payload)
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
     json_response = response.json()
     assert any(
