@@ -7,30 +7,30 @@ from fastapi_users.authentication import (
     BearerTransport,
     JWTStrategy,
 )
-from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.dependencies import get_db_session
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.settings import settings
-from live_chat.web.api.users.schemas import UserManager
+from live_chat.web.api.users.user_manager import UserManager
+from live_chat.web.api.users.utils.custom_user_db import CustomSQLAlchemyUserDatabase
 
 
 async def get_user_db(  # type: ignore[misc]
     session: AsyncSession = Depends(get_db_session),
-) -> SQLAlchemyUserDatabase:  # type: ignore[type-arg]
+) -> CustomSQLAlchemyUserDatabase:  # type: ignore[type-arg]
     """
     Yield a SQLAlchemyUserDatabase instance.
 
     :param session: asynchronous SQLAlchemy session.
     :yields: instance of SQLAlchemyUserDatabase.
     """
-    yield SQLAlchemyUserDatabase(session, User)
+    yield CustomSQLAlchemyUserDatabase(session, User)
 
 
 async def get_user_manager(  # type: ignore[misc]
-    user_db: SQLAlchemyUserDatabase = Depends(get_user_db),  # type: ignore[type-arg]
+    user_db: CustomSQLAlchemyUserDatabase = Depends(get_user_db),  # type: ignore[type-arg]
 ) -> UserManager:
     """
     Yield a UserManager instance.

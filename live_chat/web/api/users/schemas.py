@@ -1,12 +1,8 @@
-import uuid
-from typing import List
+from typing import List, Optional
 
-from fastapi_users import BaseUserManager, UUIDIDMixin, schemas
+from fastapi_users import schemas
 from fastapi_users_db_sqlalchemy import UUID_ID
 from pydantic import BaseModel, HttpUrl
-
-from live_chat.db.models.chat import User  # type: ignore[attr-defined]
-from live_chat.settings import settings
 
 
 class BaseUserSchema:
@@ -21,8 +17,9 @@ class BaseUserSchema:
 class BaseUserUpdateSchema:
     """Base user schema for update."""
 
-    first_name: str
-    last_name: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    username: Optional[str] = None
 
 
 class UserRead(BaseUserSchema, schemas.BaseUser[UUID_ID]):
@@ -41,10 +38,3 @@ class UserCreate(BaseUserSchema, schemas.BaseUserCreate):
 
 class UserUpdate(BaseUserUpdateSchema, schemas.BaseUserUpdate):
     """Represents an update command for a user."""
-
-
-class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-    """Manages a user session and its tokens."""
-
-    reset_password_token_secret = settings.users_secret
-    verification_token_secret = settings.users_secret
