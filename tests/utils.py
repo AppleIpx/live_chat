@@ -6,9 +6,6 @@ from live_chat.db.models.chat import Chat, User
 payload = {
     "email": "user1@example.com",
     "password": "string_123",
-    "is_active": True,
-    "is_superuser": False,
-    "is_verified": False,
     "first_name": "string",
     "last_name": "string",
     "username": "username123!",
@@ -18,9 +15,6 @@ payload = {
 new_payload = {
     "email": "new_user@example.com",
     "password": "new_string_123",
-    "is_active": True,
-    "is_superuser": True,
-    "is_verified": True,
     "first_name": "new_string",
     "last_name": "new_string",
     "username": "new_string",
