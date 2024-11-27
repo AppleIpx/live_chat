@@ -42,7 +42,7 @@ message_router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-@message_router.get("/chats/{chat_id}/messages/")
+@message_router.get("/chats/{chat_id}/messages")
 async def get_messages(
     chat: Chat = Depends(validate_user_access_to_chat),
     params: CursorParams = Depends(),
@@ -66,7 +66,7 @@ async def get_last_message(
     return transformation_message([chat.messages[-1]])[0] if chat.messages else None
 
 
-@message_router.post("/chats/{chat_id}/messages/")
+@message_router.post("/chats/{chat_id}/messages")
 async def post_message(
     message: PostMessageSchema,
     chat: Chat = Depends(validate_user_access_to_chat),
@@ -108,7 +108,7 @@ async def process_message(message: Any) -> None:
     )
 
 
-@message_router.get("/chats/{chat_id}/events/")
+@message_router.get("/chats/{chat_id}/events")
 async def sse_events(
     chat_id: UUID,
     token: str = Query(..., alias="token"),

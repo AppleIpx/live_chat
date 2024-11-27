@@ -36,7 +36,7 @@ chat_router = APIRouter()
 
 
 @chat_router.post(
-    "/create/direct/",
+    "/create/direct",
     summary="Create a direct chat",
     response_model=ChatSchema,
     status_code=status.HTTP_201_CREATED,
@@ -89,7 +89,7 @@ async def create_direct_chat_view(
 
 
 @chat_router.post(
-    "/create/group/",
+    "/create/group",
     summary="Create a group chat",
     response_model=ChatSchema,
     status_code=status.HTTP_201_CREATED,
@@ -115,7 +115,7 @@ async def create_group_chat_view(
     return await transformation_chat(chat)
 
 
-@chat_router.get("/", summary="List chats")
+@chat_router.get("", summary="List chats")
 async def get_list_chats_view(
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
@@ -132,7 +132,7 @@ async def get_list_chats_view(
 
 
 @chat_router.get(
-    "/{chat_id}/",
+    "/{chat_id}",
     summary="Detail chat by id",
     response_model=ChatSchema,
 )
