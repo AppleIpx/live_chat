@@ -36,12 +36,6 @@
             type="text"
             placeholder="Название группы..."
         />
-        <div class="group-image-upload">
-          <input type="file" @change="handleImageUpload"/>
-          <div v-if="groupImagePreview" class="image-preview">
-            <img :src="groupImagePreview" alt="Preview"/>
-          </div>
-        </div>
         <div class="user-selection">
           <p>Выберите пользователей:</p>
           <ul>
@@ -88,7 +82,7 @@
             <div class="chat-header">
               <span
                   class="chat-type-icon"
-                  :title="chat.chat_type === 'direct' ? 'Личный чат' : 'Групповой чат'"
+                  :title="chat.chat_type === 'direct' ? 'Личный чат' : 'Группа'"
               >
                 <i :class="chat.chat_type === 'direct' ? 'fas fa-user' : 'fas fa-users'"></i>
               </span>
@@ -139,14 +133,12 @@ export default {
       isCreatingDirect: false,
       selectedGroupUsers: [],
       groupName: '',
-      groupImage: null,
-      groupImagePreview: null,
     };
   },
   async mounted() {
     await this.fetchChats();
     this.$store.state.chats.forEach((chat) => {
-      SSEManager.connect(chat.id, this.isChatOpenCallback);
+      SSEManager.connect(chat.id, false);
     });
     await this.fetchUsers()
   },
@@ -162,8 +154,7 @@ export default {
         }, 10000);
         const response = await this.$store.dispatch("StoreFetchChats");
         clearTimeout(timeout);
-        this.chats = [...response.data.chats.groups, ...response.data.chats.directs];
-        console.log("CHATS", this.chats);
+        this.chats = response.data.chats
         this.chats.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
         this.isLoading = false;
       } catch (error) {
@@ -176,8 +167,9 @@ export default {
     async fetchUsers() {
       try {
         const response = await userService.fetchUsers()
+        const instanceUser = await userService.fetchUserMe()
         this.users = response.data.users.slice(0, 10);
-        this.filteredUsers = this.users;
+        this.filteredUsers = this.users.filter(user => user.id !== instanceUser.data.id)
       } catch (error) {
         console.error('Ошибка получения пользователей:', error);
         this.error = 'Не удалось загрузить пользователей.';
@@ -269,23 +261,13 @@ export default {
         this.chats.push(response.data);
         alert('Чат успешно создан!');
       } catch (error) {
+        if (error.status === 409) {
+          alert(`У вас уже есть этот чат.`);
+        }
         console.error('Ошибка при создании чата:', error);
         alert('Не удалось создать чат. Пожалуйста, попробуйте позже.');
       }
     },
-
-    handleImageUpload(event) {
-      const file = event.target.files[0];
-      if (file) {
-        this.groupImage = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.groupImagePreview = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
-    },
-
 
     async createGroupChat() {
       try {
@@ -299,40 +281,15 @@ export default {
           image_group: null,
         };
 
-        const response = await chatService.createGroupChat(groupData);
-        const groupId = response.data.id;
+        await chatService.createGroupChat(groupData);
         alert('Группа успешно создана!');
-        console.log(this.groupImage)
-        if (this.groupImage) {
-          await this.updateGroupImage(groupId);
-        }
-
         this.isSearchOpen = false;
         this.groupName = "";
-        this.groupImage = null;
-        this.groupImagePreview = null;
         this.selectedGroupUsers = [];
       } catch (error) {
         alert('Не удалось создать группу. Пожалуйста, попробуйте позже.');
       }
     },
-
-    async updateGroupImage(groupId) {
-      try {
-        const formData = new FormData();
-        if (this.groupImage) {
-          formData.append("uploaded_image", this.groupImage);
-        } else {
-          console.error("No image selected to upload");
-          return;
-        }
-
-        await chatService.updateGroupImage(groupId, formData);
-      } catch (error) {
-        console.error('Error uploading group image:', error);
-        alert('Не удалось загрузить изображение группы. Пожалуйста, попробуйте позже.');
-      }
-    }
   },
 };
 </script>
