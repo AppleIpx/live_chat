@@ -1,6 +1,6 @@
 # live_chat
 
-This project was generated using fastapi_template.
+**This project is an online chat using FastApi, SQLAlchemy, and SSE connection to send messages**
 
 ## Poetry
 
@@ -34,41 +34,70 @@ docker-compose -f docker-compose.local.yml up --build
 ```bash
 $ tree "live_chat"
 live_chat
-├── conftest.py  # Fixtures for all tests.
 ├── db  # module contains db configurations
-│   ├── dao  # Data Access Objects. Contains different classes to interact with database.
+│   └── migrations  # The folder in which the migrations are located.
 │   └── models  # Package contains different models for ORMs.
 ├── __main__.py  # Startup script. Starts uvicorn.
 ├── services  # Package for different external services such as rabbit or redis etc.
 ├── settings.py  # Main configuration settings for project.
 ├── static  # Static content.
-├── tests  # Tests for project.
 └── web  # Package contains web server. Handlers, startup config.
     ├── api  # Package with all handlers.
+    │   └── chat  # Chat view. This includes schemas, routers, and other utils
+    │   └── messages  # Message view. This includes schemas, SSE connection and operations with Redis, as well as utils for message operation
+    │   └── monitoring  # Simple view to monitor the correct operation of the server
+    │   └── users  # User view. This includes schemas, routers, auth logic and other utils
     │   └── router.py  # Main router.
     ├── application.py  # FastAPI application configuration.
     └── lifespan.py  # Contains actions to perform on startup and shutdown.
+    └── s3_client.py  # Configuring the S3 client to communicate with MInIO.
+    
 ```
 
 ## Configuration
 
 This application can be configured with environment variables.
 
-You can create `.env` file in the root directory and place all
-environment variables here. 
+You can create `.env` file in the directory _.envs/.local/_ and place all
+environment variables here.
 
-All environment variables should start with "LIVE_CHAT_" prefix.
-
-For example if you see in your "live_chat/settings.py" a variable named like
-`random_parameter`, you should provide the "LIVE_CHAT_RANDOM_PARAMETER" 
-variable to configure the value. This behaviour can be changed by overriding `env_prefix` property
-in `live_chat.settings.Settings.Config`.
-
-An example of .env file:
+An example of .env file for work with docker:
 ```bash
-LIVE_CHAT_RELOAD="True"
-LIVE_CHAT_PORT="8000"
-LIVE_CHAT_ENVIRONMENT="dev"
+# General
+IS_RELOAD=True
+USERS_SECRET= <your secret key>
+WORKERS_COUNT=1
+HOST=0.0.0.0
+PORT=8000
+
+#Database
+POSTGRES_USER=postgres-live-chat
+POSTGRES_PASSWORD=postgres-live-chat
+POSTGRES_HOST=postgres-live-chat-local
+POSTGRES_PORT=5432
+POSTGRES_DB=postgres_live_chat_local
+
+# Redis
+REDIS_HOST=redis-live-chat-local
+REDIS_PORT=6379
+
+# AWS
+# ------------------------------------------------------------------------------
+USE_S3=True
+AWS_ACCESS_KEY_ID=live_chat_local
+AWS_SECRET_ACCESS_KEY=live_chat_local
+AWS_S3_MAX_MEMORY_SIZE=100_000_000_000_000
+AWS_S3_REGION_NAME=us-east-1
+AWS_BUCKET_NAME=live-chat-bucket
+AWS_S3_ENDPOINT_URL=http://minio-live-chat-local:9000
+AWS_S3_URL_PROTOCOL=http:
+
+
+# MinIO
+# ------------------------------------------------------------------------------
+MINIO_ROOT_USER=admin_docker
+MINIO_ROOT_PASSWORD=12345678
+MINIO_URL=http://localhost:9000/live-chat-bucket/
 ```
 
 You can read more about BaseSettings class here: https://pydantic-docs.helpmanual.io/usage/settings/
@@ -130,17 +159,12 @@ alembic revision
 If you want to run it in docker, simply run:
 
 ```bash
+docker-compose -f docker-compose.test.yml build  
 docker compose -f docker-compose.test.yml run fastapi-live-chat-test pytest
 ```
 
 For running tests on your local machine.
 1. you need to start a database.
-
-I prefer doing it with docker:
-```
-docker run -p "5432:5432" -e "POSTGRES_PASSWORD=live_chat" -e "POSTGRES_USER=live_chat" -e "POSTGRES_DB=live_chat" postgres:16.3-bullseye
-```
-
 
 2. Run the pytest.
 ```bash
