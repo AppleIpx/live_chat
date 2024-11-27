@@ -52,9 +52,8 @@ async def test_create_group_chat(
         "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
         "users": expected_users,
-        "last_message_content": None,
-        "image_group": chat.image,
-        "name_group": chat.name,
+        "image": chat.image,
+        "name": chat.name,
     }
 
 

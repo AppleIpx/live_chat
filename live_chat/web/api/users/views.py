@@ -2,21 +2,20 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.security import HTTPBearer
+from fastapi_pagination import set_page
+from fastapi_pagination.cursor import CursorPage, CursorParams
+from fastapi_pagination.ext.sqlalchemy import paginate
 from fastapi_users import models
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.users.schemas import (
-    ListUserSchema,
     UserCreate,
     UserRead,
     UserUpdate,
-)
-from live_chat.web.api.users.utils.get_list_users import (
-    get_all_users,
-    transformation_users,
 )
 from live_chat.web.api.users.utils.image_saver import ImageSaver
 from live_chat.web.api.users.utils.utils import (
@@ -59,19 +58,14 @@ router.include_router(
 )
 
 
-@router.get(
-    "/users",
-    tags=["users"],
-    summary="Get all users",
-    response_model=ListUserSchema,
-)
+@router.get("/users", tags=["users"], summary="Get all users")
 async def get_users(
     db_session: AsyncSession = Depends(get_async_session),
-) -> ListUserSchema:
+    params: CursorParams = Depends(),
+) -> CursorPage[UserRead]:
     """Gets a list of all users."""
-    users: list[User] = await get_all_users(db_session)
-    users_data = transformation_users(users)
-    return ListUserSchema(users=users_data)
+    set_page(CursorPage[UserRead])
+    return await paginate(db_session, select(User).order_by(User.id), params=params)
 
 
 @router.get("/users/read/{user_id}", response_model=UserRead, tags=["users"])

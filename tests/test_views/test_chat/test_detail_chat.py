@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.web.api.chat.utils import get_chat_by_id
-from live_chat.web.api.chat.utils.get_message_by_id import get_message_by_id
 from live_chat.web.api.users.utils.get_user_by_id import get_user_by_id
 from tests.factories import ChatFactory, MessageFactory
 
@@ -23,17 +22,13 @@ async def test_get_detail_chat(
     chat = await get_chat_by_id(chat_id=chat_id, db_session=dbsession)
     sender = await get_user_by_id(user_id=chat.users[0].id, db_session=dbsession)
     recipient = await get_user_by_id(user_id=chat.users[1].id, db_session=dbsession)
-    message = await get_message_by_id(
-        message_id=chat_with_message.id,
-        db_session=dbsession,
-    )
     response = await authorized_client.get(f"api/chats/{chat_id}/")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "id": str(chat.id),
         "chat_type": chat.chat_type.value,
-        "image_group": chat.image,
-        "name_group": chat.name,
+        "image": chat.image,
+        "name": chat.name,
         "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
         "users": [
@@ -58,16 +53,6 @@ async def test_get_detail_chat(
                 "last_name": recipient.last_name,
                 "username": recipient.username,
                 "user_image": recipient.user_image,
-            },
-        ],
-        "last_message_content": chat.messages[-1].content if chat.messages else None,
-        "messages": [
-            {
-                "message_id": str(message.id),
-                "user_id": str(sender.id),
-                "chat_id": str(chat.id),
-                "content": message.content,
-                "created_at": message.created_at.isoformat().replace("+00:00", "Z"),
             },
         ],
     }

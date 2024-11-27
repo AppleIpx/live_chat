@@ -28,14 +28,14 @@ async def test_get_list_chats(
     response = await authorized_client.get("/api/chats/")
 
     assert response.status_code == status.HTTP_200_OK
-    for chat_data in response.json()["chats"]:
+    for chat_data in response.json()["items"]:
         recipient = recipients[str(chat_data["users"][1]["id"])]
         chat = await get_chat_by_id(chat_id=chat_data["id"], db_session=dbsession)
         assert chat_data == {
             "id": str(chat.id),
             "chat_type": chat.chat_type.value,
-            "image_group": chat.image,
-            "name_group": chat.name,
+            "image": chat.image,
+            "name": chat.name,
             "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
             "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
             "users": [
@@ -62,9 +62,6 @@ async def test_get_list_chats(
                     "user_image": recipient.user_image,
                 },
             ],
-            "last_message_content": (
-                chat.messages[-1].content if chat.messages else None
-            ),
         }
 
 

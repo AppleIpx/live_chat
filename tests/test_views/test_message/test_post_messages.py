@@ -37,7 +37,7 @@ async def test_post_message(
     message_data = json.dumps(
         jsonable_encoder(
             {
-                "message_id": message.id,
+                "id": message.id,
                 "user_id": sender.id,
                 "chat_id": chat_id,
                 "content": "test",

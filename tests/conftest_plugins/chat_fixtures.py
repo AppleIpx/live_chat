@@ -78,3 +78,20 @@ async def chat_with_message(
         chat=any_chat_with_users,
         chat_id=any_chat_with_users.id,
     )
+
+
+@pytest.fixture
+async def many_messages(
+    dbsession: AsyncSession,
+    any_chat_with_users: ChatFactory,
+) -> List[MessageFactory]:
+    """Fixture for creating a chat message."""
+    MessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    sender = any_chat_with_users.users[0]
+    return MessageFactory.create_batch(
+        10,
+        user=sender,
+        user_id=sender.id,
+        chat=any_chat_with_users,
+        chat_id=any_chat_with_users.id,
+    )

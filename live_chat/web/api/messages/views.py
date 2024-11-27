@@ -5,10 +5,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.encoders import jsonable_encoder
+from fastapi_pagination import set_page
+from fastapi_pagination.cursor import CursorPage, CursorParams
+from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette import EventSourceResponse
 
-from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import Chat, Message, User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
 from live_chat.services.faststream.router import fast_stream_broker
 from live_chat.services.redis import redis
@@ -36,6 +40,30 @@ from live_chat.web.api.users.utils.utils import current_active_user, get_user_ma
 
 message_router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+@message_router.get("/chats/{chat_id}/messages/")
+async def get_messages(
+    chat: Chat = Depends(validate_user_access_to_chat),
+    params: CursorParams = Depends(),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> CursorPage[GetMessageSchema]:
+    """Get messages in chat by pagination."""
+    set_page(CursorPage[GetMessageSchema])
+    query = (
+        select(Message)
+        .where(Message.chat_id == chat.id)
+        .order_by(Message.created_at.desc())
+    )
+    return await paginate(db_session, query, params=params)
+
+
+@message_router.get("/chats/{chat_id}/messages/last")
+async def get_last_message(
+    chat: Chat = Depends(validate_user_access_to_chat),
+) -> GetMessageSchema | None:
+    """Get messages in chat by pagination."""
+    return transformation_message([chat.messages[-1]])[0] if chat.messages else None
 
 
 @message_router.post("/chats/{chat_id}/messages/")
