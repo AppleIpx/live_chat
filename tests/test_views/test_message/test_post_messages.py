@@ -29,7 +29,7 @@ async def test_post_message(
     sender = direct_chat_with_users.users[0]
     target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat_id!s}:{recipient.id!s}"
     response = await authorized_client.post(
-        f"/api/chats/{chat_id}/messages/",
+        f"/api/chats/{chat_id}/messages",
         json={"content": "test"},
     )
     query = select(Message).where(Message.chat_id == chat_id)
@@ -62,7 +62,7 @@ async def test_post_message_unauthorized_user(
     """Testing post message from unauthorized user."""
     chat_id = direct_chat_with_users.id
     response = await client.post(
-        f"/api/chats/{chat_id}/messages/",
+        f"/api/chats/{chat_id}/messages",
         json={"content": "test"},
     )
 
@@ -81,7 +81,7 @@ async def test_post_message_nonexistent_user(
 ) -> None:
     """Testing post message from nonexistent user in chat."""
     response = await authorized_client.post(
-        f"/api/chats/{chat.id}/messages/",
+        f"/api/chats/{chat.id}/messages",
         json={"content": "test"},
     )
 
@@ -99,7 +99,7 @@ async def test_post_message_nonexistent_chat(
 ) -> None:
     """Testing post message in nonexistent chat."""
     response = await authorized_client.post(
-        f"/api/chats/{uuid.uuid4()}/messages/",
+        f"/api/chats/{uuid.uuid4()}/messages",
         json={"content": "test"},
     )
 

@@ -22,7 +22,7 @@ async def test_get_detail_chat(
     chat = await get_chat_by_id(chat_id=chat_id, db_session=dbsession)
     sender = await get_user_by_id(user_id=chat.users[0].id, db_session=dbsession)
     recipient = await get_user_by_id(user_id=chat.users[1].id, db_session=dbsession)
-    response = await authorized_client.get(f"api/chats/{chat_id}/")
+    response = await authorized_client.get(f"api/chats/{chat_id}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "id": str(chat.id),
@@ -64,6 +64,6 @@ async def test_get_detail_chat_without_auth(
     any_chat_with_users: ChatFactory,
 ) -> None:
     """Test get detail chat without auth."""
-    response = await client.get(f"api/chats/{any_chat_with_users.id}/")
+    response = await client.get(f"api/chats/{any_chat_with_users.id}")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Unauthorized"}

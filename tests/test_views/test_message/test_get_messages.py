@@ -19,7 +19,7 @@ async def test_get_messages(
 ) -> None:
     """Test get list messages in chat."""
     response = await authorized_client.get(
-        f"api/chats/{many_messages[0].chat.id}/messages/",
+        f"api/chats/{many_messages[0].chat.id}/messages",
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -44,7 +44,7 @@ async def test_get_messages_unauthorized_user(
     dbsession: AsyncSession,
 ) -> None:
     """Test get list messages in chat from unauthorized user."""
-    response = await client.get(f"api/chats/{many_messages[0].chat.id}/messages/")
+    response = await client.get(f"api/chats/{many_messages[0].chat.id}/messages")
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Unauthorized"}
@@ -59,7 +59,7 @@ async def test_get_messages_nonexistent_user(
     dbsession: AsyncSession,
 ) -> None:
     """Testing get messages from nonexistent user in chat."""
-    response = await authorized_client.get(f"/api/chats/{chat.id}/messages/")
+    response = await authorized_client.get(f"/api/chats/{chat.id}/messages")
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "User is not part of the chat"}
@@ -73,7 +73,7 @@ async def test_get_messages_nonexistent_chat(
     dbsession: AsyncSession,
 ) -> None:
     """Testing get messages in nonexistent chat."""
-    response = await authorized_client.get(f"/api/chats/{uuid.uuid4()}/messages/")
+    response = await authorized_client.get(f"/api/chats/{uuid.uuid4()}/messages")
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Chat not found"}

@@ -25,7 +25,7 @@ async def test_get_list_chats(
         str(user_id): await get_user_by_id(user_id=user_id, db_session=dbsession)
         for user_id in recipient_ids
     }
-    response = await authorized_client.get("/api/chats/")
+    response = await authorized_client.get("/api/chats")
 
     assert response.status_code == status.HTTP_200_OK
     for chat_data in response.json()["items"]:
@@ -71,6 +71,6 @@ async def test_get_list_chats_without_auth(
     any_chat_with_users: ChatFactory,
 ) -> None:
     """Test get list of chats without auth."""
-    response = await client.get("/api/chats/")
+    response = await client.get("/api/chats")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Unauthorized"}

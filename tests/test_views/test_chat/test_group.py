@@ -21,7 +21,7 @@ async def test_create_group_chat(
     """Testing to create a group chat and users in it."""
     recipient_user_ids = [str(user.id) for user in some_users]
     response = await authorized_client.post(
-        "/api/chats/create/group/",
+        "/api/chats/create/group",
         json={
             "recipient_user_ids": recipient_user_ids,
             "name_group": "string",
@@ -69,7 +69,7 @@ async def test_create_group_chat_with_failed_user(
     random_recipients_id = uuid.uuid4()
     recipient_user_ids[secrets.randbelow(5)] = str(random_recipients_id)
     response = await authorized_client.post(
-        "/api/chats/create/group/",
+        "/api/chats/create/group",
         json={
             "recipient_user_ids": recipient_user_ids,
             "name_group": "string",
@@ -91,7 +91,7 @@ async def test_create_group_chat_with_existing_user(
     """Testing to create a group chat with existing user."""
     recipient_user_ids = [str(user.id) for user in group_chat_with_users.users]
     response = await authorized_client.post(
-        "/api/chats/create/group/",
+        "/api/chats/create/group",
         json={
             "recipient_user_ids": recipient_user_ids[1::],
             "name_group": "string",
@@ -109,7 +109,7 @@ async def test_create_group_chat_without_auth(
     """Testing to create a group chat without auth."""
     recipient_user_ids = [str(user.id) for user in some_users]
     response = await client.post(
-        "/api/chats/create/group/",
+        "/api/chats/create/group",
         json={
             "recipient_user_ids": recipient_user_ids,
             "name_group": "string",
