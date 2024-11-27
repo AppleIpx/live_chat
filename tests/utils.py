@@ -3,6 +3,30 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import Chat, User
 
+payload = {
+    "email": "user@example.com",
+    "password": "string",
+    "is_active": True,
+    "is_superuser": False,
+    "is_verified": False,
+    "first_name": "string",
+    "last_name": "string",
+    "username": "string",
+    "user_image": None,
+}
+
+new_payload = {
+    "email": "new_user@example.com",
+    "password": "new_string",
+    "is_active": True,
+    "is_superuser": True,
+    "is_verified": True,
+    "first_name": "new_string",
+    "last_name": "new_string",
+    "username": "string",
+    "user_image": None,
+}
+
 
 async def get_first_chat_from_db(
     db_session: AsyncSession,
