@@ -19,7 +19,7 @@ async def test_create_direct_chat(
 ) -> None:
     """Test create and check user's direct chat."""
     response = await authorized_client.post(
-        "/api/chats/create/direct/",
+        "/api/chats/create/direct",
         json={"recipient_user_id": f"{user.id}"},
     )
     chat = await get_first_chat_from_db(dbsession)
@@ -28,8 +28,8 @@ async def test_create_direct_chat(
     assert response.json() == {
         "id": str(chat.id),
         "chat_type": chat.chat_type.value,
-        "image_group": chat.image,
-        "name_group": chat.name,
+        "image": chat.image,
+        "name": chat.name,
         "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
         "users": [
@@ -56,7 +56,6 @@ async def test_create_direct_chat(
                 "user_image": user.user_image,
             },
         ],
-        "last_message_content": None,
     }
 
 
@@ -68,7 +67,7 @@ async def test_create_direct_chat_with_failed_user(
     """Test that handles an error with a non-existent user."""
     random_recipients_id = uuid.uuid4()
     response = await authorized_client.post(
-        "/api/chats/create/direct/",
+        "/api/chats/create/direct",
         json={"recipient_user_id": f"{random_recipients_id}"},
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -87,7 +86,7 @@ async def test_create_direct_chat_with_existing_user(
     """Test create direct chat with existing user."""
     recipients_id = direct_chat_with_users.users[1].id
     response = await authorized_client.post(
-        "/api/chats/create/direct/",
+        "/api/chats/create/direct",
         json={"recipient_user_id": f"{recipients_id}"},
     )
     assert response.status_code == status.HTTP_409_CONFLICT
@@ -103,7 +102,7 @@ async def test_create_direct_chat_without_auth(
 ) -> None:
     """Testing to create a direct chat without auth."""
     response = await client.post(
-        "/api/chats/create/direct/",
+        "/api/chats/create/direct",
         json={"recipient_user_id": f"{user.id}"},
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

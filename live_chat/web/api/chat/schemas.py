@@ -13,12 +13,11 @@ class ChatSchema(BaseModel):
 
     id: UUID
     chat_type: ChatType
-    image_group: HttpUrl | None
-    name_group: str | None
+    image: HttpUrl | None
+    name: str | None
     created_at: datetime
     updated_at: datetime
     users: list[UserRead]  # type: ignore[type-arg]
-    last_message_content: str | None
 
     class Config:
         from_attributes = True
@@ -36,9 +35,3 @@ class CreateGroupChatSchema(BaseModel):
     recipient_user_ids: List[UUID]
     name_group: str
     image_group: HttpUrl | None
-
-
-class GetListChatsSchema(BaseModel):
-    """Represents a get command for a all user's chats."""
-
-    chats: list[ChatSchema]

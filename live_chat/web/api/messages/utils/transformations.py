@@ -8,7 +8,7 @@ def transformation_message(messages: List[Message]) -> List[GetMessageSchema]:
     """Transform a list of Message objects into a list of GetMessageSchema objects."""
     return [
         GetMessageSchema(
-            message_id=msg.id,
+            id=msg.id,
             content=msg.content,
             created_at=msg.created_at,
             chat_id=msg.chat.id,

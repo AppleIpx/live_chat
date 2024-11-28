@@ -9,7 +9,7 @@ from live_chat.web.api.chat.schemas import ChatSchema
 class GetMessageSchema(BaseModel):
     """Represents a get command for a message."""
 
-    message_id: UUID
+    id: UUID
     user_id: UUID
     chat_id: UUID
     content: str
