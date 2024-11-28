@@ -7,7 +7,7 @@ from fastapi import HTTPException, UploadFile
 from starlette import status
 
 from live_chat.settings import settings
-from live_chat.web.s3_client import s3_client
+from live_chat.web.utils.s3_client import s3_client
 
 DEFAULT_CHUNK_SIZE: Final = 1024 * 1024 * 1  # 1 MB
 SUPPORTED_AVATAR_EXTENSIONS: Final = ("png", "jpg", "jpeg")

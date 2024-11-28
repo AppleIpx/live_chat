@@ -7,7 +7,7 @@ from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.utils.get_chat_by_id import get_chat_by_id
 from live_chat.web.api.chat.utils.get_users_chats import get_user_chats
-from live_chat.web.api.users.utils.utils import current_active_user
+from live_chat.web.api.users.utils import current_active_user
 
 
 async def validate_user_access_to_chat(

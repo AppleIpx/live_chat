@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
-from live_chat.web.api.users.utils.get_user_by_id import get_user_by_id
+from live_chat.web.api.users.utils import get_user_by_id
 
 
 async def collect_users_for_group(
