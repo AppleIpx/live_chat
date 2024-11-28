@@ -1,7 +1,6 @@
 from uuid import UUID
 
-from fast_depends import Depends
-from fastapi import HTTPException
+from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import Message, User  # type: ignore[attr-defined]

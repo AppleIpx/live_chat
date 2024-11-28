@@ -96,23 +96,29 @@ async def post_message(
     )
 
 
-@message_router.patch("/chats/{chat_id}/messages/{message_id}")
+@message_router.patch(
+    "/chats/{chat_id}/messages/{message_id}",
+    response_model=GetMessageSchema,
+)
 async def update_message(
     message_schema: UpdateMessageSchema,
-    current_user: User = Depends(current_active_user),
+    chat: Chat = Depends(validate_user_access_to_chat),
+    message: Message = Depends(validate_user_access_to_message),
     db_session: AsyncSession = Depends(get_async_session),
-) -> dict[str, str]:
+) -> GetMessageSchema:
     """Update message."""
-    message = await validate_user_access_to_message(
-        message_id=message_schema.message_id,
-        current_user=current_user,
-        db_session=db_session,
-    )
     message.content = message_schema.content
     db_session.add(message)
     await db_session.commit()
     await db_session.refresh(message)
-    return {"status": "Message successfully modified"}
+    return GetMessageSchema(
+        id=message.id,
+        content=message.content,
+        created_at=message.created_at,
+        updated_at=message.updated_at,
+        chat_id=message.chat.id,
+        user_id=message.user.id,
+    )
 
 
 @fast_stream_broker.subscriber(channel="{REDIS_CHANNEL_PREFIX}:{chat_id}:{user_id}")

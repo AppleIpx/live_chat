@@ -31,6 +31,3 @@ class PostMessageSchema(BaseModel):
 
 class UpdateMessageSchema(PostMessageSchema):
     """Represents a message for update."""
-
-    chat_id: UUID
-    message_id: UUID
