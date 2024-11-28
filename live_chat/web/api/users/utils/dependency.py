@@ -1,14 +1,6 @@
-import uuid
-
-from fastapi import Depends, HTTPException
-from fastapi_users import FastAPIUsers, models
-from fastapi_users.authentication import (
-    AuthenticationBackend,
-    BearerTransport,
-    JWTStrategy,
-)
+from fastapi import Depends
+from fastapi_users.authentication import JWTStrategy
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette import status
 
 from live_chat.db.dependencies import get_db_session
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
@@ -41,20 +33,6 @@ async def get_user_manager(  # type: ignore[misc]
     yield UserManager(user_db)
 
 
-async def get_user_by_id(
-    user_id: uuid.UUID,
-    user_manager: UserManager = Depends(get_user_manager),
-) -> models.UP:
-    """Return user by his ID."""
-    user = await user_manager.get(user_id)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    return user
-
-
 def get_jwt_strategy() -> JWTStrategy:  # type: ignore[type-arg]
     """
     Return a JWTStrategy in order to instantiate it dynamically.
@@ -62,16 +40,3 @@ def get_jwt_strategy() -> JWTStrategy:  # type: ignore[type-arg]
     :returns: instance of JWTStrategy with provided settings.
     """
     return JWTStrategy(secret=settings.users_secret, lifetime_seconds=None)
-
-
-bearer_transport = BearerTransport(tokenUrl="auth/jwt/login")
-auth_jwt = AuthenticationBackend(
-    name="jwt",
-    transport=bearer_transport,
-    get_strategy=get_jwt_strategy,
-)
-backends = [
-    auth_jwt,
-]
-api_users = FastAPIUsers[User, uuid.UUID](get_user_manager, backends)
-current_active_user = api_users.current_user(active=True)

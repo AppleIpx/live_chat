@@ -5,7 +5,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.web.api.users.utils.get_user_by_id import get_user_by_id
+from live_chat.web.api.users.utils import get_user_by_id
 from tests.factories import UserFactory
 
 

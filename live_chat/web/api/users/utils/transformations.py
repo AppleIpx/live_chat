@@ -1,8 +1,5 @@
 from typing import List
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.web.api.users.schemas import UserRead
 
@@ -23,15 +20,3 @@ def transformation_users(users: List[User]) -> list[UserRead]:
         )
         for user in users
     ]
-
-
-async def get_all_users(
-    db_session: AsyncSession,
-) -> list[User]:
-    """Getting all users from the database."""
-    query = (select(User).order_by(User.username)).order_by(User.username)
-    result = await db_session.execute(query)
-
-    users: list[User] = list(result.scalars().all())
-
-    return users

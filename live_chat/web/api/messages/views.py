@@ -14,7 +14,7 @@ from sse_starlette import EventSourceResponse
 
 from live_chat.db.models.chat import Chat, Message, User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
-from live_chat.services.faststream.router import fast_stream_broker
+from live_chat.services.faststream import fast_stream_broker
 from live_chat.services.redis import redis
 from live_chat.web.api.chat.utils import (
     get_chat_by_id,
@@ -36,7 +36,7 @@ from live_chat.web.api.messages.utils import (
     transformation_message,
 )
 from live_chat.web.api.users.user_manager import UserManager
-from live_chat.web.api.users.utils.utils import current_active_user, get_user_manager
+from live_chat.web.api.users.utils import current_active_user, get_user_manager
 
 message_router = APIRouter()
 logger = logging.getLogger(__name__)
