@@ -74,7 +74,7 @@ async def test_upload_img_in_invalid_group(
 ) -> None:
     """Testing upload image group with invalid group."""
     random_uuid = uuid.uuid4()
-    with patch.object(S3Client,"upload_file"):
+    with patch.object(S3Client, "upload_file"):
         response = await authorized_client.patch(
             f"/api/chats/{random_uuid}/upload-image",
             files={
@@ -96,7 +96,7 @@ async def test_upload_img_in_direct_chat(
     override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing upload image group in direct chat."""
-    with patch.object(S3Client,"upload_file"):
+    with patch.object(S3Client, "upload_file"):
         response = await authorized_client.patch(
             f"/api/chats/{direct_chat_with_users.id}/upload-image",
             files={
