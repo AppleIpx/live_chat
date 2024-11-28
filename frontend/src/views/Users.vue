@@ -1,6 +1,16 @@
 <template>
   <div class="users-view">
     <div class="users-container">
+      <div class="pagination">
+        <button class="btn-main" @click="loadPreviousPage" :disabled="!previousCursor"
+                v-if="previousCursor">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <button class="btn-main" @click="loadNextPage" :disabled="!nextCursor"
+                v-if="nextCursor">
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
       <div v-if="users">
         <h2>Список пользователей</h2>
         <div class="search-container">
@@ -58,14 +68,19 @@ export default {
       filteredUsers: [],
       searchQuery: "",
       currentUser: {},
+      currentCursor: null,
+      nextCursor: null,
+      previousCursor: null
     };
   },
   async mounted() {
     try {
       const currentUsername = localStorage.getItem("username").split("@")[0];
       this.currentUser = {username: currentUsername};
-      const response = await userService.fetchUsers()
-      this.users = response.data.users.filter(
+      const response = await userService.fetchUsers(3)
+      this.nextCursor = response.data.next_page;
+      this.previousCursor = response.data.previous_page || null;
+      this.users = response.data.items.filter(
           (user) => user.username !== currentUsername
       );
       this.filteredUsers = this.users;
@@ -80,7 +95,29 @@ export default {
           user.username.toLowerCase().includes(query)
       );
     },
-  },
+    async loadNextPage() {
+      if (this.nextCursor) {
+        const response = await userService.fetchUsers(3, this.nextCursor);
+        this.nextCursor = response.data.next_page;
+        this.previousCursor = response.data.previous_page || null;
+        this.users = response.data.items.filter(
+            (user) => user.username !== this.currentUser.username
+        );
+        this.filteredUsers = this.users;
+      }
+    },
+    async loadPreviousPage() {
+      if (this.previousCursor) {
+        const response = await userService.fetchUsers(3, this.previousCursor);
+        this.nextCursor = response.data.next_page;
+        this.previousCursor = response.data.previous_page || null;
+        this.users = response.data.items.filter(
+            (user) => user.username !== this.currentUser.username
+        );
+        this.filteredUsers = this.users;
+      }
+    }
+  }
 };
 </script>
 
@@ -183,6 +220,23 @@ h2 {
   color: #777;
   background-color: #ccc;
   border-radius: 50%;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0;
+  gap: 10px;
+}
+
+.pagination button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.pagination button i {
+  font-size: 18px;
 }
 
 </style>

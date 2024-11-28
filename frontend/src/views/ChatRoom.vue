@@ -16,7 +16,7 @@
                 @mouseover="showGroupTooltip = true"
                 @mouseleave="onGroupMouseLeave"
             >
-              {{ chatData.name_group }}
+              {{ chatData.name }}
             </span>
             <div
                 v-if="showGroupTooltip"
@@ -65,8 +65,8 @@
 
         <div class="chat-photo">
           <template
-              v-if="chatData && chatData.chat_type === 'group' && chatData.image_group">
-            <img :src="chatData.image_group" alt="Group image"/>
+              v-if="chatData && chatData.chat_type === 'group' && chatData.image">
+            <img :src="chatData.image" alt="Group image"/>
           </template>
           <template v-else-if="chatData && otherUser && otherUser.user_image">
             <a :href="`/profile/${otherUser.id}`">
@@ -78,7 +78,8 @@
 
       <!-- Messages Section -->
       <div class="messages-container">
-        <div v-if="messages.length" class="messages-list" ref="messagesList">
+        <div v-if="messages.length" class="messages-list" ref="messagesList"
+             @scroll="onScroll">
           <div class="message" v-for="message in messages" :key="message.id"
                :class="{'mine': message.isMine, 'other': !message.isMine}">
             <div class="message-header">
@@ -118,7 +119,7 @@
 
 
 <script>
-import {chatService} from "@/services/apiService";
+import {chatService, messageService} from "@/services/apiService";
 import SSEManager from "@/services/sseService";
 
 
@@ -137,6 +138,9 @@ export default {
       isImageUploadModalOpen: false,
       groupImage: null,
       groupImagePreview: null,
+      cursor: null,
+      isLoading: false,
+      hasMoreMessages: true,
     };
   },
   computed: {
@@ -158,7 +162,11 @@ export default {
   mounted() {
     this.isChatOpen = true;
     this.chatId = this.$route.params.chat_id;
-    this.fetchChatDetails(this.chatId);
+    this.fetchChatDetails(this.chatId).then(() => {
+      this.loadMessages(true);
+    }).catch(error => {
+      console.error('Ошибка при загрузке чата:', error);
+    });
   },
   beforeUnmount() {
     SSEManager.disconnect(this.chatId);
@@ -200,26 +208,71 @@ export default {
         const chatResponse = await this.$store.dispatch("StoreFetchChatDetail", chatId);
         this.user = JSON.parse(localStorage.getItem("user"));
         this.chatData = chatResponse.data;
-        this.messages = this.chatData.messages
-            .map(message => {
-              const message_user = this.chatData.users.find(user => user.id === message.user_id);
-              return {
-                id: message.message_id,
-                user: message_user || {},
-                content: message.content,
-                created_at: new Date(message.created_at,).toLocaleString(),
-                isMine: message.user_id === this.user.id,
-              };
-            });
 
         // Set the other user for direct chats
         if (this.chatData.chat_type === "direct") {
           this.otherUser = this.chatData.users.find(user => user.id !== this.user.id);
           this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
         }
-        this.scrollToBottom();
+        return Promise.resolve();
       } catch (error) {
         console.error("Error fetching chat details:", error);
+        return Promise.reject(error);
+      }
+    },
+
+    async loadMessages(isInitialLoad = false) {
+      if (this.isLoading || (!this.hasMoreMessages && !isInitialLoad)) return;
+
+      this.isLoading = true;
+
+      try {
+        const response = await messageService.fetchMessages(this.chatId, {
+          cursor: isInitialLoad ? null : this.cursor,
+          size: 30,
+        });
+        const newMessages = response.data.items
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+            .map(message => ({
+              id: message.id,
+              user: this.chatData.users.find(user => user.id === message.user_id) || {},
+              content: message.content,
+              created_at: new Date(message.created_at).toLocaleString(),
+              isMine: message.user_id === this.user.id,
+            }));
+
+        if (isInitialLoad) {
+          this.messages = [...newMessages];
+        } else {
+          this.messages = [...newMessages, ...this.messages];
+        }
+
+        this.cursor = response.data.next_page;
+        this.hasMoreMessages = !!this.cursor;
+        const container = this.$refs.messagesList;
+
+        if (isInitialLoad) {
+          this.scrollToBottom();
+        } else {
+          const currentScrollTop = container.scrollTop;
+          const prevHeight = container.scrollHeight;
+          container.scrollTop = currentScrollTop;
+          await this.$nextTick();
+          const newHeight = container.scrollHeight;
+          container.scrollTop = newHeight - prevHeight + currentScrollTop;
+        }
+
+      } catch (error) {
+        console.error("Ошибка загрузки сообщений:", error);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    async onScroll() {
+      const container = this.$refs.messagesList;
+      if (container.scrollTop < 100 && this.hasMoreMessages) {
+        await this.loadMessages();
       }
     },
 
@@ -287,7 +340,7 @@ export default {
         const messageData = {
           content: this.messageText,
         }
-        await chatService.sendMessage(this.chatId, messageData)
+        await messageService.sendMessage(this.chatId, messageData)
         this.messages.push({
           id: Date.now(),
           user: {
@@ -364,6 +417,7 @@ export default {
 .messages-container {
   flex-grow: 1;
   overflow-y: auto;
+  height: 500px;
   max-height: calc(100vh - 300px);
   padding-right: 10px;
 }
