@@ -30,7 +30,7 @@ async def test_get_message_event(
     ):
         async with authorized_client.stream(
             "GET",
-            f"/api/chats/{direct_chat_with_users.id}/events/?token={access_token}",
+            f"/api/chats/{direct_chat_with_users.id}/events?token={access_token}",
         ) as response:
             data = await response.aread()
 
@@ -73,7 +73,7 @@ async def test_get_message_event_bad_token(
     ):
         async with authorized_client.stream(
             "GET",
-            f"/api/chats/{direct_chat_with_users.id}/events/?token=invalid token",
+            f"/api/chats/{direct_chat_with_users.id}/events?token=invalid token",
         ) as response:
             assert response.status_code == status.HTTP_401_UNAUTHORIZED
             assert (
@@ -101,7 +101,7 @@ async def test_get_message_event_nonexistent_user_in_chat(
     ):
         async with authorized_client.stream(
             "GET",
-            f"/api/chats/{chat.id}/events/?token={access_token}",
+            f"/api/chats/{chat.id}/events?token={access_token}",
         ) as response:
             data = await response.aread()
             assert response.status_code == status.HTTP_403_FORBIDDEN
@@ -127,7 +127,7 @@ async def test_get_message_event_nonexistent_chat(
     ):
         async with authorized_client.stream(
             "GET",
-            f"/api/chats/{uuid.uuid4()}/events/?token={access_token}",
+            f"/api/chats/{uuid.uuid4()}/events?token={access_token}",
         ) as response:
             assert response.status_code == status.HTTP_404_NOT_FOUND
             assert await response.aread() == b"""{"detail":"Chat not found"}"""

@@ -19,8 +19,8 @@ async def test_get_all_users(
     """Test get all users."""
     response = await authorized_client.get("/api/users")
     assert response.status_code == status.HTTP_200_OK
-    assert len(response.json()["users"]) == 6
-    for user_data in response.json()["users"]:
+    assert len(response.json()["items"]) == 6
+    for user_data in response.json()["items"]:
         user = await get_user_by_id(user_id=user_data["id"], db_session=dbsession)
         assert user_data == {
             "id": str(user.id),

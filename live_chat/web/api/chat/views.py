@@ -2,34 +2,27 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi_pagination import set_page
+from fastapi_pagination.cursor import CursorPage, CursorParams
+from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
-from live_chat.web.api.chat import (
+from live_chat.web.api.chat.schemas import (
     ChatSchema,
     CreateDirectChatSchema,
-    GetListChatsSchema,
-)
-from live_chat.web.api.chat.schemas import (
     CreateGroupChatSchema,
 )
+from live_chat.web.api.chat.utils import validate_user_access_to_chat
 from live_chat.web.api.chat.utils.check_direct_chat_exists import direct_chat_exists
 from live_chat.web.api.chat.utils.create_chats import (
     create_direct_chat,
     create_group_chat,
 )
-from live_chat.web.api.chat.utils.get_chat_by_id import get_chat_by_id
-from live_chat.web.api.chat.utils.get_users_chats import (
-    get_user_chats,
-)
-from live_chat.web.api.chat.utils.transformations import (
-    transformation_chat,
-    transformation_list_chats,
-)
-from live_chat.web.api.messages import GetListMessagesSchema, GetMessageSchema
-from live_chat.web.api.messages.utils import transformation_message
+from live_chat.web.api.chat.utils.transformations import transformation_chat
 from live_chat.web.api.users.schemas import UserRead
 from live_chat.web.api.users.utils.collect_users_for_group import (
     collect_users_for_group,
@@ -43,7 +36,7 @@ chat_router = APIRouter()
 
 
 @chat_router.post(
-    "/create/direct/",
+    "/create/direct",
     summary="Create a direct chat",
     response_model=ChatSchema,
     status_code=status.HTTP_201_CREATED,
@@ -96,7 +89,7 @@ async def create_direct_chat_view(
 
 
 @chat_router.post(
-    "/create/group/",
+    "/create/group",
     summary="Create a group chat",
     response_model=ChatSchema,
     status_code=status.HTTP_201_CREATED,
@@ -122,56 +115,40 @@ async def create_group_chat_view(
     return await transformation_chat(chat)
 
 
-@chat_router.get(
-    "/",
-    summary="List chats",
-    response_model=GetListChatsSchema,
-)
+@chat_router.get("", summary="List chats")
 async def get_list_chats_view(
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
-) -> GetListChatsSchema:
+    params: CursorParams = Depends(),
+) -> CursorPage[ChatSchema]:
     """Getting chats to which a user has been added."""
-    chats: List[Chat] = await get_user_chats(db_session, current_user=current_user)
-    return GetListChatsSchema(chats=transformation_list_chats(chats))
+    set_page(CursorPage[ChatSchema])
+    query = (
+        select(Chat)
+        .where(Chat.users.any(id=current_user.id))
+        .order_by(Chat.updated_at.desc())
+    )
+    return await paginate(db_session, query, params=params)
 
 
 @chat_router.get(
-    "/{chat_id}/",
+    "/{chat_id}",
     summary="Detail chat by id",
-    response_model=GetListMessagesSchema,
+    response_model=ChatSchema,
 )
 async def get_detail_chat_view(
-    chat_id: UUID,
-    db_session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(current_active_user),
-) -> GetListMessagesSchema:
+    chat: Chat = Depends(validate_user_access_to_chat),
+) -> ChatSchema:
     """Get detail chat by id."""
-    chat: Chat | None = await get_chat_by_id(db_session, chat_id=chat_id)
-    if not chat:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Chat with provided guid does not exist",
-        )
-    user: User | None = await get_user_by_id(db_session, user_id=current_user.id)
-    if user not in chat.users:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="You don't have access to this chat",
-        )
     users_data: List[UserRead] = transformation_users(chat.users)
-    messages_data: List[GetMessageSchema] = transformation_message(chat.messages)
-
-    return GetListMessagesSchema(
+    return ChatSchema(
         id=chat.id,
         chat_type=chat.chat_type,
-        name_group=chat.name,
-        image_group=chat.image,
+        name=chat.name,
+        image=chat.image,
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         users=users_data,
-        messages=messages_data,
-        last_message_content=chat.messages[-1].content if chat.messages else None,
     )
 
 
