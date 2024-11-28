@@ -73,15 +73,17 @@ async def test_upload_img_in_invalid_group(
     fake_image: UploadFile,
 ) -> None:
     """Testing upload image group with invalid group."""
-    response = await authorized_client.patch(
-        f"/api/chats/{uuid.uuid4()}/upload-image",
-        files={
-            "uploaded_image": (
-                fake_image.filename,
-                fake_image.file,
-            ),
-        },
-    )
+    random_uuid = uuid.uuid4()
+    with patch.object(S3Client,"upload_file"):
+        response = await authorized_client.patch(
+            f"/api/chats/{random_uuid}/upload-image",
+            files={
+                "uploaded_image": (
+                    fake_image.filename,
+                    fake_image.file,
+                ),
+            },
+        )
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Group not found"}
 
@@ -94,15 +96,16 @@ async def test_upload_img_in_direct_chat(
     override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing upload image group in direct chat."""
-    response = await authorized_client.patch(
-        f"/api/chats/{direct_chat_with_users.id}/upload-image",
-        files={
-            "uploaded_image": (
-                fake_image.filename,
-                fake_image.file,
-            ),
-        },
-    )
+    with patch.object(S3Client,"upload_file"):
+        response = await authorized_client.patch(
+            f"/api/chats/{direct_chat_with_users.id}/upload-image",
+            files={
+                "uploaded_image": (
+                    fake_image.filename,
+                    fake_image.file,
+                ),
+            },
+        )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {"detail": "You can't specify a photo for direct chat"}
 
