@@ -16,21 +16,21 @@ from live_chat.web.api.chat.schemas import (
     CreateDirectChatSchema,
     CreateGroupChatSchema,
 )
-from live_chat.web.api.chat.utils import validate_user_access_to_chat
-from live_chat.web.api.chat.utils.check_direct_chat_exists import direct_chat_exists
-from live_chat.web.api.chat.utils.create_chats import (
+from live_chat.web.api.chat.utils import (
     create_direct_chat,
     create_group_chat,
+    direct_chat_exists,
+    transformation_chat,
+    validate_user_access_to_chat,
 )
-from live_chat.web.api.chat.utils.transformations import transformation_chat
 from live_chat.web.api.users.schemas import UserRead
-from live_chat.web.api.users.utils.collect_users_for_group import (
+from live_chat.web.api.users.utils import (
     collect_users_for_group,
+    current_active_user,
+    get_user_by_id,
+    transformation_users,
 )
-from live_chat.web.api.users.utils.get_list_users import transformation_users
-from live_chat.web.api.users.utils.get_user_by_id import get_user_by_id
-from live_chat.web.api.users.utils.image_saver import ImageSaver
-from live_chat.web.api.users.utils.utils import current_active_user
+from live_chat.web.utils import ImageSaver
 
 chat_router = APIRouter()
 
@@ -176,7 +176,7 @@ async def upload_group_image(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Group not found",
         )
-    if chat.chat_type == "direct":
+    if chat.chat_type.value == "direct":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You can't specify a photo for direct chat",

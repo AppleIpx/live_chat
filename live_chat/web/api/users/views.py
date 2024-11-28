@@ -5,7 +5,6 @@ from fastapi.security import HTTPBearer
 from fastapi_pagination import set_page
 from fastapi_pagination.cursor import CursorPage, CursorParams
 from fastapi_pagination.ext.sqlalchemy import paginate
-from fastapi_users import models
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -17,13 +16,13 @@ from live_chat.web.api.users.schemas import (
     UserRead,
     UserUpdate,
 )
-from live_chat.web.api.users.utils.image_saver import ImageSaver
-from live_chat.web.api.users.utils.utils import (
+from live_chat.web.api.users.utils import (
     api_users,
     auth_jwt,
     current_active_user,
     get_user_by_id,
 )
+from live_chat.web.utils.image_saver import ImageSaver
 
 http_bearer = HTTPBearer(auto_error=False)
 router = APIRouter(dependencies=[Depends(http_bearer)])
@@ -57,8 +56,17 @@ async def get_users(
 
 
 @router.get("/users/read/{user_id}", response_model=UserRead, tags=["users"])
-async def get_user(user_id: UUID, user: models.UP = Depends(get_user_by_id)) -> User:
+async def get_user(
+    user_id: UUID,
+    db_session: AsyncSession = Depends(get_async_session),
+) -> User:
     """Gets a user by id without authentication."""
+    user = await get_user_by_id(db_session, user_id=user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
     return user
 
 

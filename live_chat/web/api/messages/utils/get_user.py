@@ -3,7 +3,7 @@ from starlette import status
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.web.api.users.user_manager import UserManager
-from live_chat.web.api.users.utils.utils import get_jwt_strategy
+from live_chat.web.api.users.utils import get_jwt_strategy
 
 
 async def get_user_from_token(
