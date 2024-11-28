@@ -28,12 +28,14 @@ from live_chat.web.api.messages.constants import (
 from live_chat.web.api.messages.schemas import (
     GetMessageSchema,
     PostMessageSchema,
+    UpdateMessageSchema,
 )
 from live_chat.web.api.messages.utils import (
     get_user_from_token,
     message_generator,
     save_message_to_db,
     transformation_message,
+    validate_user_access_to_message,
 )
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils.utils import current_active_user, get_user_manager
@@ -92,6 +94,25 @@ async def post_message(
         status_code=404,
         detail="Error with saving message. Please try again",
     )
+
+
+@message_router.patch("/chats/{chat_id}/messages/{message_id}")
+async def update_message(
+    message_schema: UpdateMessageSchema,
+    current_user: User = Depends(current_active_user),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> dict[str, str]:
+    """Update message."""
+    message = await validate_user_access_to_message(
+        message_id=message_schema.message_id,
+        current_user=current_user,
+        db_session=db_session,
+    )
+    message.content = message_schema.content
+    db_session.add(message)
+    await db_session.commit()
+    await db_session.refresh(message)
+    return {"status": "Message successfully modified"}
 
 
 @fast_stream_broker.subscriber(channel="{REDIS_CHANNEL_PREFIX}:{chat_id}:{user_id}")
