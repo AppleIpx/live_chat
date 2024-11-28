@@ -37,7 +37,7 @@ async def test_upload_img_group(
             },
         )
 
-    assert response.status_code == 200
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "image_url": f"{settings.minio_url}group_images/{group_chat_with_users.id}.png",
     }
