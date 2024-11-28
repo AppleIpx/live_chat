@@ -11,6 +11,7 @@ def transformation_message(messages: List[Message]) -> List[GetMessageSchema]:
             id=msg.id,
             content=msg.content,
             created_at=msg.created_at,
+            updated_at=msg.updated_at,
             chat_id=msg.chat.id,
             user_id=msg.user.id,
         )

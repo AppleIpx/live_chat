@@ -31,6 +31,7 @@ async def test_get_messages(
             "chat_id": f"{message.chat_id}",
             "content": message.content,
             "created_at": message.created_at.isoformat(),
+            "updated_at": message.updated_at.isoformat(),
         }
         for message in sorted(many_messages, key=attrgetter("created_at"), reverse=True)
     ]
