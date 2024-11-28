@@ -108,7 +108,7 @@ export const messageService = {
     },
     async sendMessage(chatId, messageData) {
         try {
-            return await apiClient.post(`/api/chats/${chatId}/messages/`, messageData);
+            return await apiClient.post(`/api/chats/${chatId}/messages`, messageData);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
                 this.$router.push("/");
