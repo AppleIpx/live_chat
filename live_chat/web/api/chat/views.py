@@ -176,7 +176,7 @@ async def upload_group_image(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Group not found",
         )
-    if chat.chat_type == "direct":
+    if chat.chat_type.value == "direct":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="You can't specify a photo for direct chat",
