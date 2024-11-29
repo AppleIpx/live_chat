@@ -371,17 +371,26 @@ export default {
       }
     },
 
-    handleNewMessage(newMessage) {
-      const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
-      const message = {
-        id: newMessage.message_id,
-        user: message_user || {},
-        content: newMessage.content,
-        created_at: new Date(newMessage.created_at).toLocaleString(),
-        isMine: newMessage.user_id === this.user.id,
-      };
-      this.messages.push(message);
-      this.scrollToBottom();
+    handleNewMessage(newMessage, action) {
+      const existingMessageIndex = this.messages.findIndex(message => message.id === newMessage.id);
+      if (action === "new") {
+        const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
+        const message = {
+          id: newMessage.id,
+          user: message_user || {},
+          content: newMessage.content,
+          created_at: new Date(newMessage.created_at).toLocaleString(),
+          updated_at: new Date(newMessage.updated_at).toLocaleString(),
+          isMine: newMessage.user_id === this.user.id,
+        };
+        this.messages.push(message);
+        this.scrollToBottom();
+      }
+      if (action === "update") {
+        const message = this.messages[existingMessageIndex];
+        message.content = newMessage.content;
+        message.updated_at = new Date(newMessage.updated_at).toLocaleString();
+      }
     },
 
     openImageUploadModal() {

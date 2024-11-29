@@ -4,7 +4,7 @@ import {userService} from "@/services/apiService";
 const SSEManager = {
     connections: {},
 
-    connect(chatId, isChatOpenCallback, messageCallback) {
+    async connect(chatId, isChatOpenCallback, messageCallback) {
         const token = localStorage.getItem("accessToken");
         if (!token) {
             console.error("Token not found");
@@ -20,22 +20,29 @@ const SSEManager = {
             console.warn(`SSE для чата ${chatId} уже установлено.`);
             return;
         }
-
+        const user = await userService.fetchUserMe();
         const baseURL = process.env.VUE_APP_BACKEND_URL;
         const eventSource = new EventSource(
             `${baseURL}/api/chats/${chatId}/events?token=${encodeURIComponent(token)}`
         );
+
         eventSource.addEventListener("new_message", async (event) => {
             const message = JSON.parse(event.data);
-            const user = await userService.fetchUserMe();
             if (message.user_id !== user.data.id) {
                 await store.dispatch("receiveMessage", {
                     message: message,
                     isChatOpenCallback: isChatOpenCallback
                 });
                 if (isChatOpenCallback) {
-                    messageCallback(message);
+                    messageCallback(message, "new");
                 }
+            }
+        });
+
+        eventSource.addEventListener("update_message", async (event) => {
+            const message = JSON.parse(event.data);
+            if (message.user_id !== user.data.id && isChatOpenCallback) {
+                messageCallback(message, "update");
             }
         });
 

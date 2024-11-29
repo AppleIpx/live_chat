@@ -1,4 +1,5 @@
 import asyncio
+import json
 import uuid
 from typing import Any, AsyncGenerator
 from unittest.mock import patch
@@ -48,7 +49,9 @@ async def test_message_generator() -> None:
         "live_chat.web.api.messages.utils.sse_generators.redis.lpop",
         return_value=asyncio.Future(),
     ) as mock_redis:
-        mock_redis.return_value.set_result("Test message")
+        mock_redis.return_value.set_result(
+            json.dumps({"event": "new_message", "data": "Test message"}),
+        )
 
         async for event in message_generator("test_key"):
             assert event["event"] == "new_message"

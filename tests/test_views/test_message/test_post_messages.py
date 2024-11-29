@@ -47,7 +47,10 @@ async def test_post_message(
         ),
     )
 
-    mocked_publish_message.assert_called_with(message_data, channel=target_channel)
+    mocked_publish_message.assert_called_with(
+        json.dumps({"data": message_data}),
+        channel=target_channel,
+    )
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"status": "Message published"}
 
