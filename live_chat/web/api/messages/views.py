@@ -12,6 +12,7 @@ from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette import EventSourceResponse
+from starlette import status
 
 from live_chat.db.models.chat import Chat, Message, User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
@@ -146,14 +147,14 @@ async def delete_message(
     """
     if message.is_deleted:
         await delete_message_by_id(message_id=message.id, db_session=db_session)
-        return Response(status_code=204)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     message.is_deleted = True
     db_session.add(message)
     await db_session.commit()
     await db_session.refresh(message)
     return JSONResponse(
         content={"detail": "Сообщение помещено в недавно удаленные"},
-        status_code=202,
+        status_code=status.HTTP_202_ACCEPTED,
     )
 
 
