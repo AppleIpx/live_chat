@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.web.api.messages.utils.get_correct_last_message import (
+from live_chat.web.api.messages.utils import (
     get_correct_last_message,
 )
 from tests.factories import ChatFactory, MessageFactory
@@ -23,7 +23,7 @@ async def test_get_last_message(
     response = await authorized_client.get(
         f"api/chats/{many_messages[0].chat.id}/messages/last",
     )
-    last_message = await get_correct_last_message(messages=many_messages)
+    last_message = await get_correct_last_message(messages=many_messages, db_session=dbsession)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
