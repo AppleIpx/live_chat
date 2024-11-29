@@ -39,6 +39,9 @@ from live_chat.web.api.messages.utils import (
     validate_user_access_to_message,
 )
 from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
+from live_chat.web.api.messages.utils.get_correct_last_message import (
+    get_correct_last_message,
+)
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils import current_active_user, get_user_manager
 
@@ -66,8 +69,9 @@ async def get_messages(
 async def get_last_message(
     chat: Chat = Depends(validate_user_access_to_chat),
 ) -> GetMessageSchema | None:
-    """Get last message in chat."""
-    return transformation_message([chat.messages[-1]])[0] if chat.messages else None
+    """Get the latest message is_deleted=false in chat."""
+    last_message = await get_correct_last_message(chat.messages)
+    return transformation_message([last_message])[0] if chat.messages else None
 
 
 @message_router.post("/chats/{chat_id}/messages")
