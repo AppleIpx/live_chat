@@ -17,13 +17,15 @@ async def test_get_messages(
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
-    """Test get list messages in chat."""
+    """Testing getting a list of messages with is_deleted=false in chat."""
     response = await authorized_client.get(
         f"api/chats/{many_messages[0].chat.id}/messages",
     )
-
+    non_deleted_messages = [
+        message for message in many_messages if not message.is_deleted
+    ]
     assert response.status_code == status.HTTP_200_OK
-    assert len(response.json()["items"]) == len(many_messages[0].chat.messages)
+    assert len(response.json()["items"]) == len(non_deleted_messages)
     assert response.json()["items"] == [
         {
             "id": f"{message.id}",
@@ -34,7 +36,11 @@ async def test_get_messages(
             "updated_at": message.updated_at.isoformat(),
             "is_deleted": message.is_deleted,
         }
-        for message in sorted(many_messages, key=attrgetter("created_at"), reverse=True)
+        for message in sorted(
+            non_deleted_messages,
+            key=attrgetter("created_at"),
+            reverse=True,
+        )
     ]
 
 
