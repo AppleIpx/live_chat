@@ -65,7 +65,7 @@ async def some_chats_with_users(
 
 
 @pytest.fixture
-async def chat_with_message(
+async def message_in_chat(
     dbsession: AsyncSession,
     any_chat_with_users: ChatFactory,
 ) -> MessageFactory:
