@@ -32,6 +32,7 @@ async def test_get_messages(
             "content": message.content,
             "created_at": message.created_at.isoformat(),
             "updated_at": message.updated_at.isoformat(),
+            "is_deleted": message.is_deleted,
         }
         for message in sorted(many_messages, key=attrgetter("created_at"), reverse=True)
     ]

@@ -29,6 +29,7 @@ async def test_get_last_message(
         "content": many_messages[-1].content,
         "created_at": many_messages[-1].created_at.isoformat(),
         "updated_at": many_messages[-1].updated_at.isoformat(),
+        "is_deleted": many_messages[-1].is_deleted,
     }
 
 

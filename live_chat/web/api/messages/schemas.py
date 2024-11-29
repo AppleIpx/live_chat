@@ -15,6 +15,7 @@ class GetMessageSchema(BaseModel):
     content: str
     created_at: datetime
     updated_at: datetime
+    is_deleted: bool
 
 
 class GetListMessagesSchema(ChatSchema):

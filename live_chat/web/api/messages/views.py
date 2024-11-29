@@ -3,8 +3,9 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from fastapi_pagination import set_page
 from fastapi_pagination.cursor import CursorPage, CursorParams
 from fastapi_pagination.ext.sqlalchemy import paginate
@@ -37,6 +38,7 @@ from live_chat.web.api.messages.utils import (
     transformation_message,
     validate_user_access_to_message,
 )
+from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils import current_active_user, get_user_manager
 
@@ -118,6 +120,36 @@ async def update_message(
         updated_at=message.updated_at,
         chat_id=message.chat.id,
         user_id=message.user.id,
+        is_deleted=message.is_deleted,
+    )
+
+
+@message_router.delete(
+    "/chats/{chat_id}/messages/{message_id}",
+    response_model=None,
+)
+async def delete_message(
+    chat: Chat = Depends(validate_user_access_to_chat),
+    message: Message = Depends(validate_user_access_to_message),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> JSONResponse | Response:
+    """Delete message.
+
+    This endpoint implies 2 responses 204 and 202. If a message arrives for the first
+    time, then it is assigned is_deleted = true and 202 status is returned, and
+    if the message already arrives with this flag(is_deleted = true),
+    then status 204 is returned and deleted from the database
+    """
+    if message.is_deleted:
+        await delete_message_by_id(message_id=message.id, db_session=db_session)
+        return Response(status_code=204)
+    message.is_deleted = True
+    db_session.add(message)
+    await db_session.commit()
+    await db_session.refresh(message)
+    return JSONResponse(
+        content={"detail": "Сообщение помещено в недавно удаленные"},
+        status_code=202,
     )
 
 
