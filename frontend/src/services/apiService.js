@@ -22,7 +22,7 @@ apiClient.interceptors.request.use((config) => {
 export const chatService = {
     async fetchChatDetails(chatId) {
         try {
-            return await apiClient.get(`/api/chats/${chatId}/`);
+            return await apiClient.get(`/api/chats/${chatId}`);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
                 this.$router.push("/");
@@ -116,7 +116,16 @@ export const messageService = {
             throw error;
         }
     },
-
+    async updateMessage(chatId, messageId, messageData){
+        try {
+            return apiClient.patch(`/api/chats/${chatId}/messages/${messageId}`, messageData);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    }
 }
 
 export const userService = {

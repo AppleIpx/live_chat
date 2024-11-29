@@ -78,10 +78,16 @@
 
       <!-- Messages Section -->
       <div class="messages-container">
-        <div v-if="messages.length" class="messages-list" ref="messagesList"
-             @scroll="onScroll">
-          <div class="message" v-for="message in messages" :key="message.id"
-               :class="{'mine': message.isMine, 'other': !message.isMine}">
+        <div
+            v-if="messages.length"
+            class="messages-list"
+            ref="messagesList"
+            @scroll="onScroll">
+          <div
+              class="message"
+              v-for="message in messages"
+              :key="message.id"
+              :class="{'mine': message.isMine, 'other': !message.isMine}">
             <div class="message-header">
               <strong>
                 <a v-if="message.user || message.user_id"
@@ -90,9 +96,25 @@
                 </a>
                 <span v-else>Загрузка...</span>
               </strong>
-              <span class="timestamp">{{ message.created_at }}</span>
+              <span class="timestamp">
+          {{ message.updated_at }}
+          <i v-if="message.created_at !== message.updated_at"
+             class="fa fa-pencil edited-indicator"
+             title="Сообщение было изменено"></i>
+        </span>
             </div>
             <div class="message-content">{{ message.content }}</div>
+            <div v-if="message.isMine" class="message-options">
+              <button @click="toggleMenu(message.id)" class="menu-button">...</button>
+              <div v-if="message.showMenu" class="menu-dropdown">
+                <button @click="openEditModal(message)" class="icon-button-update">
+                  <i class="fa fa-pencil"></i>
+                </button>
+                <button @click="deleteMessage(message)" class="icon-button-delete">
+                  <i class="fa fa-trash"></i>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         <div v-else>
@@ -112,6 +134,23 @@
         <button @click="sendMessage" class="send-button">
           <i class="fa fa-paper-plane"></i>
         </button>
+      </div>
+
+      <!-- Edit Modal -->
+      <div v-if="isEditModalVisible" class="modal-overlay" @click.self="closeEditModal">
+        <div class="modal">
+          <h3 class="modal-title">Изменить сообщение</h3>
+          <textarea v-model="editMessageText" class="edit-textarea"
+                    placeholder="Введите новый текст"></textarea>
+          <div class="modal-actions">
+            <button @click="saveMessage" class="save-button">
+              <i class="fa fa-check"></i> Сохранить
+            </button>
+            <button @click="closeEditModal" class="cancel-button">
+              <i class="fa fa-times"></i> Отмена
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -141,6 +180,9 @@ export default {
       cursor: null,
       isLoading: false,
       hasMoreMessages: true,
+      isEditModalVisible: false,
+      editMessage: null,
+      editMessageText: "",
     };
   },
   computed: {
@@ -221,6 +263,57 @@ export default {
       }
     },
 
+    toggleMenu(messageId) {
+      this.messages.forEach(msg => {
+        if (msg.id === messageId) {
+          msg.showMenu = !msg.showMenu;
+        } else {
+          msg.showMenu = false;
+        }
+      });
+    },
+
+    openEditModal(message) {
+      this.editMessage = message;
+      this.editMessageText = message.content;
+      this.isEditModalVisible = true;
+      message.showMenu = false;
+    },
+
+    closeEditModal() {
+      this.isEditModalVisible = false;
+      this.editMessage = null;
+      this.editMessageText = "";
+    },
+
+    async saveMessage() {
+      const newText = this.editMessageText.trim();
+      if (!newText) return;
+      if (newText === this.editMessage.content.trim()) {
+        console.log("Текст сообщения не изменился");
+        return;
+      }
+      try {
+        const updatedMessage = await messageService.updateMessage(
+            this.chatId,
+            this.editMessage.id,
+            {content: this.editMessageText}
+        );
+        this.messages = this.messages.map(msg =>
+            msg.id === updatedMessage.data.id ? {
+              ...msg,
+              content: updatedMessage.data.content,
+              updated_at: new Date(updatedMessage.data.updated_at).toLocaleString()
+            } : msg
+        );
+        this.closeEditModal();
+      } catch (error) {
+        console.error("Ошибка при обновлении сообщения", error);
+      }
+    },
+    deleteMessage() {
+      alert("Удаление пока не готово!");
+    },
     async loadMessages(isInitialLoad = false) {
       if (this.isLoading || (!this.hasMoreMessages && !isInitialLoad)) return;
 
@@ -238,6 +331,8 @@ export default {
               user: this.chatData.users.find(user => user.id === message.user_id) || {},
               content: message.content,
               created_at: new Date(message.created_at).toLocaleString(),
+              updated_at: new Date(message.updated_at).toLocaleString(),
+              showMenu: false,
               isMine: message.user_id === this.user.id,
             }));
 
@@ -296,6 +391,7 @@ export default {
     closeImageUploadModal() {
       this.isImageUploadModalOpen = false;
       this.resetImageUploadState();
+      location.reload();
     },
 
     handleImageUpload(event) {
@@ -341,14 +437,16 @@ export default {
           content: this.messageText,
         }
         await messageService.sendMessage(this.chatId, messageData)
+        const lastMessageResponse = await messageService.fetchLastMessage(this.chatId)
         this.messages.push({
-          id: Date.now(),
+          id: lastMessageResponse.data.id,
           user: {
             id: this.user.id,
             username: this.user.username,
           },
           content: this.messageText,
-          created_at: new Date().toLocaleString(),
+          created_at: new Date(lastMessageResponse.data.created_at).toLocaleString(),
+          updated_at: new Date(lastMessageResponse.data.updated_at).toLocaleString(),
           isMine: true,
         });
         this.messageText = "";
@@ -431,16 +529,18 @@ export default {
 .message {
   background-color: #e1f5fe;
   margin: 12px 0;
-  padding: 15px 20px;
-  border-radius: 12px;
-  font-size: 16px;
+  padding: 10px 15px;
+  border-radius: 10px;
+  font-size: 14px;
   color: #333;
+  position: relative;
 }
 
 .message-header {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  align-items: center;
+  font-size: 12px;
   color: #555;
 }
 
@@ -449,16 +549,219 @@ export default {
   color: #888;
 }
 
+.edited-indicator {
+  margin-left: 5px;
+  font-size: 12px;
+  color: gray;
+}
+
 .message-content {
-  margin-top: 10px;
+  margin-top: 8px;
+  font-size: 14px;
 }
 
 .message.mine {
+  align-self: flex-end;
   background-color: #e1e1e1;
 }
 
 .message.other {
+  align-self: flex-start;
   background-color: #e1f5fe;
+}
+
+.message-options {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+}
+
+.edited-indicator {
+  font-size: 0.85em;
+  color: gray;
+  margin-left: 5px;
+}
+
+.menu-button {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 25px;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  padding: 5px;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}
+
+.icon-button-update {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px;
+  color: #333;
+}
+
+.icon-button-update:hover {
+  color: #007bff;
+}
+
+.icon-button-delete {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px;
+  color: #333;
+}
+
+.icon-button-delete:hover {
+  color: #da0707;
+}
+
+.chat-input-container {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: #f9f9f9;
+}
+
+.chat-input {
+  flex-grow: 1;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 10px;
+  resize: none;
+}
+
+.send-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+.send-button i {
+  font-size: 16px;
+}
+
+.menu-button {
+  background: none;
+  border: none;
+  font-size: 1.2em;
+  cursor: pointer;
+}
+
+.menu-dropdown {
+  position: absolute;
+  background: white;
+  border: 1px solid #ddd;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  padding: 10px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  max-width: 480px;
+  width: 100%;
+  margin: 20px auto;
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
+.edit-textarea {
+  width: 80%;
+  height: 90%;
+  margin: 15px 30px;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  resize: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.edit-textarea:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 4px rgba(0, 123, 255, 0.25);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.save-button,
+.cancel-button {
+  padding: 10px 20px;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.save-button {
+  background-color: #28a745;
+  color: white;
+}
+
+.save-button:hover {
+  background-color: #218838;
+}
+
+.cancel-button {
+  background-color: #dc3545;
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: #c82333;
 }
 
 .no-messages {
@@ -576,18 +879,6 @@ export default {
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid #ddd;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .modal-content {
