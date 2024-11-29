@@ -56,7 +56,7 @@ async def get_messages(
     set_page(CursorPage[GetMessageSchema])
     query = (
         select(Message)
-        .where(Message.chat_id == chat.id, Message.is_deleted != True)
+        .where(Message.chat_id == chat.id, Message.is_deleted != True)  # noqa: E712
         .order_by(Message.created_at.desc())
     )
     return await paginate(db_session, query, params=params)
