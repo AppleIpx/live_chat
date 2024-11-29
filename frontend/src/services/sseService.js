@@ -23,7 +23,7 @@ const SSEManager = {
 
         const baseURL = process.env.VUE_APP_BACKEND_URL;
         const eventSource = new EventSource(
-            `${baseURL}/api/chats/${chatId}/events/?token=${encodeURIComponent(token)}`
+            `${baseURL}/api/chats/${chatId}/events?token=${encodeURIComponent(token)}`
         );
         eventSource.addEventListener("new_message", async (event) => {
             const message = JSON.parse(event.data);

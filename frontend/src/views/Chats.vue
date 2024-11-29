@@ -1,12 +1,27 @@
 <template>
   <div class="chats">
     <div class="chats-container">
-      <h2>Чаты</h2>
 
-      <!-- Chat Creation Buttons -->
-      <button @click="openSearch('direct')" class="btn-main">Создать личный чат</button>
-      <button @click="openSearch('group')" class="btn-main">Создать группу</button>
-      <br>
+      <!-- Pagination with arrows on the sides of the chat creation buttons -->
+      <div class="pagination">
+        <button class="btn-main" @click="loadPreviousPage" :disabled="!previousCursor"
+                v-if="previousCursor">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+
+        <!-- Chat Creation Buttons -->
+        <div class="chat-create-buttons">
+          <button @click="openSearch('direct')" class="btn-main">Создать личный чат
+          </button>
+          <button @click="openSearch('group')" class="btn-main">Создать группу</button>
+        </div>
+
+        <button class="btn-main" @click="loadNextPage" :disabled="!nextCursor"
+                v-if="nextCursor">
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </div>
+
 
       <!-- Creating a direct chat -->
       <div v-if="isCreatingDirect" class="search-container">
@@ -96,9 +111,7 @@
               </strong>
               <span class="timestamp">{{ formatDate(chat.updated_at) }}</span>
             </div>
-            <p class="last-message">{{
-                chat.last_message_content || 'Нет сообщений'
-              }}</p>
+            <p class="last-message">{{ chat.last_message_content }}</p>
           </a>
         </div>
       </div>
@@ -115,7 +128,7 @@
 
 <script>
 import SSEManager from "@/services/sseService";
-import {chatService, userService} from "@/services/apiService";
+import {chatService, messageService, userService} from "@/services/apiService";
 
 export default {
   data() {
@@ -133,6 +146,10 @@ export default {
       isCreatingDirect: false,
       selectedGroupUsers: [],
       groupName: '',
+      lastMessages: {},
+      currentCursor: null,
+      nextCursor: null,
+      previousCursor: null
     };
   },
   async mounted() {
@@ -146,29 +163,59 @@ export default {
     isChatOpenCallback() {
       return false;
     },
-    async fetchChats() {
+    async fetchChats(pageCursor = null) {
       try {
         const timeout = setTimeout(() => {
           this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
           this.isLoading = false;
         }, 10000);
-        const response = await this.$store.dispatch("StoreFetchChats");
-        clearTimeout(timeout);
-        this.chats = response.data.chats
+
+        const response = await this.$store.dispatch("StoreFetchChats", pageCursor);
+        this.nextCursor = response.data.next_page;
+        this.previousCursor = response.data.previous_page || null;
+        this.chats = response.data.items;
         this.chats.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+
+        const messagePromises = this.chats.map(async (chat) => {
+          try {
+            const messageResponse = await messageService.fetchLastMessage(chat.id);
+            if (!messageResponse.data) {
+              chat.last_message_content = "Нет сообщений";
+            } else {
+              chat.last_message_content = messageResponse.data.content;
+            }
+          } catch (error) {
+            console.error(`Ошибка загрузки сообщения для чата ${chat.id}:`, error);
+            chat.last_message_content = "Ошибка получения сообщения";
+          }
+        });
+        await Promise.all(messagePromises);
+        clearTimeout(timeout);
         this.isLoading = false;
       } catch (error) {
-        console.log(error)
+        console.log(error);
         this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
         this.isLoading = false;
       }
     },
 
+    async loadNextPage() {
+      if (this.nextCursor) {
+        await this.fetchChats(this.nextCursor);
+      }
+    },
+
+    async loadPreviousPage() {
+      if (this.previousCursor) {
+        await this.fetchChats(this.previousCursor);
+      }
+    },
+
     async fetchUsers() {
       try {
-        const response = await userService.fetchUsers()
+        const response = await userService.fetchUsers(10)
         const instanceUser = await userService.fetchUserMe()
-        this.users = response.data.users.slice(0, 10);
+        this.users = response.data.items.slice(0, 10);
         this.filteredUsers = this.users.filter(user => user.id !== instanceUser.data.id)
       } catch (error) {
         console.error('Ошибка получения пользователей:', error);
@@ -188,7 +235,7 @@ export default {
         return user ? user.user_image : '';
       }
       if (chat.chat_type === 'group') {
-        return chat.image_group
+        return chat.image
       }
     },
 
@@ -197,7 +244,7 @@ export default {
         return this.getFirstLastNames(chat.users)
       }
       if (chat.chat_type === 'group') {
-        return chat.name_group || 'Групповой чат';
+        return chat.name || 'Групповой чат';
       }
     },
 
@@ -260,9 +307,11 @@ export default {
         const response = await chatService.createChat(recipientData)
         this.chats.push(response.data);
         alert('Чат успешно создан!');
+        location.reload();
       } catch (error) {
         if (error.status === 409) {
           alert(`У вас уже есть этот чат.`);
+          return
         }
         console.error('Ошибка при создании чата:', error);
         alert('Не удалось создать чат. Пожалуйста, попробуйте позже.');
@@ -286,6 +335,7 @@ export default {
         this.isSearchOpen = false;
         this.groupName = "";
         this.selectedGroupUsers = [];
+        location.reload();
       } catch (error) {
         alert('Не удалось создать группу. Пожалуйста, попробуйте позже.');
       }
@@ -329,6 +379,28 @@ h2 {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.chat-create-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.pagination button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.pagination button i {
+  font-size: 18px;
 }
 
 .chat-item:hover {

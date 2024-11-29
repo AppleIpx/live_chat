@@ -60,18 +60,17 @@ const store = createStore({
                 }
             },
 
-            async StoreFetchChats({commit}) {
+            async StoreFetchChats({commit}, pageCursor) {
                 try {
-                    const response = await chatService.fetchChats();
-                    const chats = response.data.chats;
+                    const response = await chatService.fetchChats(pageCursor);
+                    const chats = response.data.items;
                     commit("setChats", chats);
                     return response;
                 } catch (error) {
                     console.error("Ошибка при загрузке чатов:", error);
                     throw error;
                 }
-            }
-            ,
+            },
 
             async StoreFetchChatDetail({commit}, chatId) {
                 try {
@@ -83,8 +82,7 @@ const store = createStore({
                     console.error("Ошибка при загрузке чатов:", error);
                     throw error;
                 }
-            }
-            ,
+            },
 
             receiveMessage({commit}, {message, isChatOpenCallback}) {
                 commit("addMessageToChat", {
@@ -94,8 +92,7 @@ const store = createStore({
                     message: message,
                     isChatOpenCallback: isChatOpenCallback
                 })
-            }
-            ,
+            },
         },
         getters: {
             getChatById: (state) => (id) => state.chats.find((chat) => chat.id === id),
