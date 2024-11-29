@@ -13,12 +13,12 @@ from tests.factories import ChatFactory, MessageFactory
 @pytest.mark.anyio
 async def test_get_detail_chat(
     authorized_client: AsyncClient,
-    chat_with_message: MessageFactory,
+    message_in_chat: MessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
     """Test get detail chat."""
-    chat_id = chat_with_message.chat.id
+    chat_id = message_in_chat.chat.id
     chat = await get_chat_by_id(chat_id=chat_id, db_session=dbsession)
     sender = await get_user_by_id(user_id=chat.users[0].id, db_session=dbsession)
     recipient = await get_user_by_id(user_id=chat.users[1].id, db_session=dbsession)

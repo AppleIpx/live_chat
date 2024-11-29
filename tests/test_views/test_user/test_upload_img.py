@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.settings import settings
-from live_chat.web.s3_client import S3Client
+from live_chat.web.utils.s3_client import S3Client
 from tests.utils import get_first_user_from_db
 
 

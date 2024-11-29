@@ -28,12 +28,14 @@ from live_chat.web.api.messages.constants import (
 from live_chat.web.api.messages.schemas import (
     GetMessageSchema,
     PostMessageSchema,
+    UpdateMessageSchema,
 )
 from live_chat.web.api.messages.utils import (
     get_user_from_token,
     message_generator,
     save_message_to_db,
     transformation_message,
+    validate_user_access_to_message,
 )
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils import current_active_user, get_user_manager
@@ -91,6 +93,31 @@ async def post_message(
     raise HTTPException(
         status_code=404,
         detail="Error with saving message. Please try again",
+    )
+
+
+@message_router.patch(
+    "/chats/{chat_id}/messages/{message_id}",
+    response_model=GetMessageSchema,
+)
+async def update_message(
+    message_schema: UpdateMessageSchema,
+    chat: Chat = Depends(validate_user_access_to_chat),
+    message: Message = Depends(validate_user_access_to_message),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> GetMessageSchema:
+    """Update message."""
+    message.content = message_schema.content
+    db_session.add(message)
+    await db_session.commit()
+    await db_session.refresh(message)
+    return GetMessageSchema(
+        id=message.id,
+        content=message.content,
+        created_at=message.created_at,
+        updated_at=message.updated_at,
+        chat_id=message.chat.id,
+        user_id=message.user.id,
     )
 
 

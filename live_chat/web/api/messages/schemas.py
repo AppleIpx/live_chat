@@ -14,6 +14,7 @@ class GetMessageSchema(BaseModel):
     chat_id: UUID
     content: str
     created_at: datetime
+    updated_at: datetime
 
 
 class GetListMessagesSchema(ChatSchema):
@@ -26,3 +27,7 @@ class PostMessageSchema(BaseModel):
     """Represents a message for create."""
 
     content: str
+
+
+class UpdateMessageSchema(PostMessageSchema):
+    """Represents a message for update."""

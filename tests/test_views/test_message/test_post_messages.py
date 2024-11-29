@@ -42,6 +42,7 @@ async def test_post_message(
                 "chat_id": chat_id,
                 "content": "test",
                 "created_at": message.created_at,
+                "updated_at": message.updated_at,
             },
         ),
     )
