@@ -23,7 +23,7 @@ async def test_get_last_message(
     response = await authorized_client.get(
         f"api/chats/{many_messages[0].chat.id}/messages/last",
     )
-    last_message = await get_correct_last_message(messages=many_messages, db_session=dbsession)
+    last_message = await get_correct_last_message(messages=many_messages)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
