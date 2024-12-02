@@ -93,7 +93,9 @@ async def post_message(
         for user in chat.users:
             target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{user.id!s}"
             await fast_stream_broker.publish(
-                json.dumps(jsonable_encoder(message_data.model_dump())),
+                json.dumps(
+                    {"data": json.dumps(jsonable_encoder(message_data.model_dump()))},
+                ),
                 channel=target_channel,
             )
         return {"status": "Message published"}
@@ -118,7 +120,7 @@ async def update_message(
     db_session.add(message)
     await db_session.commit()
     await db_session.refresh(message)
-    return GetMessageSchema(
+    message_data = GetMessageSchema(
         id=message.id,
         content=message.content,
         created_at=message.created_at,
@@ -127,6 +129,18 @@ async def update_message(
         user_id=message.user.id,
         is_deleted=message.is_deleted,
     )
+    for user in chat.users:
+        target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{user.id!s}"
+        await fast_stream_broker.publish(
+            json.dumps(
+                {
+                    "event": "update_message",
+                    "data": json.dumps(jsonable_encoder(message_data.model_dump())),
+                },
+            ),
+            channel=target_channel,
+        )
+    return message_data
 
 
 @message_router.delete(
@@ -164,11 +178,13 @@ async def process_message(message: Any) -> None:
     decoded_message = json.loads(message.body.decode("utf-8"))
     chat_id = message.path["chat_id"]
     user_id = message.path["user_id"]
+    event_type = decoded_message.get("event", "new_message")
+    event_data = {"event": event_type, "data": decoded_message["data"]}
     redis_key = f"{REDIS_SSE_KEY_PREFIX}{chat_id}_{user_id}"
 
     await redis.lpush(  # type: ignore[misc]
         redis_key,
-        json.dumps(decoded_message, ensure_ascii=False),
+        json.dumps(event_data, ensure_ascii=False),
     )
 
 
