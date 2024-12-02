@@ -305,6 +305,7 @@ export default {
     openDeleteModal(message) {
       this.messageToDelete = message;
       this.isDeleteModalVisible = true;
+      message.showMenu = false;
     },
 
     closeDeleteModal() {
