@@ -36,6 +36,7 @@ async def test_update_message(
                 "content": message_in_chat.content,
                 "created_at": message_in_chat.created_at,
                 "updated_at": message_in_chat.updated_at,
+                "is_deleted": message_in_chat.is_deleted,
             },
         ),
     )

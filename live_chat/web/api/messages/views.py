@@ -129,6 +129,18 @@ async def update_message(
         user_id=message.user.id,
         is_deleted=message.is_deleted,
     )
+    for user in chat.users:
+        target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{user.id!s}"
+        await fast_stream_broker.publish(
+            json.dumps(
+                {
+                    "event": "update_message",
+                    "data": json.dumps(jsonable_encoder(message_data.model_dump())),
+                },
+            ),
+            channel=target_channel,
+        )
+    return message_data
 
 
 @message_router.delete(
@@ -158,18 +170,6 @@ async def delete_message(
         content={"detail": "Сообщение помещено в недавно удаленные"},
         status_code=status.HTTP_202_ACCEPTED,
     )
-    for user in chat.users:
-        target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{user.id!s}"
-        await fast_stream_broker.publish(
-            json.dumps(
-                {
-                    "event": "update_message",
-                    "data": json.dumps(jsonable_encoder(message_data.model_dump())),
-                },
-            ),
-            channel=target_channel,
-        )
-    return message_data
 
 
 @fast_stream_broker.subscriber(channel="{REDIS_CHANNEL_PREFIX}:{chat_id}:{user_id}")
