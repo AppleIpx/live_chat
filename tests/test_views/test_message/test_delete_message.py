@@ -26,7 +26,6 @@ async def test_mark_messages_is_deleted(
 @pytest.mark.anyio
 async def test_delete_message(
     authorized_client: AsyncClient,
-    # marked_message_for_deleted_in_chat: MessageFactory,
     message_in_chat: MessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
