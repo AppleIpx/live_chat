@@ -329,7 +329,6 @@ export default {
       const newText = this.editMessageText.trim();
       if (!newText) return;
       if (newText === this.editMessage.content.trim()) {
-        console.log("Текст сообщения не изменился");
         return;
       }
       try {
@@ -350,9 +349,7 @@ export default {
         console.error("Ошибка при обновлении сообщения", error);
       }
     },
-    deleteMessage() {
-      alert("Удаление пока не готово!");
-    },
+
     async loadMessages(isInitialLoad = false) {
       if (this.isLoading || (!this.hasMoreMessages && !isInitialLoad)) return;
 
@@ -429,6 +426,9 @@ export default {
         const message = this.messages[existingMessageIndex];
         message.content = newMessage.content;
         message.updated_at = new Date(newMessage.updated_at).toLocaleString();
+      }
+      if (action === "delete") {
+        this.messages = this.messages.filter(msg => msg.id !== newMessage.id);
       }
     },
 

@@ -1,11 +1,15 @@
+import json
 import uuid
 from typing import AsyncGenerator
+from unittest.mock import AsyncMock
 
 import pytest
+from fastapi.encoders import jsonable_encoder
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
 from tests.factories import MessageFactory, UserFactory
 
 
@@ -14,10 +18,18 @@ async def test_mark_messages_is_deleted(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
+    mocked_publish_message: AsyncMock,
 ) -> None:
     """Test mark messages as deleted."""
+    chat = message_in_chat.chat
     response = await authorized_client.delete(
-        f"/api/chats/{message_in_chat.chat.id}/messages/{message_in_chat.id}",
+        f"/api/chats/{chat.id}/messages/{message_in_chat.id}",
+    )
+    message_data = json.dumps(jsonable_encoder({"id": message_in_chat.id}))
+
+    mocked_publish_message.assert_called_with(
+        json.dumps({"event": "delete_message", "data": message_data}),
+        channel=f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{chat.users[1].id!s}",
     )
     assert response.status_code == status.HTTP_202_ACCEPTED
     assert response.json() == {"detail": "Сообщение помещено в недавно удаленные"}
@@ -28,12 +40,19 @@ async def test_delete_message(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
+    mocked_publish_message: AsyncMock,
 ) -> None:
     """Test delete message."""
     message_in_chat.is_deleted = True
     chat = message_in_chat.chat
     response = await authorized_client.delete(
         f"/api/chats/{chat.id}/messages/{message_in_chat.id}",
+    )
+    message_data = json.dumps(jsonable_encoder({"id": message_in_chat.id}))
+
+    mocked_publish_message.assert_called_with(
+        json.dumps({"event": "delete_message", "data": message_data}),
+        channel=f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{chat.users[1].id!s}",
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
@@ -54,16 +73,23 @@ async def test_delete_message_with_query_param(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
+    mocked_publish_message: AsyncMock,
     is_forever: bool,
     expected_status: int,
     expected_response: dict | None,
 ) -> None:
     """Test delete message with query parameter is_forever."""
+    chat = message_in_chat.chat
     response = await authorized_client.delete(
         f"/api/chats/{message_in_chat.chat.id}/messages/{message_in_chat.id}",
         params={"is_forever": is_forever},
     )
+    message_data = json.dumps(jsonable_encoder({"id": message_in_chat.id}))
 
+    mocked_publish_message.assert_called_with(
+        json.dumps({"event": "delete_message", "data": message_data}),
+        channel=f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{chat.users[1].id!s}",
+    )
     assert response.status_code == expected_status
     if expected_response:
         assert response.json() == expected_response
