@@ -43,6 +43,7 @@ async def test_post_message(
                 "content": "test",
                 "created_at": message.created_at,
                 "updated_at": message.updated_at,
+                "is_deleted": message.is_deleted,
             },
         ),
     )
