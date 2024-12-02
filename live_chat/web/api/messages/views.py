@@ -1,6 +1,4 @@
-import json
 import logging
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
@@ -16,15 +14,12 @@ from starlette import status
 
 from live_chat.db.models.chat import Chat, Message, User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
-from live_chat.services.faststream import fast_stream_broker
-from live_chat.services.redis import redis
 from live_chat.web.api.chat.utils import (
     get_chat_by_id,
     get_user_chats,
     validate_user_access_to_chat,
 )
 from live_chat.web.api.messages.constants import (
-    REDIS_CHANNEL_PREFIX,
     REDIS_SSE_KEY_PREFIX,
 )
 from live_chat.web.api.messages.schemas import (
@@ -35,6 +30,7 @@ from live_chat.web.api.messages.schemas import (
 from live_chat.web.api.messages.utils import (
     get_user_from_token,
     message_generator,
+    publish_faststream,
     save_message_to_db,
     transformation_message,
     validate_user_access_to_message,
@@ -90,14 +86,8 @@ async def post_message(
         current_user,
     ):
         message_data: GetMessageSchema = transformation_message([created_message])[0]
-        for user in chat.users:
-            target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{user.id!s}"
-            await fast_stream_broker.publish(
-                json.dumps(
-                    {"data": json.dumps(jsonable_encoder(message_data.model_dump()))},
-                ),
-                channel=target_channel,
-            )
+        event_data = jsonable_encoder(message_data.model_dump())
+        await publish_faststream("new_message", chat.users, event_data, chat.id)
         return {"status": "Message published"}
     raise HTTPException(
         status_code=404,
@@ -120,26 +110,9 @@ async def update_message(
     db_session.add(message)
     await db_session.commit()
     await db_session.refresh(message)
-    message_data = GetMessageSchema(
-        id=message.id,
-        content=message.content,
-        created_at=message.created_at,
-        updated_at=message.updated_at,
-        chat_id=message.chat.id,
-        user_id=message.user.id,
-        is_deleted=message.is_deleted,
-    )
-    for user in chat.users:
-        target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{user.id!s}"
-        await fast_stream_broker.publish(
-            json.dumps(
-                {
-                    "event": "update_message",
-                    "data": json.dumps(jsonable_encoder(message_data.model_dump())),
-                },
-            ),
-            channel=target_channel,
-        )
+    message_data: GetMessageSchema = transformation_message([message])[0]
+    event_data = jsonable_encoder(message_data.model_dump())
+    await publish_faststream("update_message", chat.users, event_data, chat.id)
     return message_data
 
 
@@ -148,6 +121,7 @@ async def update_message(
     response_model=None,
 )
 async def delete_message(
+    is_forever: bool = False,
     chat: Chat = Depends(validate_user_access_to_chat),
     message: Message = Depends(validate_user_access_to_message),
     db_session: AsyncSession = Depends(get_async_session),
@@ -159,7 +133,9 @@ async def delete_message(
     if the message already arrives with this flag(is_deleted = true),
     then status 204 is returned and deleted from the database
     """
-    if message.is_deleted:
+    event_data = jsonable_encoder({"id": f"{message.id!s}"})
+    await publish_faststream("delete_message", chat.users, event_data, chat.id)
+    if message.is_deleted or is_forever:
         await delete_message_by_id(message_id=message.id, db_session=db_session)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     message.is_deleted = True
@@ -169,22 +145,6 @@ async def delete_message(
     return JSONResponse(
         content={"detail": "Сообщение помещено в недавно удаленные"},
         status_code=status.HTTP_202_ACCEPTED,
-    )
-
-
-@fast_stream_broker.subscriber(channel="{REDIS_CHANNEL_PREFIX}:{chat_id}:{user_id}")
-async def process_message(message: Any) -> None:
-    """Save the message in Redis for SSE subscribers."""
-    decoded_message = json.loads(message.body.decode("utf-8"))
-    chat_id = message.path["chat_id"]
-    user_id = message.path["user_id"]
-    event_type = decoded_message.get("event", "new_message")
-    event_data = {"event": event_type, "data": decoded_message["data"]}
-    redis_key = f"{REDIS_SSE_KEY_PREFIX}{chat_id}_{user_id}"
-
-    await redis.lpush(  # type: ignore[misc]
-        redis_key,
-        json.dumps(event_data, ensure_ascii=False),
     )
 
 

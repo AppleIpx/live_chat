@@ -4,13 +4,13 @@ from typing import AsyncGenerator
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi.encoders import jsonable_encoder
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
 from tests.factories import MessageFactory, UserFactory
+from tests.utils import transformation_message_data
 
 
 @pytest.mark.anyio
@@ -27,19 +27,7 @@ async def test_update_message(
         json={"content": "test"},
     )
     target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{chat.users[1].id!s}"
-    message_data = json.dumps(
-        jsonable_encoder(
-            {
-                "id": message_in_chat.id,
-                "user_id": message_in_chat.user.id,
-                "chat_id": chat.id,
-                "content": message_in_chat.content,
-                "created_at": message_in_chat.created_at,
-                "updated_at": message_in_chat.updated_at,
-                "is_deleted": message_in_chat.is_deleted,
-            },
-        ),
-    )
+    message_data = await transformation_message_data(message_in_chat)
 
     mocked_publish_message.assert_called_with(
         json.dumps({"event": "update_message", "data": message_data}),

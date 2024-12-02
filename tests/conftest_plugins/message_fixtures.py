@@ -27,7 +27,7 @@ async def message(
 def mocked_publish_message() -> AsyncMock:
     """Mock publish message in redis."""
     with patch(
-        "live_chat.web.api.messages.views.fast_stream_broker.publish",
+        "live_chat.web.api.messages.utils.publish_message.fast_stream_broker.publish",
         new=AsyncMock(),
     ) as mock_publish:
         yield mock_publish

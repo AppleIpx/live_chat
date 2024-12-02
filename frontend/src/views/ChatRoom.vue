@@ -110,7 +110,7 @@
                 <button @click="openEditModal(message)" class="icon-button-update">
                   <i class="fa fa-pencil"></i>
                 </button>
-                <button @click="deleteMessage(message)" class="icon-button-delete">
+                <button @click="openDeleteModal(message)" class="icon-button-delete">
                   <i class="fa fa-trash"></i>
                 </button>
               </div>
@@ -135,7 +135,21 @@
           <i class="fa fa-paper-plane"></i>
         </button>
       </div>
-
+      <!-- Delete Modal -->
+      <div v-if="isDeleteModalVisible" class="modal-overlay"
+           @click.self="closeDeleteModal">
+        <div class="modal">
+          <h3 class="modal-title">Удалить сообщение безвозвратно?</h3>
+          <div class="modal-actions">
+            <button @click="confirmDelete(false)" class="confirm-button">
+              Переместить в <i>"Недавно удалённые"</i>
+            </button>
+            <button @click="confirmDelete(true)" class="cancel-button">
+              Удалить навсегда
+            </button>
+          </div>
+        </div>
+      </div>
       <!-- Edit Modal -->
       <div v-if="isEditModalVisible" class="modal-overlay" @click.self="closeEditModal">
         <div class="modal">
@@ -183,6 +197,8 @@ export default {
       isEditModalVisible: false,
       editMessage: null,
       editMessageText: "",
+      isDeleteModalVisible: false,
+      messageToDelete: null,
     };
   },
   computed: {
@@ -286,11 +302,34 @@ export default {
       this.editMessageText = "";
     },
 
+    openDeleteModal(message) {
+      this.messageToDelete = message;
+      this.isDeleteModalVisible = true;
+      message.showMenu = false;
+    },
+
+    closeDeleteModal() {
+      this.isDeleteModalVisible = false;
+      this.messageToDelete = null;
+    },
+
+    async confirmDelete(deleteForever) {
+      if (!this.messageToDelete) return;
+
+      try {
+        await messageService.deleteMessage(this.chatId, this.messageToDelete.id, deleteForever);
+        this.messages = this.messages.filter(msg => msg.id !== this.messageToDelete.id);
+        this.closeDeleteModal();
+      } catch (error) {
+        console.error("Ошибка при удалении сообщения", error);
+        this.closeDeleteModal();
+      }
+    },
+
     async saveMessage() {
       const newText = this.editMessageText.trim();
       if (!newText) return;
       if (newText === this.editMessage.content.trim()) {
-        console.log("Текст сообщения не изменился");
         return;
       }
       try {
@@ -311,9 +350,7 @@ export default {
         console.error("Ошибка при обновлении сообщения", error);
       }
     },
-    deleteMessage() {
-      alert("Удаление пока не готово!");
-    },
+
     async loadMessages(isInitialLoad = false) {
       if (this.isLoading || (!this.hasMoreMessages && !isInitialLoad)) return;
 
@@ -390,6 +427,9 @@ export default {
         const message = this.messages[existingMessageIndex];
         message.content = newMessage.content;
         message.updated_at = new Date(newMessage.updated_at).toLocaleString();
+      }
+      if (action === "delete") {
+        this.messages = this.messages.filter(msg => msg.id !== newMessage.id);
       }
     },
 

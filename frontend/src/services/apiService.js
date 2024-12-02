@@ -116,9 +116,19 @@ export const messageService = {
             throw error;
         }
     },
-    async updateMessage(chatId, messageId, messageData){
+    async updateMessage(chatId, messageId, messageData) {
         try {
             return apiClient.patch(`/api/chats/${chatId}/messages/${messageId}`, messageData);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async deleteMessage(chatId, messageId, deleteForever) {
+        try {
+            return await apiClient.delete(`/api/chats/${chatId}/messages/${messageId}?is_forever=${deleteForever}`,);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
                 this.$router.push("/");

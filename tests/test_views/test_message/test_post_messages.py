@@ -4,7 +4,6 @@ from typing import AsyncGenerator
 from unittest.mock import AsyncMock
 
 import pytest
-from fastapi.encoders import jsonable_encoder
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +12,7 @@ from starlette import status
 from live_chat.db.models.chat import Message
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
 from tests.factories import ChatFactory
+from tests.utils import transformation_message_data
 
 
 @pytest.mark.anyio
@@ -26,7 +26,6 @@ async def test_post_message(
     """Testing post message."""
     chat_id = direct_chat_with_users.id
     recipient = direct_chat_with_users.users[1]
-    sender = direct_chat_with_users.users[0]
     target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat_id!s}:{recipient.id!s}"
     response = await authorized_client.post(
         f"/api/chats/{chat_id}/messages",
@@ -34,22 +33,10 @@ async def test_post_message(
     )
     query = select(Message).where(Message.chat_id == chat_id)
     message = (await dbsession.execute(query)).scalar_one_or_none()
-    message_data = json.dumps(
-        jsonable_encoder(
-            {
-                "id": message.id,
-                "user_id": sender.id,
-                "chat_id": chat_id,
-                "content": "test",
-                "created_at": message.created_at,
-                "updated_at": message.updated_at,
-                "is_deleted": message.is_deleted,
-            },
-        ),
-    )
+    message_data = await transformation_message_data(message)
 
     mocked_publish_message.assert_called_with(
-        json.dumps({"data": message_data}),
+        json.dumps({"event": "new_message", "data": message_data}),
         channel=target_channel,
     )
     assert response.status_code == status.HTTP_200_OK
