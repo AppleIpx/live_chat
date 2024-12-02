@@ -148,6 +148,7 @@ async def update_message(
     response_model=None,
 )
 async def delete_message(
+    is_forever: bool = False,
     chat: Chat = Depends(validate_user_access_to_chat),
     message: Message = Depends(validate_user_access_to_message),
     db_session: AsyncSession = Depends(get_async_session),
@@ -159,7 +160,7 @@ async def delete_message(
     if the message already arrives with this flag(is_deleted = true),
     then status 204 is returned and deleted from the database
     """
-    if message.is_deleted:
+    if message.is_deleted or is_forever:
         await delete_message_by_id(message_id=message.id, db_session=db_session)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     message.is_deleted = True

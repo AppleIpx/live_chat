@@ -110,7 +110,7 @@
                 <button @click="openEditModal(message)" class="icon-button-update">
                   <i class="fa fa-pencil"></i>
                 </button>
-                <button @click="deleteMessage(message)" class="icon-button-delete">
+                <button @click="openDeleteModal(message)" class="icon-button-delete">
                   <i class="fa fa-trash"></i>
                 </button>
               </div>
@@ -135,7 +135,21 @@
           <i class="fa fa-paper-plane"></i>
         </button>
       </div>
-
+      <!-- Delete Modal -->
+      <div v-if="isDeleteModalVisible" class="modal-overlay"
+           @click.self="closeDeleteModal">
+        <div class="modal">
+          <h3 class="modal-title">Удалить сообщение безвозвратно?</h3>
+          <div class="modal-actions">
+            <button @click="confirmDelete(false)" class="confirm-button">
+              Переместить в <i>"Недавно удалённые"</i>
+            </button>
+            <button @click="confirmDelete(true)" class="cancel-button">
+              Удалить навсегда
+            </button>
+          </div>
+        </div>
+      </div>
       <!-- Edit Modal -->
       <div v-if="isEditModalVisible" class="modal-overlay" @click.self="closeEditModal">
         <div class="modal">
@@ -183,6 +197,8 @@ export default {
       isEditModalVisible: false,
       editMessage: null,
       editMessageText: "",
+      isDeleteModalVisible: false,
+      messageToDelete: null,
     };
   },
   computed: {
@@ -284,6 +300,29 @@ export default {
       this.isEditModalVisible = false;
       this.editMessage = null;
       this.editMessageText = "";
+    },
+
+    openDeleteModal(message) {
+      this.messageToDelete = message;
+      this.isDeleteModalVisible = true;
+    },
+
+    closeDeleteModal() {
+      this.isDeleteModalVisible = false;
+      this.messageToDelete = null;
+    },
+
+    async confirmDelete(deleteForever) {
+      if (!this.messageToDelete) return;
+
+      try {
+        await messageService.deleteMessage(this.chatId, this.messageToDelete.id, deleteForever);
+        this.messages = this.messages.filter(msg => msg.id !== this.messageToDelete.id);
+        this.closeDeleteModal();
+      } catch (error) {
+        console.error("Ошибка при удалении сообщения", error);
+        this.closeDeleteModal();
+      }
     },
 
     async saveMessage() {

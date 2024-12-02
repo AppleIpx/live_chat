@@ -39,6 +39,39 @@ async def test_delete_message(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "is_forever, expected_status, expected_response",
+    [
+        (
+            False,
+            status.HTTP_202_ACCEPTED,
+            {"detail": "Сообщение помещено в недавно удаленные"},
+        ),
+        (True, status.HTTP_204_NO_CONTENT, None),
+    ],
+)
+async def test_delete_message_with_query_param(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    is_forever: bool,
+    expected_status: int,
+    expected_response: dict | None,
+) -> None:
+    """Test delete message with query parameter is_forever."""
+    response = await authorized_client.delete(
+        f"/api/chats/{message_in_chat.chat.id}/messages/{message_in_chat.id}",
+        params={"is_forever": is_forever},
+    )
+
+    assert response.status_code == expected_status
+    if expected_response:
+        assert response.json() == expected_response
+    else:
+        assert not response.content
+
+
+@pytest.mark.anyio
 async def test_delete_message_not_found(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
