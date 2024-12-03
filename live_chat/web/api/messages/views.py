@@ -12,7 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette import EventSourceResponse
 from starlette import status
 
-from live_chat.db.models.chat import Chat, Message, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import (  # type: ignore[attr-defined]
+    Chat,
+    DeletedMessage,
+    Message,
+    User,
+)
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.utils import (
     get_chat_by_id,
@@ -59,6 +64,26 @@ async def get_messages(
         select(Message)
         .where(Message.chat_id == chat.id, Message.is_deleted != True)  # noqa: E712
         .order_by(Message.created_at.desc())
+    )
+    return await paginate(db_session, query, params=params)
+
+
+@message_router.get("/chats/{chat_id}/deleted-messages")
+async def get_deleted_messages(
+    chat: Chat = Depends(validate_user_access_to_chat),
+    current_user: User = Depends(current_active_user),
+    params: CursorParams = Depends(),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> CursorPage[GetMessageSchema]:
+    """Get messages in chat by pagination."""
+    set_page(CursorPage[GetMessageSchema])
+    query = (
+        select(DeletedMessage)
+        .where(
+            DeletedMessage.chat_id == chat.id,
+            DeletedMessage.user_id == current_user.id,
+        )
+        .order_by(DeletedMessage.created_at.desc())
     )
     return await paginate(db_session, query, params=params)
 
