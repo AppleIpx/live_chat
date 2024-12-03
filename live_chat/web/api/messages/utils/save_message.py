@@ -4,7 +4,12 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import Chat, Message, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import (  # type: ignore[attr-defined]
+    Chat,
+    DeletedMessage,
+    Message,
+    User,
+)
 
 
 async def save_message_to_db(
@@ -32,3 +37,27 @@ async def save_message_to_db(
     await db_session.refresh(message)
 
     return message
+
+
+async def save_deleted_message_to_db(
+    db_session: AsyncSession,
+    message: Message,
+) -> DeletedMessage | None:
+    """Save the message to the database."""
+    chat = await db_session.get(Chat, message.chat_id)
+
+    if not chat:
+        logging.error("Data error. Chat not found.", exc_info=True)
+        return None
+
+    deleted_message = DeletedMessage(
+        content=message.content,
+        chat_id=message.chat_id,
+        user_id=message.user_id,
+    )
+
+    db_session.add(deleted_message)
+    await db_session.commit()
+    await db_session.refresh(deleted_message)
+
+    return deleted_message

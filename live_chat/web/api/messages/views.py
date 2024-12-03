@@ -39,6 +39,7 @@ from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
 from live_chat.web.api.messages.utils.get_correct_last_message import (
     get_correct_last_message,
 )
+from live_chat.web.api.messages.utils.save_message import save_deleted_message_to_db
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils import current_active_user, get_user_manager
 
@@ -133,18 +134,26 @@ async def delete_message(
     if the message already arrives with this flag(is_deleted = true),
     then status 204 is returned and deleted from the database
     """
-    event_data = jsonable_encoder({"id": f"{message.id!s}"})
-    await publish_faststream("delete_message", chat.users, event_data, chat.id)
     if message.is_deleted or is_forever:
         await delete_message_by_id(message_id=message.id, db_session=db_session)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     message.is_deleted = True
-    db_session.add(message)
-    await db_session.commit()
-    await db_session.refresh(message)
-    return JSONResponse(
-        content={"detail": "Сообщение помещено в недавно удаленные"},
-        status_code=status.HTTP_202_ACCEPTED,
+    if deleted_message := await save_deleted_message_to_db(
+        db_session=db_session,
+        message=message,
+    ):
+        db_session.add_all([message, deleted_message])
+        await db_session.commit()
+        await db_session.refresh(message)
+        event_data = jsonable_encoder({"id": f"{message.id!s}"})
+        await publish_faststream("delete_message", chat.users, event_data, chat.id)
+        return JSONResponse(
+            content={"detail": "Сообщение помещено в недавно удаленные"},
+            status_code=status.HTTP_202_ACCEPTED,
+        )
+    raise HTTPException(
+        status_code=404,
+        detail="Error with saving deleted message. Please try again",
     )
 
 
