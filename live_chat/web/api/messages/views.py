@@ -134,8 +134,10 @@ async def delete_message(
     if the message already arrives with this flag(is_deleted = true),
     then status 204 is returned and deleted from the database
     """
+    event_data = jsonable_encoder({"id": f"{message.id!s}"})
     if message.is_deleted or is_forever:
         await delete_message_by_id(message_id=message.id, db_session=db_session)
+        await publish_faststream("delete_message", chat.users, event_data, chat.id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     message.is_deleted = True
     if deleted_message := await save_deleted_message_to_db(
@@ -145,7 +147,6 @@ async def delete_message(
         db_session.add_all([message, deleted_message])
         await db_session.commit()
         await db_session.refresh(message)
-        event_data = jsonable_encoder({"id": f"{message.id!s}"})
         await publish_faststream("delete_message", chat.users, event_data, chat.id)
         return JSONResponse(
             content={"detail": "Сообщение помещено в недавно удаленные"},
