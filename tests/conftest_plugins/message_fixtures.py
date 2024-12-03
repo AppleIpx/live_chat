@@ -4,7 +4,12 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.factories import ChatFactory, MessageFactory, UserFactory
+from tests.factories import (
+    ChatFactory,
+    DeletedMessageFactory,
+    MessageFactory,
+    UserFactory,
+)
 
 
 @pytest.fixture
@@ -16,6 +21,22 @@ async def message(
     """Fixture for creating a message."""
     MessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
     return MessageFactory(
+        user=user,
+        chat=chat,
+        chat_id=chat.id,
+        user_id=user.id,
+    )
+
+
+@pytest.fixture
+async def deleted_message(
+    dbsession: AsyncSession,
+    user: UserFactory,
+    chat: ChatFactory,
+) -> DeletedMessageFactory:
+    """Fixture for creating a deleted message."""
+    DeletedMessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    return DeletedMessageFactory(
         user=user,
         chat=chat,
         chat_id=chat.id,
