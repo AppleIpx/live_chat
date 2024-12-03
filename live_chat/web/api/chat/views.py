@@ -131,6 +131,22 @@ async def get_list_chats_view(
     return await paginate(db_session, query, params=params)
 
 
+@chat_router.get("/deleted", summary="List deleted chats")
+async def get_list_deleted_chats_view(
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(current_active_user),
+    params: CursorParams = Depends(),
+) -> CursorPage[ChatSchema]:
+    """Getting deleted chats to which a user has been added."""
+    set_page(CursorPage[ChatSchema])
+    query = (
+        select(Chat)
+        .where(Chat.deleted_messages.any(user_id=current_user.id))
+        .order_by(Chat.updated_at.desc())
+    )
+    return await paginate(db_session, query, params=params)
+
+
 @chat_router.get(
     "/{chat_id}",
     summary="Detail chat by id",

@@ -1,11 +1,9 @@
-from typing import AsyncGenerator
-
 import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import Message
-from live_chat.web.api.chat.utils.get_message_by_id import get_message_by_id
+from live_chat.web.api.chat.utils import get_message_by_id
 from tests.factories import MessageFactory
 
 
@@ -31,7 +29,7 @@ async def test_check_fields_message(
 @pytest.mark.anyio
 async def test_check_save_message(
     message: MessageFactory,
-    dbsession: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
 ) -> None:
     """Checking whether the message is saved in the db."""
     count = await dbsession.execute(select(func.count(Message.id)))

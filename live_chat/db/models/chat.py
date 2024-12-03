@@ -28,10 +28,10 @@ chat_participant = Table(
 )
 
 
-class Message(Base):
-    """Message model."""
+class BaseMessage(Base):
+    """Abstract base class for messages."""
 
-    __tablename__ = "message"
+    __abstract__ = True
 
     id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
     message_type: Mapped[str] = mapped_column(
@@ -41,15 +41,40 @@ class Message(Base):
     content: Mapped[str] = mapped_column(String(5000))
     user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
     chat_id: Mapped[UUID] = mapped_column(ForeignKey("chat.id"))
-
     file_name: Mapped[str] = mapped_column(String(50), nullable=True)
     file_path: Mapped[str] = mapped_column(String(1000), nullable=True)
 
-    chat: Mapped["Chat"] = relationship(back_populates="messages")
-    user: Mapped["User"] = relationship(back_populates="messages")
+
+class Message(BaseMessage):
+    """Message model."""
+
+    __tablename__ = "message"
+
+    chat: Mapped["Chat"] = relationship(
+        back_populates="messages",
+        overlaps="deleted_messages",
+    )
+    user = relationship("User", back_populates="messages")
 
     def __str__(self) -> str:
         return f"Message from {self.user_id} - {self.chat_id} - {self.created_at}"
+
+
+class DeletedMessage(BaseMessage):
+    """Deleted Message model."""
+
+    __tablename__ = "deleted_message"
+
+    chat: Mapped["Chat"] = relationship(
+        back_populates="deleted_messages",
+        overlaps="messages",
+    )
+    user = relationship("User", back_populates="deleted_messages")
+
+    def __str__(self) -> str:
+        return (
+            f"Deleted message from {self.user_id} - {self.chat_id} - {self.created_at}"
+        )
 
 
 class Chat(Base):
@@ -66,9 +91,15 @@ class Chat(Base):
         secondary="chat_participant",
         back_populates="chats",
     )
-    messages: Mapped[List[Message]] = relationship(
+    messages = relationship(
+        "Message",
         back_populates="chat",
-        cascade="all,delete",
+        overlaps="deleted_messages",
+    )
+    deleted_messages = relationship(
+        "DeletedMessage",
+        back_populates="chat",
+        overlaps="messages",
     )
     read_statuses: Mapped[List["ReadStatus"]] = relationship(
         back_populates="chat",
@@ -111,8 +142,15 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         secondary="chat_participant",
         back_populates="users",
     )
-    messages: Mapped[List["Message"]] = relationship(
+    messages = relationship(
+        "Message",
         back_populates="user",
+        overlaps="deleted_messages",
+    )
+    deleted_messages = relationship(
+        "DeletedMessage",
+        back_populates="user",
+        overlaps="messages",
     )
     read_statuses: Mapped[List["ReadStatus"]] = relationship(
         back_populates="user",

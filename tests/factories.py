@@ -3,7 +3,7 @@ from datetime import datetime
 
 import factory
 
-from live_chat.db.models.chat import Chat, Message, ReadStatus, User
+from live_chat.db.models.chat import Chat, DeletedMessage, Message, ReadStatus, User
 from live_chat.db.models.enums import ChatType, MessageType
 
 
@@ -59,6 +59,16 @@ class MessageFactory(factory.alchemy.SQLAlchemyModelFactory):
     created_at = factory.LazyFunction(datetime.now)
     updated_at = factory.LazyFunction(datetime.now)
     is_deleted = factory.Faker("boolean")
+
+
+class DeletedMessageFactory(MessageFactory):
+    """A factory for creating the Deleted Message model for testing purposes."""
+
+    class Meta:
+        model = DeletedMessage
+        sqlalchemy_session = None
+
+    is_deleted = True
 
 
 class ReadStatusFactory(factory.alchemy.SQLAlchemyModelFactory):

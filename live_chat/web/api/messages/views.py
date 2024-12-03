@@ -12,7 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette import EventSourceResponse
 from starlette import status
 
-from live_chat.db.models.chat import Chat, Message, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import (  # type: ignore[attr-defined]
+    Chat,
+    DeletedMessage,
+    Message,
+    User,
+)
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.utils import (
     get_chat_by_id,
@@ -39,6 +44,7 @@ from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
 from live_chat.web.api.messages.utils.get_correct_last_message import (
     get_correct_last_message,
 )
+from live_chat.web.api.messages.utils.save_message import save_deleted_message_to_db
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils import current_active_user, get_user_manager
 
@@ -58,6 +64,26 @@ async def get_messages(
         select(Message)
         .where(Message.chat_id == chat.id, Message.is_deleted != True)  # noqa: E712
         .order_by(Message.created_at.desc())
+    )
+    return await paginate(db_session, query, params=params)
+
+
+@message_router.get("/chats/{chat_id}/deleted-messages")
+async def get_deleted_messages(
+    chat: Chat = Depends(validate_user_access_to_chat),
+    current_user: User = Depends(current_active_user),
+    params: CursorParams = Depends(),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> CursorPage[GetMessageSchema]:
+    """Get messages in chat by pagination."""
+    set_page(CursorPage[GetMessageSchema])
+    query = (
+        select(DeletedMessage)
+        .where(
+            DeletedMessage.chat_id == chat.id,
+            DeletedMessage.user_id == current_user.id,
+        )
+        .order_by(DeletedMessage.created_at.desc())
     )
     return await paginate(db_session, query, params=params)
 
@@ -134,17 +160,26 @@ async def delete_message(
     then status 204 is returned and deleted from the database
     """
     event_data = jsonable_encoder({"id": f"{message.id!s}"})
-    await publish_faststream("delete_message", chat.users, event_data, chat.id)
     if message.is_deleted or is_forever:
         await delete_message_by_id(message_id=message.id, db_session=db_session)
+        await publish_faststream("delete_message", chat.users, event_data, chat.id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     message.is_deleted = True
-    db_session.add(message)
-    await db_session.commit()
-    await db_session.refresh(message)
-    return JSONResponse(
-        content={"detail": "Сообщение помещено в недавно удаленные"},
-        status_code=status.HTTP_202_ACCEPTED,
+    if deleted_message := await save_deleted_message_to_db(
+        db_session=db_session,
+        message=message,
+    ):
+        db_session.add_all([message, deleted_message])
+        await db_session.commit()
+        await db_session.refresh(message)
+        await publish_faststream("delete_message", chat.users, event_data, chat.id)
+        return JSONResponse(
+            content={"detail": "Сообщение помещено в недавно удаленные"},
+            status_code=status.HTTP_202_ACCEPTED,
+        )
+    raise HTTPException(
+        status_code=404,
+        detail="Error with saving deleted message. Please try again",
     )
 
 
