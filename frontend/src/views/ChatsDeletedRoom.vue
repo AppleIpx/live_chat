@@ -34,30 +34,6 @@
                   </a>
                 </li>
               </ul>
-              <div class="tooltip-actions">
-                <button class="tooltip-button"
-                        @click.prevent>Изменить название (заглушка)</button>
-                <div>
-                  <button class="tooltip-button" @click.prevent="openImageUploadModal">
-                    Изменить фото
-                  </button>
-                  <div v-if="isImageUploadModalOpen" class="modal-overlay">
-                    <div class="modal-content">
-                      <h2>Загрузить фото группы</h2>
-                      <div class="group-image-upload">
-                        <input type="file" @change="handleImageUpload"/>
-                        <div v-if="groupImagePreview" class="image-preview">
-                          <img :src="groupImagePreview" alt="Preview"/>
-                        </div>
-                      </div>
-                      <div class="modal-actions">
-                        <button @click="uploadGroupImage">Загрузить</button>
-                        <button @click="closeImageUploadModal">Отмена</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-            </div>
             </div>
             <span v-if="chatData.chat_type==='direct'">{{ chatName }}</span>
           </span>
@@ -86,8 +62,7 @@
           <div
               class="message"
               v-for="message in messages"
-              :key="message.id"
-              :class="{'mine': message.isMine, 'other': !message.isMine}">
+              :key="message.id">
             <div class="message-header">
               <strong>
                 <a v-if="message.user || message.user_id"
@@ -104,12 +79,9 @@
         </span>
             </div>
             <div class="message-content">{{ message.content }}</div>
-            <div v-if="message.isMine" class="message-options">
+            <div class="message-options">
               <button @click="toggleMenu(message.id)" class="menu-button">...</button>
               <div v-if="message.showMenu" class="menu-dropdown">
-                <button @click="openEditModal(message)" class="icon-button-update">
-                  <i class="fa fa-pencil"></i>
-                </button>
                 <button @click="openDeleteModal(message)" class="icon-button-delete">
                   <i class="fa fa-trash"></i>
                 </button>
@@ -120,51 +92,22 @@
         <div v-else>
           <p class="no-messages">Нет сообщений...</p>
         </div>
-      </div>
 
-      <!-- Message Input -->
-      <div class="chat-input-container">
-        <textarea
-            v-model="messageText"
-            @keydown.enter="sendMessage"
-            placeholder="Напишите сообщение..."
-            class="chat-input"
-            rows="3"
-        ></textarea>
-        <button @click="sendMessage" class="send-button">
-          <i class="fa fa-paper-plane"></i>
-        </button>
-      </div>
-      <!-- Delete Modal -->
+              <!-- Delete Modal -->
       <div v-if="isDeleteModalVisible" class="modal-overlay"
            @click.self="closeDeleteModal">
         <div class="modal">
-          <h3 class="modal-title">Удалить сообщение?</h3>
+          <h3 class="modal-title">Вы уверены, что хотите удалить сообщение безвозвратно?</h3>
           <div class="modal-actions">
-            <button @click="confirmDelete(false)" class="confirm-button">
-              Переместить в <i>"Недавно удалённые"</i>
+            <button @click="recoverMessage()" class="confirm-button">
+              Восстановить сообщение
             </button>
-            <button @click="confirmDelete(true)" class="cancel-button">
+            <button @click="confirmDelete()" class="cancel-button">
               Удалить навсегда
             </button>
           </div>
         </div>
       </div>
-      <!-- Edit Modal -->
-      <div v-if="isEditModalVisible" class="modal-overlay" @click.self="closeEditModal">
-        <div class="modal">
-          <h3 class="modal-title">Изменить сообщение</h3>
-          <textarea v-model="editMessageText" class="edit-textarea"
-                    placeholder="Введите новый текст"></textarea>
-          <div class="modal-actions">
-            <button @click="saveMessage" class="save-button">
-              <i class="fa fa-check"></i> Сохранить
-            </button>
-            <button @click="closeEditModal" class="cancel-button">
-              <i class="fa fa-times"></i> Отмена
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -172,8 +115,7 @@
 
 
 <script>
-import {chatService, messageService} from "@/services/apiService";
-import SSEManager from "@/services/sseService";
+import {messageService} from "@/services/apiService";
 
 
 export default {
@@ -206,28 +148,13 @@ export default {
       return this.showGroupTooltip;
     },
   },
-  watch: {
-    chatId: {
-      immediate: true,
-      handler(newChatId, oldChatId) {
-        if (oldChatId) {
-          SSEManager.disconnect(oldChatId);
-        }
-        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage);
-      },
-    },
-  },
   mounted() {
-    this.isChatOpen = true;
     this.chatId = this.$route.params.chat_id;
     this.fetchChatDetails(this.chatId).then(() => {
       this.loadMessages(true);
     }).catch(error => {
       console.error('Ошибка при загрузке чата:', error);
     });
-  },
-  beforeUnmount() {
-    SSEManager.disconnect(this.chatId);
   },
   methods: {
     onGroupMouseLeave() {
@@ -243,12 +170,45 @@ export default {
       this.showGroupTooltip = false;
     },
 
-    isChatOpenCallback() {
-      return this.isChatOpen;
+    goBack() {
+      this.$router.push('/chats/deleted');
     },
 
-    goBack() {
-      this.$router.push('/chats');
+    openDeleteModal(message) {
+      this.messageToDelete = message;
+      this.isDeleteModalVisible = true;
+      message.showMenu = false;
+    },
+
+    closeDeleteModal() {
+      this.isDeleteModalVisible = false;
+      this.messageToDelete = null;
+    },
+
+    async recoverMessage() {
+      if (!this.messageToDelete) return;
+
+      try {
+        await messageService.recoverMessage(this.chatId, this.messageToDelete.id);
+        this.messages = this.messages.filter(msg => msg.id !== this.messageToDelete.id);
+        this.closeDeleteModal();
+      } catch (error) {
+        console.error("Ошибка при восстановлении сообщения", error);
+        this.closeDeleteModal();
+      }
+    },
+
+    async confirmDelete() {
+      if (!this.messageToDelete) return;
+
+      try {
+        await messageService.deleteMessage(this.chatId, this.messageToDelete.id);
+        this.messages = this.messages.filter(msg => msg.id !== this.messageToDelete.id);
+        this.closeDeleteModal();
+      } catch (error) {
+        console.error("Ошибка при удалении сообщения", error);
+        this.closeDeleteModal();
+      }
     },
 
     scrollToBottom() {
@@ -289,75 +249,13 @@ export default {
       });
     },
 
-    openEditModal(message) {
-      this.editMessage = message;
-      this.editMessageText = message.content;
-      this.isEditModalVisible = true;
-      message.showMenu = false;
-    },
-
-    closeEditModal() {
-      this.isEditModalVisible = false;
-      this.editMessage = null;
-      this.editMessageText = "";
-    },
-
-    openDeleteModal(message) {
-      this.messageToDelete = message;
-      this.isDeleteModalVisible = true;
-      message.showMenu = false;
-    },
-
-    closeDeleteModal() {
-      this.isDeleteModalVisible = false;
-      this.messageToDelete = null;
-    },
-
-    async confirmDelete(deleteForever) {
-      if (!this.messageToDelete) return;
-
-      try {
-        await messageService.deleteMessage(this.chatId, this.messageToDelete.id, deleteForever);
-        this.messages = this.messages.filter(msg => msg.id !== this.messageToDelete.id);
-        this.closeDeleteModal();
-      } catch (error) {
-        console.error("Ошибка при удалении сообщения", error);
-        this.closeDeleteModal();
-      }
-    },
-
-    async saveMessage() {
-      const newText = this.editMessageText.trim();
-      if (!newText) return;
-      if (newText === this.editMessage.content.trim()) {
-        return;
-      }
-      try {
-        const updatedMessage = await messageService.updateMessage(
-            this.chatId,
-            this.editMessage.id,
-            {content: this.editMessageText}
-        );
-        this.messages = this.messages.map(msg =>
-            msg.id === updatedMessage.data.id ? {
-              ...msg,
-              content: updatedMessage.data.content,
-              updated_at: new Date(updatedMessage.data.updated_at).toLocaleString()
-            } : msg
-        );
-        this.closeEditModal();
-      } catch (error) {
-        console.error("Ошибка при обновлении сообщения", error);
-      }
-    },
-
     async loadMessages(isInitialLoad = false) {
       if (this.isLoading || (!this.hasMoreMessages && !isInitialLoad)) return;
 
       this.isLoading = true;
 
       try {
-        const response = await messageService.fetchMessages(this.chatId, {
+        const response = await messageService.fetchDeletedMessages(this.chatId, {
           cursor: isInitialLoad ? null : this.cursor,
           size: 30,
         });
@@ -370,7 +268,6 @@ export default {
               created_at: new Date(message.created_at).toLocaleString(),
               updated_at: new Date(message.updated_at).toLocaleString(),
               showMenu: false,
-              isMine: message.user_id === this.user.id,
             }));
 
         if (isInitialLoad) {
@@ -405,103 +302,6 @@ export default {
       const container = this.$refs.messagesList;
       if (container.scrollTop < 100 && this.hasMoreMessages) {
         await this.loadMessages();
-      }
-    },
-
-    handleNewMessage(newMessage, action) {
-      const existingMessageIndex = this.messages.findIndex(message => message.id === newMessage.id);
-      if (action === "new") {
-        const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
-        const message = {
-          id: newMessage.id,
-          user: message_user || {},
-          content: newMessage.content,
-          created_at: new Date(newMessage.created_at).toLocaleString(),
-          updated_at: new Date(newMessage.updated_at).toLocaleString(),
-          isMine: newMessage.user_id === this.user.id,
-        };
-        this.messages.push(message);
-        this.scrollToBottom();
-      }
-      if (action === "update") {
-        const message = this.messages[existingMessageIndex];
-        message.content = newMessage.content;
-        message.updated_at = new Date(newMessage.updated_at).toLocaleString();
-      }
-      if (action === "delete") {
-        this.messages = this.messages.filter(msg => msg.id !== newMessage.id);
-      }
-    },
-
-    openImageUploadModal() {
-      this.isImageUploadModalOpen = true;
-    },
-
-    closeImageUploadModal() {
-      this.isImageUploadModalOpen = false;
-      this.resetImageUploadState();
-      location.reload();
-    },
-
-    handleImageUpload(event) {
-      const file = event.target.files[0];
-      if (file) {
-        this.groupImage = file;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          this.groupImagePreview = e.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
-    },
-
-    async uploadGroupImage() {
-      if (!this.groupImage) {
-        alert("Пожалуйста, выберите изображение для загрузки.");
-        return;
-      }
-
-      try {
-        const formData = new FormData();
-        formData.append("uploaded_image", this.groupImage);
-        await chatService.updateGroupImage(this.chatData.id, formData);
-        alert("Изображение успешно обновлено!");
-        this.closeImageUploadModal();
-      } catch (error) {
-        console.error("Ошибка при загрузке изображения:", error);
-        alert("Не удалось загрузить изображение группы. Пожалуйста, попробуйте позже.");
-      }
-    },
-
-    resetImageUploadState() {
-      this.groupImage = null;
-      this.groupImagePreview = null;
-    },
-
-    // Send message
-    async sendMessage() {
-      if (this.messageText.trim() === "") return;
-      try {
-        const messageData = {
-          content: this.messageText,
-        }
-        await messageService.sendMessage(this.chatId, messageData)
-        const lastMessageResponse = await messageService.fetchLastMessage(this.chatId)
-        this.messages.push({
-          id: lastMessageResponse.data.id,
-          user: {
-            id: this.user.id,
-            username: this.user.username,
-          },
-          content: this.messageText,
-          created_at: new Date(lastMessageResponse.data.created_at).toLocaleString(),
-          updated_at: new Date(lastMessageResponse.data.updated_at).toLocaleString(),
-          isMine: true,
-        });
-        this.messageText = "";
-        this.scrollToBottom();
-      } catch (error) {
-        console.error("Error sending message:", error);
       }
     },
   },
@@ -576,13 +376,14 @@ export default {
 }
 
 .message {
-  background-color: #e1f5fe;
   margin: 12px 0;
   padding: 10px 15px;
   border-radius: 10px;
   font-size: 14px;
   color: #333;
   position: relative;
+  align-self: flex-end;
+  background-color: #e1e1e1;
 }
 
 .message-header {
@@ -607,16 +408,6 @@ export default {
 .message-content {
   margin-top: 8px;
   font-size: 14px;
-}
-
-.message.mine {
-  align-self: flex-end;
-  background-color: #e1e1e1;
-}
-
-.message.other {
-  align-self: flex-start;
-  background-color: #e1f5fe;
 }
 
 .message-options {
@@ -653,19 +444,6 @@ export default {
   gap: 5px;
 }
 
-.icon-button-update {
-  background: none;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 5px;
-  color: #333;
-}
-
-.icon-button-update:hover {
-  color: #007bff;
-}
-
 .icon-button-delete {
   background: none;
   border: none;
@@ -677,35 +455,6 @@ export default {
 
 .icon-button-delete:hover {
   color: #da0707;
-}
-
-.chat-input-container {
-  display: flex;
-  align-items: center;
-  padding: 10px;
-  background: #f9f9f9;
-}
-
-.chat-input {
-  flex-grow: 1;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 10px;
-  resize: none;
-}
-
-.send-button {
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 10px;
-  margin-left: 10px;
-  cursor: pointer;
-}
-
-.send-button i {
-  font-size: 16px;
 }
 
 .menu-button {
@@ -755,25 +504,6 @@ export default {
   text-align: center;
 }
 
-.edit-textarea {
-  width: 80%;
-  height: 90%;
-  margin: 15px 30px;
-  padding: 10px;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.4;
-  resize: none;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.edit-textarea:focus {
-  border-color: #007bff;
-  outline: none;
-  box-shadow: 0 0 4px rgba(0, 123, 255, 0.25);
-}
-
 .modal-actions {
   display: flex;
   justify-content: space-between;
@@ -781,7 +511,6 @@ export default {
   margin-top: 20px;
 }
 
-.save-button,
 .cancel-button {
   padding: 10px 20px;
   font-size: 14px;
@@ -793,15 +522,6 @@ export default {
   align-items: center;
   justify-content: center;
   gap: 8px;
-}
-
-.save-button {
-  background-color: #28a745;
-  color: white;
-}
-
-.save-button:hover {
-  background-color: #218838;
 }
 
 .cancel-button {
@@ -817,40 +537,6 @@ export default {
   color: #0078d4;
   font-size: 18px;
   text-align: center;
-}
-
-.chat-input-container {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-
-.chat-input {
-  width: 85%;
-  padding: 12px 18px;
-  font-size: 16px;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  background-color: #f4f6f9;
-  font-family: Arial, sans-serif;
-  resize: vertical;
-  overflow: hidden;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.send-button {
-  width: 10%;
-  padding: 8px;
-  font-size: 20px;
-  background-color: transparent;
-  color: #0078d4;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .group-name {
@@ -894,27 +580,6 @@ export default {
   color: #555;
 }
 
-.tooltip-actions {
-  margin-top: 15px;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-}
-
-.tooltip-button {
-  background: #55ace1;
-  color: #fff;
-  border: none;
-  padding: 8px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.tooltip-button:hover {
-  background: #005bb5;
-}
-
 .tooltip-user {
   display: flex;
   align-items: center;
@@ -928,15 +593,6 @@ export default {
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid #ddd;
-}
-
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  max-width: 400px;
-  width: 100%;
-  text-align: center;
 }
 
 .image-preview img {
@@ -966,20 +622,6 @@ export default {
 
   .message {
     font-size: 14px;
-  }
-
-  .chat-input-container {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .chat-input {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .send-button {
-    width: 100%;
   }
 }
 

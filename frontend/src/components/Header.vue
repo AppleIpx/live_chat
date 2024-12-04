@@ -8,6 +8,7 @@
     </router-link>
     <nav class="nav-links">
       <router-link to="/chats" class="nav-item">Чаты</router-link>
+      <router-link to="/chats/deleted" class="nav-item">Удалённые сообщения</router-link>
       <router-link to="/users" class="nav-item">Пользователи</router-link>
       <router-link to="/profile/me" class="nav-item">Мой профиль</router-link>
       <button @click="handleAuth" class="btn-auth">

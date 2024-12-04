@@ -54,6 +54,8 @@ async def save_deleted_message_to_db(
         content=message.content,
         chat_id=message.chat_id,
         user_id=message.user_id,
+        original_message_id=message.id,
+        is_deleted=True,
     )
 
     db_session.add(deleted_message)

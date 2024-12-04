@@ -43,6 +43,19 @@ export const chatService = {
             throw error;
         }
     },
+    async fetchDeletedChats(pageCursor) {
+        try {
+            if (!pageCursor) {
+                return await apiClient.get(`/api/chats/deleted?size=3`)
+            }
+            return await apiClient.get(`/api/chats/deleted?size=3&cursor=${pageCursor}`)
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
     async createChat(recipientData) {
         try {
             return await apiClient.post('/api/chats/create/direct', recipientData)
@@ -106,6 +119,19 @@ export const messageService = {
             throw error;
         }
     },
+    async fetchDeletedMessages(chatId, {cursor, size}) {
+        try {
+            const params = new URLSearchParams();
+            if (cursor) params.append("cursor", cursor);
+            if (size) params.append("size", size);
+            return await apiClient.get(`/api/chats/${chatId}/deleted-messages?${params.toString()}`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
     async sendMessage(chatId, messageData) {
         try {
             return await apiClient.post(`/api/chats/${chatId}/messages`, messageData);
@@ -128,7 +154,20 @@ export const messageService = {
     },
     async deleteMessage(chatId, messageId, deleteForever) {
         try {
-            return await apiClient.delete(`/api/chats/${chatId}/messages/${messageId}?is_forever=${deleteForever}`,);
+            if (deleteForever) {
+                return await apiClient.delete(`/api/chats/${chatId}/messages/${messageId}?is_forever=${deleteForever}`);
+            }
+            return await apiClient.delete(`/api/chats/${chatId}/messages/${messageId}`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+    async recoverMessage(chatId, messageId) {
+        try {
+            return await apiClient.post(`/api/chats/${chatId}/messages/${messageId}/recover`);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
                 this.$router.push("/");
