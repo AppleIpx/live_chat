@@ -149,7 +149,7 @@ async def recover_deleted_message(
     deleted_message: DeletedMessage = Depends(validate_user_access_to_message),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> JSONResponse:
-    """Update message."""
+    """Recover deleted message."""
     if not isinstance(deleted_message, DeletedMessage):
         raise HTTPException(status_code=404, detail="Instance is not deleted message")
     await restore_message(db_session, deleted_message)
