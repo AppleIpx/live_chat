@@ -65,6 +65,7 @@ class DeletedMessage(BaseMessage):
 
     __tablename__ = "deleted_message"
 
+    original_message_id = mapped_column(GUID)
     chat: Mapped["Chat"] = relationship(
         back_populates="deleted_messages",
         overlaps="messages",

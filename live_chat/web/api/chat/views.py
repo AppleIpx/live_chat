@@ -5,11 +5,15 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi_pagination import set_page
 from fastapi_pagination.cursor import CursorPage, CursorParams
 from fastapi_pagination.ext.sqlalchemy import paginate
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import (  # type: ignore[attr-defined]
+    Chat,
+    DeletedMessage,
+    User,
+)
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.schemas import (
     ChatSchema,
@@ -139,10 +143,16 @@ async def get_list_deleted_chats_view(
 ) -> CursorPage[ChatSchema]:
     """Getting deleted chats to which a user has been added."""
     set_page(CursorPage[ChatSchema])
+    subquery = (
+        select(func.max(DeletedMessage.created_at).label("last_deleted_at"))
+        .where(DeletedMessage.chat_id == Chat.id)
+        .correlate(Chat)
+        .scalar_subquery()
+    )
     query = (
         select(Chat)
         .where(Chat.deleted_messages.any(user_id=current_user.id))
-        .order_by(Chat.updated_at.desc())
+        .order_by(subquery.desc())
     )
     return await paginate(db_session, query, params=params)
 

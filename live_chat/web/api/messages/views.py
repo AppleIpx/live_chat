@@ -44,6 +44,7 @@ from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
 from live_chat.web.api.messages.utils.get_correct_last_message import (
     get_correct_last_message,
 )
+from live_chat.web.api.messages.utils.recover_message import restore_message
 from live_chat.web.api.messages.utils.save_message import save_deleted_message_to_db
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils import current_active_user, get_user_manager
@@ -142,6 +143,22 @@ async def update_message(
     return message_data
 
 
+@message_router.post("/chats/{chat_id}/messages/{message_id}/recover")
+async def recover_deleted_message(
+    chat: Chat = Depends(validate_user_access_to_chat),
+    deleted_message: DeletedMessage = Depends(validate_user_access_to_message),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> JSONResponse:
+    """Update message."""
+    if not isinstance(deleted_message, DeletedMessage):
+        raise HTTPException(status_code=404, detail="Instance is not deleted message")
+    await restore_message(db_session, deleted_message)
+    return JSONResponse(
+        content={"detail": "Сообщение восстановлено"},
+        status_code=status.HTTP_200_OK,
+    )
+
+
 @message_router.delete(
     "/chats/{chat_id}/messages/{message_id}",
     response_model=None,
@@ -149,7 +166,7 @@ async def update_message(
 async def delete_message(
     is_forever: bool = False,
     chat: Chat = Depends(validate_user_access_to_chat),
-    message: Message = Depends(validate_user_access_to_message),
+    message: Message | DeletedMessage = Depends(validate_user_access_to_message),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> JSONResponse | Response:
     """Delete message.
@@ -161,7 +178,7 @@ async def delete_message(
     """
     event_data = jsonable_encoder({"id": f"{message.id!s}"})
     if message.is_deleted or is_forever:
-        await delete_message_by_id(message_id=message.id, db_session=db_session)
+        await delete_message_by_id(message=message, db_session=db_session)
         await publish_faststream("delete_message", chat.users, event_data, chat.id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     message.is_deleted = True
