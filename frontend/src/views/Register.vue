@@ -4,12 +4,14 @@
       <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
       <h2>Регистрация</h2>
       <form @submit.prevent="registerUser" class="form">
-        <input v-model="username" placeholder="Имя пользователя" class="input-field" />
-        <input v-model="email" type="email" placeholder="Email" class="input-field" />
-        <input v-model="first_name" placeholder="Имя" class="input-field" />
-        <input v-model="last_name" placeholder="Фамилия" class="input-field" />
-        <input v-model="password" type="password" placeholder="Пароль" class="input-field" />
-        <input v-model="confirmPassword" type="password" placeholder="Повторите пароль" class="input-field" />
+        <input v-model="username" placeholder="Имя пользователя" class="input-field"/>
+        <input v-model="email" type="email" placeholder="Email" class="input-field"/>
+        <input v-model="first_name" placeholder="Имя" class="input-field"/>
+        <input v-model="last_name" placeholder="Фамилия" class="input-field"/>
+        <input v-model="password" type="password" placeholder="Пароль"
+               class="input-field"/>
+        <input v-model="confirmPassword" type="password" placeholder="Повторите пароль"
+               class="input-field"/>
         <button type="submit" class="btn-main">Зарегистрироваться</button>
       </form>
     </div>
@@ -76,10 +78,19 @@ export default {
         if (error.response) {
           if (error.response.status === 400) {
             if (error.response.data.detail) {
-              const errorDetail = error.response.data.detail;
-              if (errorDetail.code === 'REGISTER_INVALID_PASSWORD') {
-                this.errorMessage = 'Пароль должен содержать минимум 3 символа';
-              } else if (errorDetail === 'REGISTER_USER_ALREADY_EXISTS') {
+              const reasonTranslations = {
+                "Password must be at least 8 characters long.": "Пароль должен содержать минимум 8 символов.",
+                "Password must include at least one digit.": "Пароль должен содержать хотя бы одну цифру.",
+                "Password must include at least one letter.": "Пароль должен содержать хотя бы одну букву.",
+                "Password must include at least one special character.": "Пароль должен содержать хотя бы один специальный символ.",
+                "Password should not be similar to email.": "Пароль не должен совпадать с адресом электронной почты.",
+                "Password should not be similar to username.": "Пароль не должен совпадать с именем пользователя."
+              };
+              const {code, reason} = error.response.data.detail;
+              if (code === "REGISTER_INVALID_PASSWORD") {
+                this.errorMessage = reasonTranslations[reason] || "Ошибка в пароле. Попробуйте ещё раз.";
+              }
+              if (code === 'REGISTER_USER_ALREADY_EXISTS') {
                 this.errorMessage = 'Пользователь с таким email уже существует';
               } else {
                 this.errorMessage = 'Ошибка регистрации, попробуйте снова';

@@ -32,7 +32,12 @@
                     alt="Аватар"
                     class="avatar-image"
                 />
-                <div v-else class="avatar-placeholder"></div>
+                <img
+                    v-else
+                    src="/default_avatar.png"
+                    alt="Аватар по умолчанию"
+                    class="avatar-image"
+                />
               </div>
             </div>
             <h3>

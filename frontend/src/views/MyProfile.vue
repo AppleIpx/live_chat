@@ -20,7 +20,12 @@
                   alt="Аватар"
                   class="avatar-image"
               />
-              <div v-else class="avatar-placeholder"></div>
+              <img
+                  v-else
+                  src="/default_avatar.png"
+                  alt="Аватар по умолчанию"
+                  class="avatar-image"
+              />
               <label v-show="hoverAvatar" for="avatar-input" class="edit-icon">
                 <i class="fas fa-pen"></i>
               </label>
@@ -95,8 +100,6 @@ export default {
         localStorage.setItem('user', JSON.stringify(this.user));
       } catch (error) {
         console.error('Ошибка загрузки профиля:', error);
-        alert('Не удалось загрузить данные профиля. Попробуйте снова.');
-        this.$router.push('/');
       }
     },
 
@@ -131,7 +134,6 @@ export default {
         await this.fetchUserProfile();
       } catch (error) {
         console.error('Ошибка сохранения профиля:', error);
-        alert('Не удалось обновить профиль');
       }
     },
 
