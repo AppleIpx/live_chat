@@ -1,15 +1,17 @@
-from typing import Any
+from typing import Any, List
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from live_chat.db.models.chat import User
 from tests.factories import (
     ChatFactory,
     DeletedMessageFactory,
     MessageFactory,
     UserFactory,
 )
+from tests.utils import get_first_user_from_db
 
 
 @pytest.fixture
@@ -42,6 +44,25 @@ async def deleted_message(
         chat_id=chat.id,
         user_id=user.id,
     )
+
+
+@pytest.fixture
+async def some_deleted_messages(
+    dbsession: AsyncSession,
+    some_chats_with_users: List[ChatFactory],
+) -> List[DeletedMessageFactory]:
+    """Fixture for creating a list deleted messages."""
+    user: User | None = await get_first_user_from_db(dbsession)
+    DeletedMessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    return [
+        DeletedMessageFactory(
+            user=user,
+            chat=chat,
+            user_id=user.id,
+            chat_id=chat.id,
+        )
+        for chat in some_chats_with_users
+    ]
 
 
 @pytest.fixture

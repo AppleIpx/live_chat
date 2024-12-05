@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import Chat, Message, User
+from live_chat.db.models.chat import Chat, DeletedMessage, Message, User
 from tests.factories import MessageFactory
 
 payload = {
@@ -40,6 +40,13 @@ async def get_first_user_from_db(
 ) -> User | None:
     """Helper function that returns the user who submitted the request."""
     query = select(User)
+    result = await db_session.execute(query)
+    return result.scalars().first()
+
+
+async def get_first_deleted_message(db_session: AsyncSession) -> DeletedMessage | None:
+    """Helper function that returns the deleted message."""
+    query = select(DeletedMessage)
     result = await db_session.execute(query)
     return result.scalars().first()
 

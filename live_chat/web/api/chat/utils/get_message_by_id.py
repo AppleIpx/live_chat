@@ -29,3 +29,16 @@ async def get_deleted_message_by_id(
     query = select(DeletedMessage).where(DeletedMessage.id == deleted_message_id)
     result = await db_session.execute(query)
     return result.scalar_one_or_none()
+
+
+async def get_deleted_by_orig_message_id(
+    db_session: AsyncSession,
+    *,
+    orig_message_id: UUID,
+) -> DeletedMessage | None:
+    """Function to get a deleted message by original_message_id from db."""
+    query = select(DeletedMessage).where(
+        DeletedMessage.original_message_id == orig_message_id,
+    )
+    result = await db_session.execute(query)
+    return result.scalar_one_or_none()

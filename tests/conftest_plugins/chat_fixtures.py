@@ -6,7 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import User
 from live_chat.db.models.enums import ChatType
-from tests.factories import ChatFactory, MessageFactory, UserFactory
+from tests.factories import (
+    ChatFactory,
+    DeletedMessageFactory,
+    MessageFactory,
+    UserFactory,
+)
 from tests.utils import get_first_user_from_db
 
 
@@ -78,6 +83,24 @@ async def message_in_chat(
         chat=any_chat_with_users,
         chat_id=any_chat_with_users.id,
         is_deleted=False,
+    )
+
+
+@pytest.fixture
+async def deleted_message_in_chat(
+    dbsession: AsyncSession,
+    message_in_chat: MessageFactory,
+) -> DeletedMessageFactory:
+    """Fixture for creating a chat with deleted message."""
+    message_in_chat.is_deleted = True
+    user = message_in_chat.chat.users[0]
+    DeletedMessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    return DeletedMessageFactory(
+        original_message_id=message_in_chat.id,
+        user=user,
+        user_id=user.id,
+        chat=message_in_chat.chat,
+        chat_id=message_in_chat.chat.id,
     )
 
 
