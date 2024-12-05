@@ -136,10 +136,15 @@
             class="chat-input"
             rows="3"
         ></textarea>
+        <button @click="togglePicker" class="emoji-button">
+          <i class="fa-regular fa-face-smile"></i>
+        </button>
+        <EmojiPicker v-if="showPicker" @select="addEmoji" class="emoji-picker"/>
         <button @click="sendMessage" class="send-button">
           <i class="fa fa-paper-plane"></i>
         </button>
       </div>
+
       <!-- Delete Modal -->
       <div v-if="isDeleteModalVisible" class="modal-overlay"
            @click.self="closeDeleteModal">
@@ -159,8 +164,21 @@
       <div v-if="isEditModalVisible" class="modal-overlay" @click.self="closeEditModal">
         <div class="modal">
           <h3 class="modal-title">Изменить сообщение</h3>
-          <textarea v-model="editMessageText" class="edit-textarea"
-                    placeholder="Введите новый текст"></textarea>
+          <div class="edit-container">
+                <textarea
+                    v-model="editMessageText"
+                    class="edit-textarea"
+                    placeholder="Введите новый текст"
+                ></textarea>
+            <button @click="toggleSmallPicker" class="emoji-button">
+              <i class="fas fa-smile"></i>
+            </button>
+            <emoji-picker
+                v-if="showSmallPicker"
+                @select="addSmallEmoji"
+                class="emoji-picker-small"
+            />
+          </div>
           <div class="modal-actions">
             <button @click="saveMessage" class="save-button">
               <i class="fa fa-check"></i> Сохранить
@@ -179,13 +197,18 @@
 <script>
 import {chatService, messageService} from "@/services/apiService";
 import SSEManager from "@/services/sseService";
+import EmojiPicker from "vue3-emoji-picker";
+import 'vue3-emoji-picker/css'
 
 
 export default {
+  components: {EmojiPicker},
   data() {
     return {
       messages: [],
       messageText: "",
+      showPicker: false,
+      showSmallPicker: false,
       user: null,
       chatId: null,
       chatData: null,
@@ -235,6 +258,22 @@ export default {
     SSEManager.disconnect(this.chatId);
   },
   methods: {
+    togglePicker() {
+      this.showPicker = !this.showPicker;
+    },
+
+    toggleSmallPicker() {
+      this.showSmallPicker = !this.showSmallPicker;
+    },
+
+    addEmoji(emoji) {
+      this.messageText += emoji.i;
+    },
+
+    addSmallEmoji(emoji) {
+      this.editMessageText += emoji.i;
+    },
+
     onGroupMouseLeave() {
       setTimeout(() => {
         if (!this.isMouseOverTooltip) {
@@ -699,6 +738,22 @@ export default {
   resize: none;
 }
 
+.emoji-button {
+  background: #f9f9f9;
+  color: #007bff;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  margin-left: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.emoji-button:active {
+  color: #004fa6;
+}
+
 .send-button {
   background: #007bff;
   color: white;
@@ -711,6 +766,24 @@ export default {
 
 .send-button i {
   font-size: 16px;
+}
+
+.send-button:active {
+  color: #004fa6;
+}
+
+.emoji-picker {
+  position: absolute;
+  bottom: 55px;
+  left: 55%;
+  transform: translateX(-55%);
+  background-color: white;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 10;
 }
 
 .menu-button {
@@ -727,6 +800,24 @@ export default {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 10;
   padding: 10px;
+}
+
+.emoji-picker-small {
+  position: absolute;
+  left: 52%;
+  transform: translateX(-55%);
+  background-color: white;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.edit-container {
+  display: flex;
+  align-items: center;
 }
 
 .modal-overlay {

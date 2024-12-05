@@ -7,7 +7,7 @@ COPY package*.json ./
 
 RUN npm install
 RUN npm install axios vue-router vuex
-
+RUN npm install npm install vue3-emoji-picker
 
 COPY . .
 
