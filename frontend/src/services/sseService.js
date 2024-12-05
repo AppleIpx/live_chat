@@ -4,7 +4,7 @@ import {userService} from "@/services/apiService";
 const SSEManager = {
     connections: {},
 
-    async connect(chatId, isChatOpenCallback, messageCallback) {
+    async connect(chatId, isChatOpenCallback, messageCallback, typingCallback) {
         const token = localStorage.getItem("accessToken");
         if (!token) {
             console.error("Token not found");
@@ -50,6 +50,13 @@ const SSEManager = {
             const message = JSON.parse(event.data);
             if (message.user_id !== user.data.id && isChatOpenCallback) {
                 messageCallback(message, "update");
+            }
+        });
+
+        eventSource.addEventListener("user_typing", async (event) => {
+            const typing_status = JSON.parse(event.data);
+            if (typing_status.user_id !== user.data.id && isChatOpenCallback) {
+                typingCallback(typing_status)
             }
         });
 
