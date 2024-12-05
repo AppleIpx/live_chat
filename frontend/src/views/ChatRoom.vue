@@ -30,6 +30,8 @@
                      :href="user.username === this.user.username ? '/profile/me' : '/profile/' + user.id">
                     <img v-if="user.user_image" :src="user.user_image"
                          alt="User Avatar" class="user-avatar">
+                    <img v-else src="/default_avatar.png" alt="Default Avatar"
+                         class="user-avatar">
                     {{ user.first_name }} {{ user.last_name }}
                   </a>
                 </li>
@@ -65,12 +67,15 @@
 
         <div class="chat-photo">
           <template
-              v-if="chatData && chatData.chat_type === 'group' && chatData.image">
-            <img :src="chatData.image" alt="Group image"/>
+              v-if="chatData && chatData.chat_type === 'group'">
+            <img v-if="chatData.image" :src="chatData.image" alt="Group image"/>
+            <img v-else src="/default_group_image.png" alt="Group default image"/>
           </template>
-          <template v-else-if="chatData && otherUser && otherUser.user_image">
+          <template v-else-if="chatData && otherUser">
             <a :href="`/profile/${otherUser.id}`">
-              <img :src="otherUser.user_image" alt="Profile"/>
+              <img v-if="otherUser.user_image" :src="otherUser.user_image"
+                   alt="Profile"/>
+              <img v-else src="/default_avatar.png" alt="Default profile"/>
             </a>
           </template>
         </div>

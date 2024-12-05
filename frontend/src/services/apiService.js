@@ -1,4 +1,6 @@
 import axios from "axios";
+import router from "@/router";
+
 
 const apiClient = axios.create({
     baseURL: process.env.VUE_APP_BACKEND_URL,
@@ -25,7 +27,7 @@ export const chatService = {
             return await apiClient.get(`/api/chats/${chatId}`);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -38,7 +40,7 @@ export const chatService = {
             return await apiClient.get(`/api/chats?size=3&cursor=${pageCursor}`)
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -51,7 +53,7 @@ export const chatService = {
             return await apiClient.get(`/api/chats/deleted?size=3&cursor=${pageCursor}`)
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -61,7 +63,7 @@ export const chatService = {
             return await apiClient.post('/api/chats/create/direct', recipientData)
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -71,7 +73,7 @@ export const chatService = {
             return await apiClient.post('/api/chats/create/group', groupData)
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -88,7 +90,7 @@ export const chatService = {
             );
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -114,7 +116,7 @@ export const messageService = {
             return await apiClient.get(`/api/chats/${chatId}/messages?${params.toString()}`);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -127,7 +129,7 @@ export const messageService = {
             return await apiClient.get(`/api/chats/${chatId}/deleted-messages?${params.toString()}`);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -137,7 +139,7 @@ export const messageService = {
             return await apiClient.post(`/api/chats/${chatId}/messages`, messageData);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -147,7 +149,7 @@ export const messageService = {
             return apiClient.patch(`/api/chats/${chatId}/messages/${messageId}`, messageData);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -160,7 +162,7 @@ export const messageService = {
             return await apiClient.delete(`/api/chats/${chatId}/messages/${messageId}`);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -170,7 +172,7 @@ export const messageService = {
             return await apiClient.post(`/api/chats/${chatId}/messages/${messageId}/recover`);
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -184,7 +186,7 @@ export const userService = {
 
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -197,7 +199,7 @@ export const userService = {
             return await apiClient.get(`/api/users?size=${size}&cursor=${pageCursor}`)
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }
@@ -207,7 +209,7 @@ export const userService = {
             return await apiClient.get('/api/users/me')
         } catch (error) {
             if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
+                await router.push("/");
             }
             throw error;
         }

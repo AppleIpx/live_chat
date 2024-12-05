@@ -65,6 +65,9 @@
                 <div v-if="user.user_image" class="avatar">
                   <img :src="user.user_image" alt="Avatar"/>
                 </div>
+                <div v-else class="avatar">
+                  <img src="/default_avatar.png" alt="Аватар по умолчанию"/>
+                </div>
                 <span class="username">{{ user.username }}</span>
               </div>
               <span class="selection-status">
@@ -224,18 +227,23 @@ export default {
     },
 
     getChatPhoto(chat) {
+      const defaultUserImage = '/default_avatar.png';
+      const defaultGroupImage = '/default_group_image.png';
       if (chat.chat_type === 'direct') {
         const instanceUser = JSON.parse(localStorage.getItem("user"));
         if (!instanceUser) {
           this.$router.push('/login');
           alert("Пожалуйста, перезайдите в аккаунт");
-          return;
+          return defaultUserImage;
         }
-        const user = chat.users.find(user => user.username !== instanceUser.email.split("@")[0] && user.username !== instanceUser.username);
-        return user ? user.user_image : '';
+        const user = chat.users.find(user =>
+            user.username !== instanceUser.email.split("@")[0] &&
+            user.username !== instanceUser.username
+        );
+        return user?.user_image || defaultUserImage;
       }
       if (chat.chat_type === 'group') {
-        return chat.image
+        return chat.image || defaultGroupImage;
       }
     },
 
