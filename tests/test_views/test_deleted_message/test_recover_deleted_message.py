@@ -22,47 +22,17 @@ async def test_recover_deleted_message(
     response = await authorized_client.post(
         f"/api/chats/{chat.id}/messages/{deleted_message_in_chat.id}/recover",
     )
-    assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"detail": "Сообщение восстановлено"}
-
-
-@pytest.mark.anyio
-async def test_entry_deleted_message(
-    authorized_client: AsyncClient,
-    deleted_message_in_chat: DeletedMessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
-    dbsession: AsyncSession,
-) -> None:
-    """Testing deleting an entry in DeleteMesage when restoring a message."""
-    chat = deleted_message_in_chat.chat
-    response = await authorized_client.post(
-        f"/api/chats/{chat.id}/messages/{deleted_message_in_chat.id}/recover",
-    )
     deleted_mesage_db = await get_deleted_message_by_id(
         db_session=dbsession,
         deleted_message_id=deleted_message_in_chat.id,
-    )
-    assert response.status_code == status.HTTP_200_OK
-    assert deleted_mesage_db is None
-
-
-@pytest.mark.anyio
-async def test_change_status_in_orig_message(
-    authorized_client: AsyncClient,
-    deleted_message_in_chat: DeletedMessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
-    dbsession: AsyncSession,
-) -> None:
-    """Testing change_status_in_original_message on recover_deleted_message."""
-    chat = deleted_message_in_chat.chat
-    response = await authorized_client.post(
-        f"/api/chats/{chat.id}/messages/{deleted_message_in_chat.id}/recover",
     )
     orig_message = await get_message_by_id(
         db_session=dbsession,
         message_id=deleted_message_in_chat.original_message_id,
     )
     assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {"detail": "Сообщение восстановлено"}
+    assert deleted_mesage_db is None
     assert orig_message is not None
     assert orig_message.is_deleted is False
 

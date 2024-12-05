@@ -80,29 +80,12 @@ async def test_delete_orig_message(
         db_session=dbsession,
         message_id=message_in_chat.id,
     )
-    assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert message_db is None
-
-
-@pytest.mark.anyio
-async def test_delete_deleted_message(
-    authorized_client: AsyncClient,
-    message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
-    mocked_publish_message: AsyncMock,
-    dbsession: AsyncSession,
-) -> None:
-    """Testing deleting an entry in deleteMessage."""
-    message_in_chat.is_deleted = True
-    chat = message_in_chat.chat
-    response = await authorized_client.delete(
-        f"/api/chats/{chat.id}/messages/{message_in_chat.id}",
-    )
     deleted_message_db = await get_deleted_by_orig_message_id(
         db_session=dbsession,
         orig_message_id=message_in_chat.id,
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert message_db is None
     assert deleted_message_db is None
 
 
