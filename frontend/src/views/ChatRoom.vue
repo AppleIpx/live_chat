@@ -105,7 +105,7 @@
                 <span v-else>Загрузка...</span>
               </strong>
               <span class="timestamp">
-          {{ message.updated_at }}
+          {{ message.created_at }}
           <i v-if="message.created_at !== message.updated_at"
              class="fa fa-pencil edited-indicator"
              title="Сообщение было изменено"></i>
@@ -474,7 +474,7 @@ export default {
 
     handleNewMessage(newMessage, action) {
       const existingMessageIndex = this.messages.findIndex(message => message.id === newMessage.id);
-      if (action === "new") {
+      if (action === "new" || action === "recover") {
         const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
         const message = {
           id: newMessage.id,
@@ -484,7 +484,10 @@ export default {
           updated_at: new Date(newMessage.updated_at).toLocaleString(),
           isMine: newMessage.user_id === this.user.id,
         };
-        this.messages.push(message);
+        const index = this.messages.findIndex(
+            (msg) => new Date(msg.created_at) > new Date(message.created_at)
+        );
+        this.messages.splice(index === -1 ? this.messages.length : index, 0, message);
         this.scrollToBottom();
       }
       if (action === "update") {

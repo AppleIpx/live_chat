@@ -1,5 +1,7 @@
+import json
 import uuid
 from typing import AsyncGenerator
+from unittest.mock import AsyncMock
 
 import pytest
 from httpx import AsyncClient
@@ -7,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.web.api.chat.utils import get_deleted_message_by_id, get_message_by_id
+from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
 from tests.factories import DeletedMessageFactory, MessageFactory, UserFactory
+from tests.utils import transformation_message_data
 
 
 @pytest.mark.anyio
@@ -16,6 +20,7 @@ async def test_recover_deleted_message(
     deleted_message_in_chat: DeletedMessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    mocked_publish_message: AsyncMock,
 ) -> None:
     """Testing recover_deleted_message."""
     chat = deleted_message_in_chat.chat
@@ -30,6 +35,13 @@ async def test_recover_deleted_message(
         db_session=dbsession,
         message_id=deleted_message_in_chat.original_message_id,
     )
+    target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{chat.users[1].id!s}"
+    message_data = await transformation_message_data(orig_message)
+
+    mocked_publish_message.assert_called_with(
+        json.dumps({"event": "recover_message", "data": message_data}),
+        channel=target_channel,
+    )
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"detail": "Сообщение восстановлено"}
     assert deleted_mesage_db is None
@@ -43,6 +55,7 @@ async def test_invalid_deleted_message(
     message_in_chat: MessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    mocked_publish_message: AsyncMock,
 ) -> None:
     """
     Testing the error.
@@ -54,6 +67,8 @@ async def test_invalid_deleted_message(
     response = await authorized_client.post(
         f"/api/chats/{chat.id}/messages/{message_in_chat.id}/recover",
     )
+
+    mocked_publish_message.assert_not_called()
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Instance is not deleted message"}
 
@@ -64,11 +79,14 @@ async def test_recover_message_with_failed_chat(
     deleted_message_in_chat: DeletedMessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    mocked_publish_message: AsyncMock,
 ) -> None:
     """Testing recovery of a message indicating the wrong chat."""
     response = await authorized_client.post(
         f"/api/chats/{uuid.uuid4()}/messages/{deleted_message_in_chat.id}/recover",
     )
+
+    mocked_publish_message.assert_not_called()
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Chat not found"}
 
@@ -79,11 +97,14 @@ async def test_recover_message_with_failed_message(
     deleted_message_in_chat: DeletedMessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    mocked_publish_message: AsyncMock,
 ) -> None:
     """Testing recovery of a message indicating the wrong message."""
     response = await authorized_client.post(
         f"/api/chats/{deleted_message_in_chat.chat.id}/messages/{uuid.uuid4()}/recover",
     )
+
+    mocked_publish_message.assert_not_called()
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Message not found"}
 
@@ -94,6 +115,7 @@ async def test_recover_message_for_non_member(
     deleted_message_in_chat: DeletedMessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    mocked_publish_message: AsyncMock,
 ) -> None:
     """Test for recover a message by a user who is not a member of the group."""
     del deleted_message_in_chat.chat.users[0]
@@ -101,6 +123,8 @@ async def test_recover_message_for_non_member(
     response = await authorized_client.post(
         f"/api/chats/{chat.id}/messages/{deleted_message_in_chat.id}/recover",
     )
+
+    mocked_publish_message.assert_not_called()
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "User is not part of the chat"}
 
@@ -112,6 +136,7 @@ async def test_recover_message_with_non_author(
     user: UserFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    mocked_publish_message: AsyncMock,
 ) -> None:
     """Test for recover a message by a user who is not a author message."""
     deleted_message_in_chat.user = user
@@ -119,5 +144,7 @@ async def test_recover_message_with_non_author(
     response = await authorized_client.post(
         f"/api/chats/{chat.id}/messages/{deleted_message_in_chat.id}/recover",
     )
+
+    mocked_publish_message.assert_not_called()
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "User is not the author of this message"}

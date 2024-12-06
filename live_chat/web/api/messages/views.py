@@ -152,11 +152,15 @@ async def recover_deleted_message(
     """Recover deleted message."""
     if not isinstance(deleted_message, DeletedMessage):
         raise HTTPException(status_code=404, detail="Instance is not deleted message")
-    await restore_message(db_session, deleted_message)
-    return JSONResponse(
-        content={"detail": "Сообщение восстановлено"},
-        status_code=status.HTTP_200_OK,
-    )
+    if message := await restore_message(db_session, deleted_message):
+        message_data: GetMessageSchema = transformation_message([message])[0]
+        event_data = jsonable_encoder(message_data.model_dump())
+        await publish_faststream("recover_message", chat.users, event_data, chat.id)
+        return JSONResponse(
+            content={"detail": "Сообщение восстановлено"},
+            status_code=status.HTTP_200_OK,
+        )
+    raise HTTPException(status_code=404, detail="Message not restored")
 
 
 @message_router.delete(
