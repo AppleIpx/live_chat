@@ -9,11 +9,11 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.web.api.chat.utils import get_message_by_id
-from live_chat.web.api.chat.utils.get_message_by_id import (
-    get_deleted_by_orig_message_id,
-)
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
+from live_chat.web.api.messages.utils import (
+    get_deleted_by_orig_message_id,
+    get_message_by_id,
+)
 from tests.factories import MessageFactory, UserFactory
 from tests.utils import get_first_deleted_message
 
