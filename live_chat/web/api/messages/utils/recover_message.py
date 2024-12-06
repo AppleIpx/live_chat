@@ -11,7 +11,7 @@ from live_chat.web.api.messages.utils import get_message_by_id
 async def restore_message(
     db_session: AsyncSession,
     deleted_message: DeletedMessage,
-) -> Message:
+) -> Message | None:
     """Recover original message from deleted messages."""
     if message := await get_message_by_id(
         db_session,
@@ -25,3 +25,5 @@ async def restore_message(
         db_session.add(message)
         await db_session.commit()
         await db_session.refresh(message)
+        return message
+    return None

@@ -46,6 +46,13 @@ const SSEManager = {
             }
         });
 
+        eventSource.addEventListener("recover_message", async (event) => {
+            const message = JSON.parse(event.data);
+            if (isChatOpenCallback) {
+                messageCallback(message, "recover");
+            }
+        });
+
         eventSource.addEventListener("update_message", async (event) => {
             const message = JSON.parse(event.data);
             if (message.user_id !== user.data.id && isChatOpenCallback) {
