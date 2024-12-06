@@ -78,6 +78,16 @@ export const chatService = {
             throw error;
         }
     },
+    async sendTypingStatus(chatId, isTyping) {
+        try {
+            return await apiClient.post(`/api/chats/${chatId}/typing-status?is_typing=${isTyping}`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
     async updateGroupImage(chatId, formData) {
         try {
             return await apiClient.patch(

@@ -2,12 +2,14 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi.encoders import jsonable_encoder
 from fastapi_pagination import set_page
 from fastapi_pagination.cursor import CursorPage, CursorParams
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
+from starlette.responses import JSONResponse
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Chat,
@@ -27,6 +29,7 @@ from live_chat.web.api.chat.utils import (
     transformation_chat,
     validate_user_access_to_chat,
 )
+from live_chat.web.api.messages.utils import publish_faststream
 from live_chat.web.api.users.schemas import UserRead
 from live_chat.web.api.users.utils import (
     collect_users_for_group,
@@ -213,3 +216,24 @@ async def upload_group_image(
     await db_session.commit()
 
     return {"image_url": image_url}
+
+
+@chat_router.post("/{chat_id}/typing-status")
+async def send_user_typing(
+    is_typing: bool,
+    chat: Chat = Depends(validate_user_access_to_chat),
+    current_user: User = Depends(current_active_user),
+) -> JSONResponse:
+    """Notify that user is typing in chat."""
+    event_data = jsonable_encoder(
+        {
+            "user_id": f"{current_user.id!s}",
+            "username": f"{current_user.username!s}",
+            "is_typing": is_typing,
+        },
+    )
+    await publish_faststream("user_typing", chat.users, event_data, chat.id)
+    return JSONResponse(
+        content={"detail": "User typing event send"},
+        status_code=status.HTTP_200_OK,
+    )

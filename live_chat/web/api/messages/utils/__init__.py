@@ -4,6 +4,10 @@ from live_chat.web.api.messages.utils.check_user_message import (
 from live_chat.web.api.messages.utils.get_correct_last_message import (
     get_correct_last_message,
 )
+from live_chat.web.api.messages.utils.get_message import (
+    get_deleted_message_by_id,
+    get_message_by_id,
+)
 from live_chat.web.api.messages.utils.get_user import get_user_from_token
 from live_chat.web.api.messages.utils.publish_message import publish_faststream
 from live_chat.web.api.messages.utils.save_message import save_message_to_db
@@ -20,4 +24,6 @@ __all__ = (
     "validate_user_access_to_message",
     "get_correct_last_message",
     "publish_faststream",
+    "get_deleted_message_by_id",
+    "get_message_by_id",
 )

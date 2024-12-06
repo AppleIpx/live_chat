@@ -62,6 +62,9 @@
             </div>
             </div>
             <span v-if="chatData.chat_type==='direct'">{{ chatName }}</span>
+            <div v-if="typingMessage" class="typing-indicator">
+          {{ typingMessage }}
+    </div>
           </span>
         </div>
 
@@ -132,6 +135,8 @@
         <textarea
             v-model="messageText"
             @keydown.enter="sendMessage"
+            @input="onTyping"
+            @keyup="onTyping"
             placeholder="Напишите сообщение..."
             class="chat-input"
             rows="3"
@@ -227,6 +232,8 @@ export default {
       editMessageText: "",
       isDeleteModalVisible: false,
       messageToDelete: null,
+      typingMessage: "",
+      isTyping: false,
     };
   },
   computed: {
@@ -241,7 +248,7 @@ export default {
         if (oldChatId) {
           SSEManager.disconnect(oldChatId);
         }
-        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage);
+        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage, this.typingCallback);
       },
     },
   },
@@ -452,6 +459,19 @@ export default {
       }
     },
 
+    typingCallback(typing_data) {
+      if (typing_data.is_typing === false) {
+        this.typingMessage = "";
+        return
+      }
+
+      if (this.chatData.chat_type === 'group') {
+        this.typingMessage = `${typing_data.username} печатает...`;
+      } else {
+        this.typingMessage = "печатает...";
+      }
+    },
+
     handleNewMessage(newMessage, action) {
       const existingMessageIndex = this.messages.findIndex(message => message.id === newMessage.id);
       if (action === "new") {
@@ -522,8 +542,28 @@ export default {
       this.groupImagePreview = null;
     },
 
+    onTyping() {
+      if (this.messageText.trim() === "") {
+        this.isTyping = false;
+        clearTimeout(this.typingTimeout);
+        chatService.sendTypingStatus(this.chatId, false);
+        return;
+      }
+
+      if (!this.isTyping) {
+        this.isTyping = true;
+        chatService.sendTypingStatus(this.chatId, true);
+      }
+      clearTimeout(this.typingTimeout);
+      this.typingTimeout = setTimeout(() => {
+        this.isTyping = false;
+        chatService.sendTypingStatus(this.chatId, false);
+      }, 1000);
+    },
+
     // Send message
     async sendMessage() {
+      this.isTyping = false;
       if (this.messageText.trim() === "") return;
       try {
         const messageData = {
@@ -596,6 +636,13 @@ export default {
   font-size: 20px;
   font-weight: bold;
   color: #333;
+}
+
+.typing-indicator {
+  font-size: 14px;
+  color: #888;
+  margin-top: 5px;
+  font-style: italic;
 }
 
 .chat-photo img {

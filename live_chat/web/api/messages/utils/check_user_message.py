@@ -9,7 +9,10 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     User,
 )
 from live_chat.db.utils import get_async_session
-from live_chat.web.api.chat.utils import get_deleted_message_by_id, get_message_by_id
+from live_chat.web.api.messages.utils.get_message import (
+    get_deleted_message_by_id,
+    get_message_by_id,
+)
 from live_chat.web.api.users.utils import current_active_user
 
 

@@ -5,7 +5,7 @@ from live_chat.db.models.chat import (  # type:ignore[attr-defined]
     DeletedMessage,
     Message,
 )
-from live_chat.web.api.chat.utils import get_message_by_id
+from live_chat.web.api.messages.utils import get_message_by_id
 
 
 async def restore_message(
