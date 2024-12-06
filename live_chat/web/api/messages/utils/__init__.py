@@ -5,6 +5,7 @@ from live_chat.web.api.messages.utils.get_correct_last_message import (
     get_correct_last_message,
 )
 from live_chat.web.api.messages.utils.get_message import (
+    get_deleted_by_orig_message_id,
     get_deleted_message_by_id,
     get_message_by_id,
 )
@@ -26,4 +27,5 @@ __all__ = (
     "publish_faststream",
     "get_deleted_message_by_id",
     "get_message_by_id",
+    "get_deleted_by_orig_message_id",
 )
