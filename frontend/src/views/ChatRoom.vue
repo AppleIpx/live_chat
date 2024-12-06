@@ -105,7 +105,7 @@
                 <span v-else>Загрузка...</span>
               </strong>
               <span class="timestamp">
-          {{ message.updated_at }}
+          {{ message.created_at }}
           <i v-if="message.created_at !== message.updated_at"
              class="fa fa-pencil edited-indicator"
              title="Сообщение было изменено"></i>
