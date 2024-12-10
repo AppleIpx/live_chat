@@ -251,7 +251,7 @@ async def update_chat(
     chat: Chat = Depends(validate_user_access_to_chat),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> JSONResponse:
-    """Update group image."""
+    """Update chat."""
     if chat.chat_type.value == "direct":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
