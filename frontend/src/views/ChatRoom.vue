@@ -16,7 +16,7 @@
                 @mouseover="showGroupTooltip = true"
                 @mouseleave="onGroupMouseLeave"
             >
-              {{ chatData.name }}
+              {{ chatName }}
             </span>
             <div
                 v-if="showGroupTooltip"
@@ -38,11 +38,32 @@
               </ul>
               <div class="tooltip-actions">
                 <button class="tooltip-button"
-                        @click.prevent>Изменить название (заглушка)</button>
+                        @click.prevent="openNameUpdateModal">Изменить название</button>
                 <div>
                   <button class="tooltip-button" @click.prevent="openImageUploadModal">
                     Изменить фото
                   </button>
+                  <div v-if="isNameUpdateModalOpen" class="modal-overlay">
+                    <div class="modal-content">
+                      <h2>Введите новое имя чата</h2>
+                      <form @submit.prevent="updateNameGroup">
+                        <div class="form-group">
+                          <input
+                              type="text"
+                              v-model="newChatName"
+                              placeholder="Новое имя чата"
+                              class="chat-name-input"
+                              required
+                          />
+                        </div>
+                        <div class="modal-actions">
+                          <button type="submit" class="update-button">Обновить</button>
+                          <button type="button" @click="closeNameUpdateModal"
+                                  class="cancel-button">Отмена</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
                   <div v-if="isImageUploadModalOpen" class="modal-overlay">
                     <div class="modal-content">
                       <h2>Загрузить фото группы</h2>
@@ -134,7 +155,7 @@
       <div class="chat-input-container">
         <textarea
             v-model="messageText"
-            @keydown.enter="sendMessage"
+            @keydown.enter="handleEnter"
             @input="onTyping"
             @keyup="onTyping"
             placeholder="Напишите сообщение..."
@@ -222,7 +243,9 @@ export default {
       isChatOpen: true,
       showGroupTooltip: false,
       isImageUploadModalOpen: false,
+      isNameUpdateModalOpen: false,
       groupImage: null,
+      newChatName: '',
       groupImagePreview: null,
       cursor: null,
       isLoading: false,
@@ -248,7 +271,7 @@ export default {
         if (oldChatId) {
           SSEManager.disconnect(oldChatId);
         }
-        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage, this.typingCallback);
+        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage, this.typingCallback, this.groupNameCallback);
       },
     },
   },
@@ -322,6 +345,8 @@ export default {
         if (this.chatData.chat_type === "direct") {
           this.otherUser = this.chatData.users.find(user => user.id !== this.user.id);
           this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
+        } else {
+          this.chatName = this.chatData.name
         }
         return Promise.resolve();
       } catch (error) {
@@ -459,6 +484,10 @@ export default {
       }
     },
 
+    groupNameCallback(group_data) {
+      this.chatName = group_data.group_name
+    },
+
     typingCallback(typing_data) {
       if (typing_data.is_typing === false) {
         this.typingMessage = "";
@@ -500,13 +529,23 @@ export default {
       }
     },
 
+    openNameUpdateModal() {
+      this.isNameUpdateModalOpen = true;
+    },
+
+    closeNameUpdateModal() {
+      this.isNameUpdateModalOpen = false;
+      this.newChatName = "";
+    },
+
     openImageUploadModal() {
       this.isImageUploadModalOpen = true;
     },
 
     closeImageUploadModal() {
       this.isImageUploadModalOpen = false;
-      this.resetImageUploadState();
+      this.groupImage = null;
+      this.groupImagePreview = null;
       location.reload();
     },
 
@@ -519,6 +558,20 @@ export default {
           this.groupImagePreview = e.target.result;
         };
         reader.readAsDataURL(file);
+      }
+    },
+
+    async updateNameGroup() {
+      if (!this.newChatName.trim()) {
+        return;
+      }
+      try {
+        await chatService.updateChat(this.chatId, this.newChatName)
+        this.chatName = this.newChatName
+        this.closeNameUpdateModal();
+      } catch (error) {
+        console.error('Ошибка обновления имени:', error);
+        alert('Не удалось обновить имя чата. Попробуйте снова.');
       }
     },
 
@@ -562,6 +615,14 @@ export default {
         this.isTyping = false;
         chatService.sendTypingStatus(this.chatId, false);
       }, 1000);
+    },
+
+    handleEnter(event) {
+      if (event.shiftKey) {
+        return;
+      }
+      event.preventDefault();
+      this.sendMessage();
     },
 
     // Send message
@@ -701,6 +762,7 @@ export default {
 .message-content {
   margin-top: 8px;
   font-size: 14px;
+  white-space: pre-wrap;
 }
 
 .message.mine {

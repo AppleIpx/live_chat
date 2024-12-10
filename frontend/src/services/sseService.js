@@ -4,7 +4,7 @@ import {userService} from "@/services/apiService";
 const SSEManager = {
     connections: {},
 
-    async connect(chatId, isChatOpenCallback, messageCallback, typingCallback) {
+    async connect(chatId, isChatOpenCallback, messageCallback, typingCallback, groupNameCallback) {
         const token = localStorage.getItem("accessToken");
         if (!token) {
             console.error("Token not found");
@@ -64,6 +64,13 @@ const SSEManager = {
             const typing_status = JSON.parse(event.data);
             if (typing_status.user_id !== user.data.id && isChatOpenCallback) {
                 typingCallback(typing_status)
+            }
+        });
+
+        eventSource.addEventListener("update_group_name", async (event) => {
+            const group_data = JSON.parse(event.data);
+            if (isChatOpenCallback) {
+                groupNameCallback(group_data);
             }
         });
 

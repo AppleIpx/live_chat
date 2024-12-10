@@ -35,3 +35,9 @@ class CreateGroupChatSchema(BaseModel):
     recipient_user_ids: List[UUID]
     name_group: str
     image_group: HttpUrl | None
+
+
+class UpdateGroupChatSchema(BaseModel):
+    """Represents a update command for a group chat."""
+
+    name_group: str
