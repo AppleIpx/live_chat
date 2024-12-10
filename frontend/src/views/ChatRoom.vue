@@ -43,42 +43,6 @@
                   <button class="tooltip-button" @click.prevent="openImageUploadModal">
                     Изменить фото
                   </button>
-                  <div v-if="isNameUpdateModalOpen" class="modal-overlay">
-                    <div class="modal-content">
-                      <h2>Введите новое имя чата</h2>
-                      <form @submit.prevent="updateNameGroup">
-                        <div class="form-group">
-                          <input
-                              type="text"
-                              v-model="newChatName"
-                              placeholder="Новое имя чата"
-                              class="chat-name-input"
-                              required
-                          />
-                        </div>
-                        <div class="modal-actions">
-                          <button type="submit" class="update-button">Обновить</button>
-                          <button type="button" @click="closeNameUpdateModal"
-                                  class="cancel-button">Отмена</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                  <div v-if="isImageUploadModalOpen" class="modal-overlay">
-                    <div class="modal-content">
-                      <h2>Загрузить фото группы</h2>
-                      <div class="group-image-upload">
-                        <input type="file" @change="handleImageUpload"/>
-                        <div v-if="groupImagePreview" class="image-preview">
-                          <img :src="groupImagePreview" alt="Preview"/>
-                        </div>
-                      </div>
-                      <div class="modal-actions">
-                        <button @click="uploadGroupImage">Загрузить</button>
-                        <button @click="closeImageUploadModal">Отмена</button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
             </div>
             </div>
@@ -90,15 +54,13 @@
         </div>
 
         <div class="chat-photo">
-          <template
-              v-if="chatData && chatData.chat_type === 'group'">
-            <img v-if="chatData.image" :src="chatData.image" alt="Group image"/>
+          <template v-if="chatData && chatData.chat_type === 'group'">
+            <img v-if="chatImage" :src="chatImage" alt="Group image"/>
             <img v-else src="/default_group_image.png" alt="Group default image"/>
           </template>
           <template v-else-if="chatData && otherUser">
             <a :href="`/profile/${otherUser.id}`">
-              <img v-if="otherUser.user_image" :src="otherUser.user_image"
-                   alt="Profile"/>
+              <img v-if=chatImage :src=chatImage alt="Profile"/>
               <img v-else src="/default_avatar.png" alt="Default profile"/>
             </a>
           </template>
@@ -171,6 +133,45 @@
         </button>
       </div>
 
+      <!-- Group Usage Modals -->
+      <div v-if="isNameUpdateModalOpen" class="modal-overlay">
+        <div class="modal-content">
+          <h2>Введите новое имя чата</h2>
+          <form @submit.prevent="updateNameGroup">
+            <div class="form-group">
+              <input
+                  type="text"
+                  v-model="newChatName"
+                  placeholder="Новое имя чата"
+                  class="chat-name-input"
+                  required
+              />
+            </div>
+            <div class="modal-actions">
+              <button type="submit" class="update-button">Обновить</button>
+              <button type="button" @click="closeNameUpdateModal"
+                      class="cancel-button">Отмена
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div v-if="isImageUploadModalOpen" class="modal-overlay">
+        <div class="modal-content">
+          <h2>Загрузить фото группы</h2>
+          <div class="group-image-upload">
+            <input type="file" @change="handleImageUpload"/>
+            <div v-if="groupImagePreview" class="image-preview">
+              <img :src="groupImagePreview" alt="Preview"/>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button @click="uploadGroupImage">Загрузить</button>
+            <button @click="closeImageUploadModal">Отмена</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Delete Modal -->
       <div v-if="isDeleteModalVisible" class="modal-overlay"
            @click.self="closeDeleteModal">
@@ -186,6 +187,7 @@
           </div>
         </div>
       </div>
+
       <!-- Edit Modal -->
       <div v-if="isEditModalVisible" class="modal-overlay" @click.self="closeEditModal">
         <div class="modal">
@@ -240,6 +242,7 @@ export default {
       chatData: null,
       otherUser: null,
       chatName: '',
+      chatImage: "",
       isChatOpen: true,
       showGroupTooltip: false,
       isImageUploadModalOpen: false,
@@ -271,7 +274,7 @@ export default {
         if (oldChatId) {
           SSEManager.disconnect(oldChatId);
         }
-        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage, this.typingCallback, this.groupNameCallback);
+        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage, this.typingCallback, this.groupCallback);
       },
     },
   },
@@ -345,8 +348,10 @@ export default {
         if (this.chatData.chat_type === "direct") {
           this.otherUser = this.chatData.users.find(user => user.id !== this.user.id);
           this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
+          this.chatImage = this.otherUser.user_image
         } else {
           this.chatName = this.chatData.name
+          this.chatImage = this.chatData.image
         }
         return Promise.resolve();
       } catch (error) {
@@ -484,8 +489,14 @@ export default {
       }
     },
 
-    groupNameCallback(group_data) {
-      this.chatName = group_data.group_name
+    groupCallback(group_data, type_event) {
+      if (type_event === "name") {
+        this.chatName = group_data.group_name;
+      }
+      if (type_event === "image") {
+        const timestamp = new Date().getTime();
+        this.chatImage = `${group_data.image_url}?t=${timestamp}`;
+      }
     },
 
     typingCallback(typing_data) {
@@ -591,11 +602,6 @@ export default {
         console.error("Ошибка при загрузке изображения:", error);
         alert("Не удалось загрузить изображение группы. Пожалуйста, попробуйте позже.");
       }
-    },
-
-    resetImageUploadState() {
-      this.groupImage = null;
-      this.groupImagePreview = null;
     },
 
     onTyping() {

@@ -195,14 +195,13 @@ async def get_detail_chat_view(
 
 @chat_router.patch("/{chat_id}/upload-image", summary="Update group image")
 async def upload_group_image(
-    chat_id: UUID,
     uploaded_image: UploadFile,
-    user: User = Depends(current_active_user),
+    chat: Chat = Depends(validate_user_access_to_chat),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, str]:
     """Update group image."""
 
-    image_saver = ImageSaver(chat_id)
+    image_saver = ImageSaver(chat.id)
     image_url = await image_saver.save_image(uploaded_image, "group_images")
 
     if not image_url:
@@ -211,12 +210,6 @@ async def upload_group_image(
             detail="Invalid image upload",
         )
 
-    chat = await db_session.get(Chat, chat_id)
-    if not chat:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group not found",
-        )
     if chat.chat_type.value == "direct":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -226,7 +219,8 @@ async def upload_group_image(
     chat.image = image_url
     db_session.add(chat)
     await db_session.commit()
-
+    event_data = jsonable_encoder({"image_url": image_url})
+    await publish_faststream("update_image_group", chat.users, event_data, chat.id)
     return {"image_url": image_url}
 
 
