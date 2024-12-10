@@ -8,12 +8,14 @@ from fastapi_pagination.cursor import CursorPage, CursorParams
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from starlette import status
 from starlette.responses import JSONResponse
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Chat,
     DeletedMessage,
+    ReadStatus,
     User,
 )
 from live_chat.db.utils import get_async_session
@@ -21,6 +23,8 @@ from live_chat.web.api.chat.schemas import (
     ChatSchema,
     CreateDirectChatSchema,
     CreateGroupChatSchema,
+    DeletedChatSchema,
+    ReadStatusSchema,
 )
 from live_chat.web.api.chat.utils import (
     create_direct_chat,
@@ -30,6 +34,7 @@ from live_chat.web.api.chat.utils import (
     validate_user_access_to_chat,
 )
 from live_chat.web.api.messages.utils import publish_faststream
+from live_chat.web.api.read_status.utils import get_read_status_by_user_chat_ids
 from live_chat.web.api.users.schemas import UserRead
 from live_chat.web.api.users.utils import (
     collect_users_for_group,
@@ -92,7 +97,12 @@ async def create_direct_chat_view(
         initiator_user=current_user,
         recipient_user=recipient_user,
     )
-    return await transformation_chat(chat)
+    read_status: ReadStatus = await get_read_status_by_user_chat_ids(
+        db_session=db_session,
+        chat_id=chat.id,
+        user_id=current_user.id,
+    )
+    return await transformation_chat(chat, read_status)
 
 
 @chat_router.post(
@@ -119,7 +129,12 @@ async def create_group_chat_view(
         recipient_users=recipient_users,
         create_group_chat_schema=create_group_chat_schema,
     )
-    return await transformation_chat(chat)
+    read_status: ReadStatus = await get_read_status_by_user_chat_ids(
+        db_session=db_session,
+        chat_id=chat.id,
+        user_id=current_user.id,
+    )
+    return await transformation_chat(chat, read_status)
 
 
 @chat_router.get("", summary="List chats")
@@ -132,10 +147,23 @@ async def get_list_chats_view(
     set_page(CursorPage[ChatSchema])
     query = (
         select(Chat)
+        .options(selectinload(Chat.read_statuses))
         .where(Chat.users.any(id=current_user.id))
         .order_by(Chat.updated_at.desc())
     )
-    return await paginate(db_session, query, params=params)
+    chats = await paginate(db_session, query, params=params)
+    read_status_query = (
+        select(ReadStatus)
+        .where(ReadStatus.user_id == current_user.id)
+        .where(ReadStatus.chat_id.in_([chat.id for chat in chats.items]))
+    )
+    read_statuses = await db_session.execute(read_status_query)
+    read_status_dict = {
+        status.chat_id: status for status in read_statuses.scalars().all()
+    }
+    for chat in chats.items:
+        chat.read_statuses = read_status_dict.get(chat.id)
+    return chats
 
 
 @chat_router.get("/deleted", summary="List deleted chats")
@@ -143,9 +171,9 @@ async def get_list_deleted_chats_view(
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
     params: CursorParams = Depends(),
-) -> CursorPage[ChatSchema]:
+) -> CursorPage[DeletedChatSchema]:
     """Getting deleted chats to which a user has been added."""
-    set_page(CursorPage[ChatSchema])
+    set_page(CursorPage[DeletedChatSchema])
     subquery = (
         select(func.max(DeletedMessage.created_at).label("last_deleted_at"))
         .where(DeletedMessage.chat_id == Chat.id)
@@ -166,10 +194,17 @@ async def get_list_deleted_chats_view(
     response_model=ChatSchema,
 )
 async def get_detail_chat_view(
+    db_session: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(current_active_user),
     chat: Chat = Depends(validate_user_access_to_chat),
 ) -> ChatSchema:
     """Get detail chat by id."""
     users_data: List[UserRead] = transformation_users(chat.users)
+    read_status: ReadStatus = await get_read_status_by_user_chat_ids(
+        db_session=db_session,
+        chat_id=chat.id,
+        user_id=current_user.id,
+    )
     return ChatSchema(
         id=chat.id,
         chat_type=chat.chat_type,
@@ -178,6 +213,13 @@ async def get_detail_chat_view(
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         users=users_data,
+        read_statuses=ReadStatusSchema(
+            id=read_status.id,
+            chat_id=read_status.chat_id,
+            user_id=read_status.user_id,
+            last_read_message_id=read_status.last_read_message_id,
+            count_unread_msg=0,
+        ),
     )
 
 

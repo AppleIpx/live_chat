@@ -10,9 +10,26 @@ from tests.factories import (
     ChatFactory,
     DeletedMessageFactory,
     MessageFactory,
+    ReadStatusFactory,
     UserFactory,
 )
 from tests.utils import get_first_user_from_db
+
+
+async def create_read_status_for_chat(
+    dbsession: AsyncSession,
+    chat: ChatFactory,
+    user: User,
+) -> None:
+    """Helper function for creating read status."""
+    ReadStatusFactory(
+        chat_id=chat.id,
+        chat=chat,
+        user=user,
+        user_id=user.id,
+        last_read_message_id=None,
+        count_unread_msg=0,
+    )
 
 
 @pytest.fixture
@@ -29,9 +46,15 @@ async def any_chat_with_users(
 ) -> ChatFactory:
     """A fixture for generating a chat factory with sender and recipient."""
     ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    ReadStatusFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
     sender: User | None = await get_first_user_from_db(dbsession)
     recipient = user
-    return ChatFactory(users=[sender, recipient])
+    chat = ChatFactory(users=[sender, recipient])
+    await create_read_status_for_chat(
+        dbsession=dbsession,
+        chat=chat,
+        user=sender)
+    return chat
 
 
 @pytest.fixture
@@ -66,7 +89,16 @@ async def some_chats_with_users(
     """A fixture for generating five chats factory."""
     sender: User | None = await get_first_user_from_db(dbsession)
     ChatFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    return [ChatFactory(users=[sender, recipient]) for recipient in some_users]
+    ReadStatusFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    chats: List[ChatFactory] = [
+        ChatFactory(
+            users=[sender, recipient],
+        )
+        for recipient in some_users
+    ]
+    for chat in chats:
+        await create_read_status_for_chat(dbsession, chat, sender)
+    return chats
 
 
 @pytest.fixture

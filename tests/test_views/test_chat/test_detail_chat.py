@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.web.api.chat.utils import get_chat_by_id
+from live_chat.web.api.read_status.utils import get_read_status_by_user_chat_ids
 from live_chat.web.api.users.utils import get_user_by_id
 from tests.factories import ChatFactory, MessageFactory
 
@@ -22,6 +23,11 @@ async def test_get_detail_chat(
     chat = await get_chat_by_id(chat_id=chat_id, db_session=dbsession)
     sender = await get_user_by_id(user_id=chat.users[0].id, db_session=dbsession)
     recipient = await get_user_by_id(user_id=chat.users[1].id, db_session=dbsession)
+    read_status = await get_read_status_by_user_chat_ids(
+        db_session=dbsession,
+        chat_id=chat_id,
+        user_id=sender.id,
+    )
     response = await authorized_client.get(f"api/chats/{chat_id}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
@@ -55,6 +61,13 @@ async def test_get_detail_chat(
                 "user_image": recipient.user_image,
             },
         ],
+        "read_statuses": {
+            "id": str(read_status.id),
+            "chat_id": str(read_status.chat_id),
+            "count_unread_msg": read_status.count_unread_msg,
+            "last_read_message_id": read_status.last_read_message_id,
+            "user_id": str(read_status.user_id),
+        },
     }
 
 

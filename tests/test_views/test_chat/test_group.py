@@ -7,6 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from live_chat.web.api.read_status.utils import get_read_status_by_user_chat_ids
 from tests.factories import ChatFactory, UserFactory
 from tests.utils import get_first_chat_from_db, get_first_user_from_db
 
@@ -30,6 +31,11 @@ async def test_create_group_chat(
     )
     chat = await get_first_chat_from_db(dbsession)
     sender = await get_first_user_from_db(dbsession)
+    read_status = await get_read_status_by_user_chat_ids(
+        chat_id=chat.id,
+        user_id=sender.id,
+        db_session=dbsession,
+    )
     expected_users = [
         {
             "id": str(user.id),
@@ -54,6 +60,13 @@ async def test_create_group_chat(
         "users": expected_users,
         "image": chat.image,
         "name": chat.name,
+        "read_statuses": {
+            "id": str(read_status.id),
+            "chat_id": str(read_status.chat_id),
+            "count_unread_msg": read_status.count_unread_msg,
+            "last_read_message_id": read_status.last_read_message_id,
+            "user_id": str(read_status.user_id),
+        },
     }
 
 
