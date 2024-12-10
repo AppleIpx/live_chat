@@ -34,6 +34,11 @@ async def update_read_status(
         user_id=current_user.id,
         chat_id=chat.id,
     )
+    if not read_status:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Read status not found for the given chat and user.",
+        )
     read_status.last_read_message_id = update_read_status.last_read_message_id
     db_session.add(read_status)
     await db_session.commit()
