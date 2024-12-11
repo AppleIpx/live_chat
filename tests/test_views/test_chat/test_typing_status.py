@@ -82,7 +82,7 @@ async def test_post_typing_status_nonexistent_user(
 
 
 @pytest.mark.anyio
-async def test_post_message_nonexistent_chat(
+async def test_post_typing_status_nonexistent_chat(
     authorized_client: AsyncClient,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,

@@ -1,5 +1,6 @@
 import uuid
 from typing import Any, AsyncGenerator
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from fakeredis import FakeServer
@@ -19,6 +20,8 @@ from live_chat.db.utils import create_database, drop_database, get_async_session
 from live_chat.services.redis.dependency import get_redis_pool
 from live_chat.settings import settings
 from live_chat.web.application import get_app
+from live_chat.web.utils.s3_client import S3Client
+from tests.factories import ChatFactory
 
 
 @pytest.fixture(scope="session")
@@ -184,3 +187,14 @@ def override_get_async_session(
     fastapi_app.dependency_overrides[get_async_session] = _override_get_db
     yield
     fastapi_app.dependency_overrides.pop(get_async_session)
+
+
+@pytest.fixture
+def upload_mock(group_chat_with_users: ChatFactory) -> AsyncMock:
+    """Mock upload file in S3."""
+    with patch.object(
+        S3Client,
+        "upload_file",
+        return_value=f"{settings.minio_url}group_images/{group_chat_with_users.id}.png",
+    ) as mock_upload:
+        yield mock_upload

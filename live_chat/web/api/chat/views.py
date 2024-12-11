@@ -25,6 +25,7 @@ from live_chat.web.api.chat.schemas import (
     CreateGroupChatSchema,
     DeletedChatSchema,
     ReadStatusSchema,
+    UpdateGroupChatSchema,
 )
 from live_chat.web.api.chat.utils import (
     create_direct_chat,
@@ -139,6 +140,7 @@ async def create_group_chat_view(
 
 @chat_router.get("", summary="List chats")
 async def get_list_chats_view(
+    user_id_exists: UUID | None = None,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
     params: CursorParams = Depends(),
@@ -151,6 +153,8 @@ async def get_list_chats_view(
         .where(Chat.users.any(id=current_user.id))
         .order_by(Chat.updated_at.desc())
     )
+    if user_id_exists and await get_user_by_id(db_session, user_id=user_id_exists):
+        query = query.where(Chat.users.any(id=user_id_exists))
     chats = await paginate(db_session, query, params=params)
     read_status_query = (
         select(ReadStatus)
@@ -226,14 +230,13 @@ async def get_detail_chat_view(
 
 @chat_router.patch("/{chat_id}/upload-image", summary="Update group image")
 async def upload_group_image(
-    chat_id: UUID,
     uploaded_image: UploadFile,
-    user: User = Depends(current_active_user),
+    chat: Chat = Depends(validate_user_access_to_chat),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, str]:
     """Update group image."""
 
-    image_saver = ImageSaver(chat_id)
+    image_saver = ImageSaver(chat.id)
     image_url = await image_saver.save_image(uploaded_image, "group_images")
 
     if not image_url:
@@ -242,12 +245,6 @@ async def upload_group_image(
             detail="Invalid image upload",
         )
 
-    chat = await db_session.get(Chat, chat_id)
-    if not chat:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Group not found",
-        )
     if chat.chat_type.value == "direct":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -257,7 +254,8 @@ async def upload_group_image(
     chat.image = image_url
     db_session.add(chat)
     await db_session.commit()
-
+    event_data = jsonable_encoder({"image_url": image_url})
+    await publish_faststream("update_image_group", chat.users, event_data, chat.id)
     return {"image_url": image_url}
 
 
@@ -280,3 +278,23 @@ async def send_user_typing(
         content={"detail": "User typing event send"},
         status_code=status.HTTP_200_OK,
     )
+
+
+@chat_router.patch("/{chat_id}", summary="Update chat")
+async def update_chat(
+    update_schema: UpdateGroupChatSchema,
+    chat: Chat = Depends(validate_user_access_to_chat),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> JSONResponse:
+    """Update chat."""
+    if chat.chat_type.value == "direct":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You can't specify a name chat for direct chat",
+        )
+    chat.name = update_schema.name_group
+    db_session.add(chat)
+    await db_session.commit()
+    event_data = jsonable_encoder({"group_name": f"{update_schema.name_group}"})
+    await publish_faststream("update_group_name", chat.users, event_data, chat.id)
+    return JSONResponse("Chat name updated", status_code=status.HTTP_200_OK)

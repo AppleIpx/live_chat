@@ -16,7 +16,7 @@
                 @mouseover="showGroupTooltip = true"
                 @mouseleave="onGroupMouseLeave"
             >
-              {{ chatData.name }}
+              {{ chatName }}
             </span>
             <div
                 v-if="showGroupTooltip"
@@ -38,26 +38,11 @@
               </ul>
               <div class="tooltip-actions">
                 <button class="tooltip-button"
-                        @click.prevent>Изменить название (заглушка)</button>
+                        @click.prevent="openNameUpdateModal">Изменить название</button>
                 <div>
                   <button class="tooltip-button" @click.prevent="openImageUploadModal">
                     Изменить фото
                   </button>
-                  <div v-if="isImageUploadModalOpen" class="modal-overlay">
-                    <div class="modal-content">
-                      <h2>Загрузить фото группы</h2>
-                      <div class="group-image-upload">
-                        <input type="file" @change="handleImageUpload"/>
-                        <div v-if="groupImagePreview" class="image-preview">
-                          <img :src="groupImagePreview" alt="Preview"/>
-                        </div>
-                      </div>
-                      <div class="modal-actions">
-                        <button @click="uploadGroupImage">Загрузить</button>
-                        <button @click="closeImageUploadModal">Отмена</button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
             </div>
             </div>
@@ -69,15 +54,13 @@
         </div>
 
         <div class="chat-photo">
-          <template
-              v-if="chatData && chatData.chat_type === 'group'">
-            <img v-if="chatData.image" :src="chatData.image" alt="Group image"/>
+          <template v-if="chatData && chatData.chat_type === 'group'">
+            <img v-if="chatImage" :src="chatImage" alt="Group image"/>
             <img v-else src="/default_group_image.png" alt="Group default image"/>
           </template>
           <template v-else-if="chatData && otherUser">
             <a :href="`/profile/${otherUser.id}`">
-              <img v-if="otherUser.user_image" :src="otherUser.user_image"
-                   alt="Profile"/>
+              <img v-if=chatImage :src=chatImage alt="Profile"/>
               <img v-else src="/default_avatar.png" alt="Default profile"/>
             </a>
           </template>
@@ -91,36 +74,50 @@
             class="messages-list"
             ref="messagesList"
             @scroll="onScroll">
+
+          <!-- Group messages by date -->
           <div
-              class="message"
-              v-for="message in messages"
-              :key="message.id"
-              :class="{'mine': message.isMine, 'other': !message.isMine}">
-            <div class="message-header">
-              <strong>
-                <a v-if="message.user || message.user_id"
-                   :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
-                  {{ message.user.id === user.id ? 'Вы' : message.user.username }}
-                </a>
-                <span v-else>Загрузка...</span>
-              </strong>
-              <span class="timestamp">
+              v-for="(messages, date) in groupedMessages"
+              :key="date"
+              class="message-group">
+
+            <!-- Date separator -->
+            <div class="date-separator">
+              {{ formatDate(date) }}
+            </div>
+
+            <!-- Messages for this date -->
+            <div
+                class="message"
+                v-for="message in messages"
+                :key="message.id"
+                :class="{'mine': message.isMine, 'other': !message.isMine}">
+              <div class="message-header">
+                <strong>
+                  <a v-if="message.user || message.user_id"
+                     :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
+                    {{ message.user.id === user.id ? 'Вы' : message.user.username }}
+                  </a>
+                  <span v-else>Загрузка...</span>
+                </strong>
+                <span class="timestamp">
           {{ message.created_at }}
           <i v-if="message.created_at !== message.updated_at"
              class="fa fa-pencil edited-indicator"
              title="Сообщение было изменено"></i>
-        </span>
-            </div>
-            <div class="message-content">{{ message.content }}</div>
-            <div v-if="message.isMine" class="message-options">
-              <button @click="toggleMenu(message.id)" class="menu-button">...</button>
-              <div v-if="message.showMenu" class="menu-dropdown">
-                <button @click="openEditModal(message)" class="icon-button-update">
-                  <i class="fa fa-pencil"></i>
-                </button>
-                <button @click="openDeleteModal(message)" class="icon-button-delete">
-                  <i class="fa fa-trash"></i>
-                </button>
+            </span>
+              </div>
+              <div class="message-content">{{ message.content }}</div>
+              <div v-if="message.isMine" class="message-options">
+                <button @click="toggleMenu(message.id)" class="menu-button">...</button>
+                <div v-if="message.showMenu" class="menu-dropdown">
+                  <button @click="openEditModal(message)" class="icon-button-update">
+                    <i class="fa fa-pencil"></i>
+                  </button>
+                  <button @click="openDeleteModal(message)" class="icon-button-delete">
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -134,7 +131,7 @@
       <div class="chat-input-container">
         <textarea
             v-model="messageText"
-            @keydown.enter="sendMessage"
+            @keydown.enter="handleEnter"
             @input="onTyping"
             @keyup="onTyping"
             placeholder="Напишите сообщение..."
@@ -148,6 +145,45 @@
         <button @click="sendMessage" class="send-button">
           <i class="fa fa-paper-plane"></i>
         </button>
+      </div>
+
+      <!-- Group Usage Modals -->
+      <div v-if="isNameUpdateModalOpen" class="modal-overlay">
+        <div class="modal-content">
+          <h2>Введите новое имя чата</h2>
+          <form @submit.prevent="updateNameGroup">
+            <div class="form-group">
+              <input
+                  type="text"
+                  v-model="newChatName"
+                  placeholder="Новое имя чата"
+                  class="chat-name-input"
+                  required
+              />
+            </div>
+            <div class="modal-actions">
+              <button type="submit" class="update-button">Обновить</button>
+              <button type="button" @click="closeNameUpdateModal"
+                      class="cancel-button">Отмена
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div v-if="isImageUploadModalOpen" class="modal-overlay">
+        <div class="modal-content">
+          <h2>Загрузить фото группы</h2>
+          <div class="group-image-upload">
+            <input type="file" @change="handleImageUpload"/>
+            <div v-if="groupImagePreview" class="image-preview">
+              <img :src="groupImagePreview" alt="Preview"/>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button @click="uploadGroupImage">Загрузить</button>
+            <button @click="closeImageUploadModal">Отмена</button>
+          </div>
+        </div>
       </div>
 
       <!-- Delete Modal -->
@@ -165,8 +201,10 @@
           </div>
         </div>
       </div>
+
       <!-- Edit Modal -->
-      <div v-if="isEditModalVisible" class="modal-overlay" @click.self="closeEditModal">
+      <div v-if="isEditModalVisible" class="modal-overlay"
+           @click.self="closeEditModal">
         <div class="modal">
           <h3 class="modal-title">Изменить сообщение</h3>
           <div class="edit-container">
@@ -204,6 +242,7 @@ import {chatService, messageService} from "@/services/apiService";
 import SSEManager from "@/services/sseService";
 import EmojiPicker from "vue3-emoji-picker";
 import 'vue3-emoji-picker/css'
+import router from "@/router";
 
 
 export default {
@@ -219,10 +258,13 @@ export default {
       chatData: null,
       otherUser: null,
       chatName: '',
+      chatImage: "",
       isChatOpen: true,
       showGroupTooltip: false,
       isImageUploadModalOpen: false,
+      isNameUpdateModalOpen: false,
       groupImage: null,
+      newChatName: '',
       groupImagePreview: null,
       cursor: null,
       isLoading: false,
@@ -240,6 +282,17 @@ export default {
     isMouseOverTooltip() {
       return this.showGroupTooltip;
     },
+    groupedMessages() {
+      const grouped = {};
+      this.messages.forEach((message) => {
+        const date = new Date(message.created_at).toLocaleDateString().split('T')[0];
+        if (!grouped[date]) {
+          grouped[date] = [];
+        }
+        grouped[date].push(message);
+      });
+      return grouped;
+    },
   },
   watch: {
     chatId: {
@@ -248,7 +301,7 @@ export default {
         if (oldChatId) {
           SSEManager.disconnect(oldChatId);
         }
-        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage, this.typingCallback);
+        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage, this.typingCallback, this.groupCallback);
       },
     },
   },
@@ -265,6 +318,11 @@ export default {
     SSEManager.disconnect(this.chatId);
   },
   methods: {
+    formatDate(date) {
+      const options = {day: 'numeric', month: 'long', year: 'numeric',};
+      return new Date(date).toLocaleDateString("ru-RU", options);
+    },
+
     togglePicker() {
       this.showPicker = !this.showPicker;
     },
@@ -322,9 +380,27 @@ export default {
         if (this.chatData.chat_type === "direct") {
           this.otherUser = this.chatData.users.find(user => user.id !== this.user.id);
           this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
+          this.chatImage = this.otherUser.user_image
+        } else {
+          this.chatName = this.chatData.name
+          this.chatImage = this.chatData.image
         }
         return Promise.resolve();
       } catch (error) {
+        if (error.response) {
+          const status = error.response.status;
+          switch (status) {
+            case 403:
+              await router.push("/403");
+              break;
+            case 404:
+              await router.push("/404");
+              break;
+            case 500:
+              await router.push("/500");
+              break;
+          }
+        }
         console.error("Error fetching chat details:", error);
         return Promise.reject(error);
       }
@@ -459,6 +535,16 @@ export default {
       }
     },
 
+    groupCallback(group_data, type_event) {
+      if (type_event === "name") {
+        this.chatName = group_data.group_name;
+      }
+      if (type_event === "image") {
+        const timestamp = new Date().getTime();
+        this.chatImage = `${group_data.image_url}?t=${timestamp}`;
+      }
+    },
+
     typingCallback(typing_data) {
       if (typing_data.is_typing === false) {
         this.typingMessage = "";
@@ -500,13 +586,23 @@ export default {
       }
     },
 
+    openNameUpdateModal() {
+      this.isNameUpdateModalOpen = true;
+    },
+
+    closeNameUpdateModal() {
+      this.isNameUpdateModalOpen = false;
+      this.newChatName = "";
+    },
+
     openImageUploadModal() {
       this.isImageUploadModalOpen = true;
     },
 
     closeImageUploadModal() {
       this.isImageUploadModalOpen = false;
-      this.resetImageUploadState();
+      this.groupImage = null;
+      this.groupImagePreview = null;
       location.reload();
     },
 
@@ -519,6 +615,20 @@ export default {
           this.groupImagePreview = e.target.result;
         };
         reader.readAsDataURL(file);
+      }
+    },
+
+    async updateNameGroup() {
+      if (!this.newChatName.trim()) {
+        return;
+      }
+      try {
+        await chatService.updateChat(this.chatId, this.newChatName)
+        this.chatName = this.newChatName
+        this.closeNameUpdateModal();
+      } catch (error) {
+        console.error('Ошибка обновления имени:', error);
+        alert('Не удалось обновить имя чата. Попробуйте снова.');
       }
     },
 
@@ -540,11 +650,6 @@ export default {
       }
     },
 
-    resetImageUploadState() {
-      this.groupImage = null;
-      this.groupImagePreview = null;
-    },
-
     onTyping() {
       if (this.messageText.trim() === "") {
         this.isTyping = false;
@@ -562,6 +667,14 @@ export default {
         this.isTyping = false;
         chatService.sendTypingStatus(this.chatId, false);
       }, 1000);
+    },
+
+    handleEnter(event) {
+      if (event.shiftKey) {
+        return;
+      }
+      event.preventDefault();
+      this.sendMessage();
     },
 
     // Send message
@@ -669,6 +782,20 @@ export default {
   padding: 0 15px;
 }
 
+.date-separator {
+  text-align: center;
+  margin: 10px 0;
+  font-size: 14px;
+  font-weight: bold;
+  color: #888;
+  border-top: 1px solid #ddd;
+  padding-top: 5px;
+}
+
+.message-group {
+  margin-bottom: 20px;
+}
+
 .message {
   background-color: #e1f5fe;
   margin: 12px 0;
@@ -701,6 +828,7 @@ export default {
 .message-content {
   margin-top: 8px;
   font-size: 14px;
+  white-space: pre-wrap;
 }
 
 .message.mine {

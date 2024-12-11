@@ -32,12 +32,9 @@ export const chatService = {
             throw error;
         }
     },
-    async fetchChats(pageCursor) {
+    async fetchChats(queryParams) {
         try {
-            if (!pageCursor) {
-                return await apiClient.get(`/api/chats?size=3`)
-            }
-            return await apiClient.get(`/api/chats?size=3&cursor=${pageCursor}`)
+            return await apiClient.get(`/api/chats?${queryParams.toString()}`)
         } catch (error) {
             if (error.message === "Нет токена доступа") {
                 await router.push("/");
@@ -88,6 +85,18 @@ export const chatService = {
             throw error;
         }
     },
+
+    async updateChat(chatId, chatName) {
+        try {
+            return await apiClient.patch(`/api/chats/${chatId}`, {"name_group": chatName});
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+
     async updateGroupImage(chatId, formData) {
         try {
             return await apiClient.patch(

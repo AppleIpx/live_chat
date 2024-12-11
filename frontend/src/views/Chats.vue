@@ -132,6 +132,7 @@
 <script>
 import SSEManager from "@/services/sseService";
 import {chatService, messageService, userService} from "@/services/apiService";
+import router from "@/router";
 
 export default {
   data() {
@@ -172,8 +173,13 @@ export default {
           this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
           this.isLoading = false;
         }, 10000);
-
-        const response = await this.$store.dispatch("StoreFetchChats", pageCursor);
+        const params = new URLSearchParams();
+        if (pageCursor) params.append("cursor", pageCursor);
+        for (const [key, value] of Object.entries(this.$route.query)) {
+          params.append(key, value);
+        }
+        params.append("size", "3");
+        const response = await this.$store.dispatch("StoreFetchChats", params);
         this.nextCursor = response.data.next_page;
         this.previousCursor = response.data.previous_page || null;
         this.chats = response.data.items;
@@ -196,6 +202,20 @@ export default {
         clearTimeout(timeout);
         this.isLoading = false;
       } catch (error) {
+        if (error.response) {
+          const status = error.response.status;
+          switch (status) {
+            case 403:
+              await router.push("/403");
+              break;
+            case 404:
+              await router.push("/404");
+              break;
+            case 500:
+              await router.push("/500");
+              break;
+          }
+        }
         console.log(error);
         this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
         this.isLoading = false;

@@ -1,3 +1,4 @@
+import contextlib
 from typing import BinaryIO
 
 import boto3
@@ -21,6 +22,8 @@ class S3Client:
 
     async def upload_file(self, file: BinaryIO, path: str) -> str:
         """Upload a file to an S3 bucket."""
+        with contextlib.suppress(self.s3_client.exceptions.ClientError):
+            self.s3_client.delete_object(Bucket=self.bucket_name, Key=path)
         self.s3_client.upload_fileobj(file, self.bucket_name, path)
         return f"{settings.minio_url}{path}"
 

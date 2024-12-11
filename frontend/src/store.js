@@ -60,9 +60,9 @@ const store = createStore({
                 }
             },
 
-            async StoreFetchChats({commit}, pageCursor) {
+            async StoreFetchChats({commit}, queryParams) {
                 try {
-                    const response = await chatService.fetchChats(pageCursor);
+                    const response = await chatService.fetchChats(queryParams);
                     const chats = response.data.items;
                     commit("setChats", chats);
                     return response;

@@ -1,8 +1,8 @@
 <template>
   <div class="profile">
     <div class="profile-container">
-      <h2>Профиль пользователя</h2>
       <div v-if="user">
+        <h2 class="profile-header">Профиль {{ user.username }}</h2>
         <div class="profile-info">
           <!-- Avatar Display -->
           <div class="avatar-container">
@@ -13,23 +13,52 @@
                   alt="Аватар"
                   class="avatar-image"
               />
-              <div v-else class="avatar-placeholder"></div>
+              <img
+                  v-else
+                  src="/default_avatar.png"
+                  alt="Аватар по умолчанию"
+                  class="avatar-image"
+              />
             </div>
           </div>
 
           <!-- Profile Information -->
-          <p><strong>Имя пользователя:</strong> {{ user.username }}</p>
-          <p><strong>Email:</strong> {{ user.email }}</p>
-          <p><strong>Имя:</strong> {{ user.first_name }}</p>
-          <p><strong>Фамилия:</strong> {{ user.last_name }}</p>
-          <p><strong>Статус:</strong> {{ user.is_active ? 'Активен' : 'Неактивен' }}</p>
-          <p><strong>Роль:</strong>
-            {{ user.is_superuser ? 'Администратор' : 'Пользователь' }}</p>
-          <p><strong>Подтвержден:</strong> {{ user.is_verified ? 'Да' : 'Нет' }}</p>
+          <div class="info-item">
+            <i class="fa fa-user"></i>
+            <strong class="info-value">{{ user.username }}</strong>
+          </div>
+          <div class="info-item">
+            <i class="fa fa-envelope"></i>
+            <a :href="'mailto:' + user.email">
+              <strong class="info-value">
+                {{ user.email }}
+              </strong>
+            </a>
+          </div>
+          <div class="info-item">
+            <i class="fa fa-id-card"></i>
+            <strong class="info-value">{{ user.first_name || 'Не указано' }}
+              {{ user.last_name || 'Не указано' }}</strong>
+          </div>
+          <div class="info-item">
+            <i class="fa fa-user-shield"></i>
+            <strong class="info-value">{{
+                user.is_superuser ? 'Администратор' : 'Пользователь'
+              }}</strong>
+          </div>
+          <div class="info-item">
+            <i
+                :class="user.is_verified ? 'fa fa-check-circle success-icon' : 'fa fa-times-circle error-icon'"
+            ></i>
+            <strong class="info-value">
+              {{ user.is_verified ? 'Подтвержден' : 'Не подтвержден' }}
+            </strong>
+          </div>
         </div>
-        <br>
-        <router-link to="/chats">
-          <button class="button">Перейти к совместным чатам (не реализовано)</button>
+
+        <!-- Navigation Button -->
+        <router-link :to="{ path: '/chats', query: { user_id_exists: user.id } }">
+          <button class="button">Перейти к совместным чатам</button>
         </router-link>
       </div>
       <div v-else>
@@ -44,6 +73,7 @@
 
 <script>
 import {userService} from "@/services/apiService";
+import router from "@/router";
 
 export default {
   data() {
@@ -62,6 +92,20 @@ export default {
         const response = await userService.fetchUserDetails(user_id)
         this.user = response.data;
       } catch (error) {
+        if (error.response) {
+          const status = error.response.status;
+          switch (status) {
+            case 403:
+              await router.push("/403");
+              break;
+            case 404:
+              await router.push("/404");
+              break;
+            case 500:
+              await router.push("/500");
+              break;
+          }
+        }
         console.error('Ошибка получения профиля:', error);
         this.error = 'Не удалось загрузить профиль. Пожалуйста, попробуйте позже.';
       }
@@ -81,85 +125,49 @@ export default {
 }
 
 .profile-container {
-  background-color: white;
+  background-color: #fff;
   padding: 30px;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 500px;
+  max-width: 600px;
+  text-align: center;
 }
 
-.profile h2 {
+.profile-header {
   color: #37a5de;
-  font-size: 24px;
-  text-align: center;
+  font-size: 28px;
   margin-bottom: 20px;
 }
 
 .profile-info {
   font-size: 16px;
   color: #333;
+  margin-top: 20px;
 }
 
-.profile-info p {
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
   margin: 10px 0;
-  line-height: 1.6;
-}
-
-.profile-info strong {
-  color: #37a5de;
-}
-
-.profile-info input {
-  width: 100%;
-  padding: 8px;
-  margin: 5px 0;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
-}
-
-.loading-container {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
   text-align: center;
 }
 
-.loading-spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #37a5de;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 2s linear infinite;
-  margin: 20px auto;
+.info-value {
+  color: #000;
+  font-size: 16px;
 }
 
-.loading-text {
-  color: #37a5de;
-  font-size: 18px;
+.success-icon {
+  color: #28a745;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 600px) {
-  .profile-container {
-    padding: 20px;
-    width: 100%;
-  }
-
-  .profile h2 {
-    font-size: 20px;
-  }
-
-  .profile-info p {
-    font-size: 14px;
-  }
+.error-icon {
+  color: #dc3545;
 }
 
 .avatar-container {
@@ -169,7 +177,6 @@ export default {
 }
 
 .avatar-wrapper {
-  position: relative;
   display: inline-block;
   width: 150px;
   height: 150px;
@@ -182,18 +189,16 @@ export default {
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  background-color: #ddd;
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.avatar-placeholder::after {
-  content: ' ';
-  display: block;
+  font-size: 64px;
+  color: #fff;
+  background-color: #37a5de;
 }
 
 .button {
+  margin-top: 20px;
   padding: 12px 30px;
   background-color: #37a5de;
   color: white;
@@ -202,10 +207,10 @@ export default {
   cursor: pointer;
   width: 100%;
   text-align: center;
+  transition: background-color 0.3s ease;
 }
 
 .button:hover {
   background-color: #2a8fbe;
 }
-
 </style>
