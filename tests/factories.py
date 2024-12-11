@@ -80,6 +80,7 @@ class ReadStatusFactory(factory.alchemy.SQLAlchemyModelFactory):
 
     id = factory.LazyFunction(uuid.uuid4)
     last_read_message_id = None
+    count_unread_msg = factory.Faker("random_int", min=0, max=100)
     user = factory.SubFactory(UserFactory)
     chat = factory.SubFactory(ChatFactory)
     created_at = factory.LazyFunction(datetime.now)

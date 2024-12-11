@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import ReadStatus
-from live_chat.web.api.chat.utils.get_read_status_by_id import get_read_status_by_id
+from live_chat.web.api.read_status.utils import get_read_status_by_id
 from tests.factories import ReadStatusFactory
 
 
@@ -21,6 +21,7 @@ async def test_check_fields_read_status(
     assert read_status.updated_at == read_status_db.updated_at
     assert read_status.created_at == read_status_db.created_at
     assert read_status.is_deleted == read_status_db.is_deleted
+    assert read_status.count_unread_msg == read_status_db.count_unread_msg
     assert read_status.user == read_status_db.user
     assert read_status.last_read_message_id == read_status_db.last_read_message_id
     assert read_status.chat == read_status_db.chat

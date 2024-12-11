@@ -22,8 +22,8 @@ from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.utils import (
     get_chat_by_id,
     get_user_chats,
-    validate_user_access_to_chat,
 )
+from live_chat.web.api.chat.utils.check_user_in_chat import validate_user_access_to_chat
 from live_chat.web.api.messages.constants import (
     REDIS_SSE_KEY_PREFIX,
 )
@@ -46,6 +46,9 @@ from live_chat.web.api.messages.utils.get_correct_last_message import (
 )
 from live_chat.web.api.messages.utils.recover_message import restore_message
 from live_chat.web.api.messages.utils.save_message import save_deleted_message_to_db
+from live_chat.web.api.read_status.utils.increase_in_unread_messages import (
+    increase_in_unread_messages,
+)
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils import current_active_user, get_user_manager
 
@@ -114,6 +117,11 @@ async def post_message(
     ):
         message_data: GetMessageSchema = transformation_message([created_message])[0]
         event_data = jsonable_encoder(message_data.model_dump())
+        await increase_in_unread_messages(
+            chat=chat,
+            current_user=current_user,
+            db_session=db_session,
+        )
         await publish_faststream("new_message", chat.users, event_data, chat.id)
         return {"status": "Message published"}
     raise HTTPException(
