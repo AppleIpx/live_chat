@@ -132,6 +132,7 @@
 <script>
 import SSEManager from "@/services/sseService";
 import {chatService, messageService, userService} from "@/services/apiService";
+import router from "@/router";
 
 export default {
   data() {
@@ -201,6 +202,20 @@ export default {
         clearTimeout(timeout);
         this.isLoading = false;
       } catch (error) {
+        if (error.response) {
+          const status = error.response.status;
+          switch (status) {
+            case 403:
+              await router.push("/403");
+              break;
+            case 404:
+              await router.push("/404");
+              break;
+            case 500:
+              await router.push("/500");
+              break;
+          }
+        }
         console.log(error);
         this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
         this.isLoading = false;

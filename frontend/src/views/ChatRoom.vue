@@ -242,6 +242,7 @@ import {chatService, messageService} from "@/services/apiService";
 import SSEManager from "@/services/sseService";
 import EmojiPicker from "vue3-emoji-picker";
 import 'vue3-emoji-picker/css'
+import router from "@/router";
 
 
 export default {
@@ -386,6 +387,20 @@ export default {
         }
         return Promise.resolve();
       } catch (error) {
+        if (error.response) {
+          const status = error.response.status;
+          switch (status) {
+            case 403:
+              await router.push("/403");
+              break;
+            case 404:
+              await router.push("/404");
+              break;
+            case 500:
+              await router.push("/500");
+              break;
+          }
+        }
         console.error("Error fetching chat details:", error);
         return Promise.reject(error);
       }

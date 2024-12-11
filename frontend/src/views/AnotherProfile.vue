@@ -73,6 +73,7 @@
 
 <script>
 import {userService} from "@/services/apiService";
+import router from "@/router";
 
 export default {
   data() {
@@ -91,6 +92,20 @@ export default {
         const response = await userService.fetchUserDetails(user_id)
         this.user = response.data;
       } catch (error) {
+        if (error.response) {
+          const status = error.response.status;
+          switch (status) {
+            case 403:
+              await router.push("/403");
+              break;
+            case 404:
+              await router.push("/404");
+              break;
+            case 500:
+              await router.push("/500");
+              break;
+          }
+        }
         console.error('Ошибка получения профиля:', error);
         this.error = 'Не удалось загрузить профиль. Пожалуйста, попробуйте позже.';
       }
