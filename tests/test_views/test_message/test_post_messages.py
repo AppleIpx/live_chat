@@ -11,7 +11,6 @@ from starlette import status
 
 from live_chat.db.models.chat import Message
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
-from live_chat.web.api.read_status.utils import get_read_status_by_user_chat_ids
 from tests.factories import ChatFactory, ReadStatusFactory
 from tests.utils import transformation_message_data
 
