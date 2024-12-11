@@ -147,7 +147,7 @@ async def get_list_chats_view(
     set_page(CursorPage[ChatSchema])
     query = (
         select(Chat)
-        .options(selectinload(Chat.read_statuses))
+        .options(selectinload(Chat.read_status))
         .where(Chat.users.any(id=current_user.id))
         .order_by(Chat.updated_at.desc())
     )
@@ -162,7 +162,7 @@ async def get_list_chats_view(
         status.chat_id: status for status in read_statuses.scalars().all()
     }
     for chat in chats.items:
-        chat.read_statuses = read_status_dict.get(chat.id)
+        chat.read_status = read_status_dict.get(chat.id)
     return chats
 
 
@@ -220,7 +220,7 @@ async def get_detail_chat_view(
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         users=users_data,
-        read_statuses=read_status_schema,
+        read_status=read_status_schema,
     )
 
 

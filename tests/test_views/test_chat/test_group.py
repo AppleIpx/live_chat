@@ -60,7 +60,7 @@ async def test_create_group_chat(
         "users": expected_users,
         "image": chat.image,
         "name": chat.name,
-        "read_statuses": {
+        "read_status": {
             "id": str(read_status.id),
             "chat_id": str(read_status.chat_id),
             "count_unread_msg": read_status.count_unread_msg,

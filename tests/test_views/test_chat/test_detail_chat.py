@@ -61,7 +61,7 @@ async def test_get_detail_chat(
                 "user_image": recipient.user_image,
             },
         ],
-        "read_statuses": {
+        "read_status": {
             "id": str(read_status.id),
             "chat_id": str(read_status.chat_id),
             "count_unread_msg": read_status.count_unread_msg,

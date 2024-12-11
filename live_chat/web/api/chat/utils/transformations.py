@@ -21,5 +21,5 @@ async def transformation_chat(chat: Chat, read_status: ReadStatus) -> ChatSchema
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         users=chat.users,
-        read_statuses=read_status_schema,
+        read_status=read_status_schema,
     )
