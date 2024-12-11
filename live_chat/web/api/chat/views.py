@@ -132,21 +132,10 @@ async def get_list_chats_view(
 ) -> CursorPage[ChatSchema]:
     """Getting chats to which a user has been added."""
     set_page(CursorPage[ChatSchema])
+    query = select(Chat).where(Chat.users.any(id=current_user.id))
     if user_id_exists and await get_user_by_id(db_session, user_id=user_id_exists):
-        query = (
-            select(Chat)
-            .where(
-                Chat.users.any(id=current_user.id),
-                Chat.users.any(id=user_id_exists),
-            )
-            .order_by(Chat.updated_at.desc())
-        )
-    else:
-        query = (
-            select(Chat)
-            .where(Chat.users.any(id=current_user.id))
-            .order_by(Chat.updated_at.desc())
-        )
+        query = query.where(Chat.users.any(id=user_id_exists))
+    query = query.order_by(Chat.updated_at.desc())
     return await paginate(db_session, query, params=params)
 
 
