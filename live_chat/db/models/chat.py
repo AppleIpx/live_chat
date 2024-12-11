@@ -10,6 +10,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Integer,
     String,
     Table,
 )
@@ -102,7 +103,7 @@ class Chat(Base):
         back_populates="chat",
         overlaps="messages",
     )
-    read_statuses: Mapped[List["ReadStatus"]] = relationship(
+    read_status: Mapped["ReadStatus"] = relationship(
         back_populates="chat",
         cascade="all,delete",
     )
@@ -118,11 +119,12 @@ class ReadStatus(RemoveBaseFieldsMixin, Base):  # type: ignore[misc]
 
     id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
     last_read_message_id: Mapped[UUID] = mapped_column(GUID, nullable=True)
+    count_unread_msg: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
     chat_id: Mapped[UUID] = mapped_column(ForeignKey("chat.id"))
 
-    chat: Mapped[Chat] = relationship(back_populates="read_statuses")
-    user: Mapped["User"] = relationship(back_populates="read_statuses")
+    chat: Mapped[Chat] = relationship(back_populates="read_status")
+    user: Mapped["User"] = relationship(back_populates="read_status")
 
     def __str__(self) -> str:
         return f"User: {self.user_id}, Message: {self.last_read_message_id}"
@@ -153,7 +155,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         back_populates="user",
         overlaps="messages",
     )
-    read_statuses: Mapped[List["ReadStatus"]] = relationship(
+    read_status: Mapped[List["ReadStatus"]] = relationship(
         back_populates="user",
     )
 

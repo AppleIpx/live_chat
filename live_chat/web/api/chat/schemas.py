@@ -8,8 +8,25 @@ from live_chat.db.models.enums import ChatType
 from live_chat.web.api.users.schemas import UserRead
 
 
-class ChatSchema(BaseModel):
-    """Represents a get command for a direct/group chat."""
+class ReadStatusSchema(BaseModel):
+    """Represents a get command for a read status in chat."""
+
+    id: UUID
+    last_read_message_id: UUID | None
+    user_id: UUID
+    chat_id: UUID
+    count_unread_msg: int
+
+
+class UpdateReadStatusSchema(BaseModel):
+    """Represents a patch command for a read status in chat."""
+
+    last_read_message_id: UUID
+    count_unread_msg: int = 0
+
+
+class BaseChatSchema(BaseModel):
+    """Base class to represent the chat."""
 
     id: UUID
     chat_type: ChatType
@@ -19,8 +36,18 @@ class ChatSchema(BaseModel):
     updated_at: datetime
     users: list[UserRead]  # type: ignore[type-arg]
 
+
+class ChatSchema(BaseChatSchema):
+    """Represents a get command for a direct/group chat."""
+
+    read_status: ReadStatusSchema
+
     class Config:
         from_attributes = True
+
+
+class DeletedChatSchema(BaseChatSchema):
+    """Represents a get command for a deleted chat."""
 
 
 class CreateDirectChatSchema(BaseModel):

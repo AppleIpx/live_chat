@@ -11,7 +11,7 @@ from starlette import status
 
 from live_chat.db.models.chat import Message
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
-from tests.factories import ChatFactory
+from tests.factories import ChatFactory, ReadStatusFactory
 from tests.utils import transformation_message_data
 
 
@@ -26,6 +26,15 @@ async def test_post_message(
     """Testing post message."""
     chat_id = direct_chat_with_users.id
     recipient = direct_chat_with_users.users[1]
+    ReadStatusFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    read_status = ReadStatusFactory(
+        chat_id=chat_id,
+        chat=direct_chat_with_users,
+        user=recipient,
+        user_id=recipient.id,
+        last_read_message_id=None,
+        count_unread_msg=0,
+    )
     target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat_id!s}:{recipient.id!s}"
     response = await authorized_client.post(
         f"/api/chats/{chat_id}/messages",
@@ -34,11 +43,11 @@ async def test_post_message(
     query = select(Message).where(Message.chat_id == chat_id)
     message = (await dbsession.execute(query)).scalar_one_or_none()
     message_data = await transformation_message_data(message)
-
     mocked_publish_message.assert_called_with(
         json.dumps({"event": "new_message", "data": message_data}),
         channel=target_channel,
     )
+    assert read_status.count_unread_msg == 1
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {"status": "Message published"}
 
