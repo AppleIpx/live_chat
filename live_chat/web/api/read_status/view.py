@@ -26,7 +26,7 @@ async def update_read_status(
     chat: Chat = Depends(validate_user_access_to_chat),
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
-) -> ReadStatusSchema | HTTPException:
+) -> ReadStatusSchema:
     """Update read status."""
     if read_status := await get_read_status_by_user_chat_ids(
         db_session=db_session,

@@ -28,7 +28,7 @@ async def test_post_message(
     chat_id = direct_chat_with_users.id
     recipient = direct_chat_with_users.users[1]
     ReadStatusFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    ReadStatusFactory(
+    read_status = ReadStatusFactory(
         chat_id=chat_id,
         chat=direct_chat_with_users,
         user=recipient,
@@ -44,11 +44,6 @@ async def test_post_message(
     query = select(Message).where(Message.chat_id == chat_id)
     message = (await dbsession.execute(query)).scalar_one_or_none()
     message_data = await transformation_message_data(message)
-    read_status = await get_read_status_by_user_chat_ids(
-        db_session=dbsession,
-        chat_id=chat_id,
-        user_id=recipient.id,
-    )
     mocked_publish_message.assert_called_with(
         json.dumps({"event": "new_message", "data": message_data}),
         channel=target_channel,
