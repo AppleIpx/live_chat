@@ -74,36 +74,50 @@
             class="messages-list"
             ref="messagesList"
             @scroll="onScroll">
+
+          <!-- Group messages by date -->
           <div
-              class="message"
-              v-for="message in messages"
-              :key="message.id"
-              :class="{'mine': message.isMine, 'other': !message.isMine}">
-            <div class="message-header">
-              <strong>
-                <a v-if="message.user || message.user_id"
-                   :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
-                  {{ message.user.id === user.id ? 'Вы' : message.user.username }}
-                </a>
-                <span v-else>Загрузка...</span>
-              </strong>
-              <span class="timestamp">
+              v-for="(messages, date) in groupedMessages"
+              :key="date"
+              class="message-group">
+
+            <!-- Date separator -->
+            <div class="date-separator">
+              {{ formatDate(date) }}
+            </div>
+
+            <!-- Messages for this date -->
+            <div
+                class="message"
+                v-for="message in messages"
+                :key="message.id"
+                :class="{'mine': message.isMine, 'other': !message.isMine}">
+              <div class="message-header">
+                <strong>
+                  <a v-if="message.user || message.user_id"
+                     :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
+                    {{ message.user.id === user.id ? 'Вы' : message.user.username }}
+                  </a>
+                  <span v-else>Загрузка...</span>
+                </strong>
+                <span class="timestamp">
           {{ message.created_at }}
           <i v-if="message.created_at !== message.updated_at"
              class="fa fa-pencil edited-indicator"
              title="Сообщение было изменено"></i>
-        </span>
-            </div>
-            <div class="message-content">{{ message.content }}</div>
-            <div v-if="message.isMine" class="message-options">
-              <button @click="toggleMenu(message.id)" class="menu-button">...</button>
-              <div v-if="message.showMenu" class="menu-dropdown">
-                <button @click="openEditModal(message)" class="icon-button-update">
-                  <i class="fa fa-pencil"></i>
-                </button>
-                <button @click="openDeleteModal(message)" class="icon-button-delete">
-                  <i class="fa fa-trash"></i>
-                </button>
+            </span>
+              </div>
+              <div class="message-content">{{ message.content }}</div>
+              <div v-if="message.isMine" class="message-options">
+                <button @click="toggleMenu(message.id)" class="menu-button">...</button>
+                <div v-if="message.showMenu" class="menu-dropdown">
+                  <button @click="openEditModal(message)" class="icon-button-update">
+                    <i class="fa fa-pencil"></i>
+                  </button>
+                  <button @click="openDeleteModal(message)" class="icon-button-delete">
+                    <i class="fa fa-trash"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -189,7 +203,8 @@
       </div>
 
       <!-- Edit Modal -->
-      <div v-if="isEditModalVisible" class="modal-overlay" @click.self="closeEditModal">
+      <div v-if="isEditModalVisible" class="modal-overlay"
+           @click.self="closeEditModal">
         <div class="modal">
           <h3 class="modal-title">Изменить сообщение</h3>
           <div class="edit-container">
@@ -266,6 +281,17 @@ export default {
     isMouseOverTooltip() {
       return this.showGroupTooltip;
     },
+    groupedMessages() {
+      const grouped = {};
+      this.messages.forEach((message) => {
+        const date = new Date(message.created_at).toLocaleDateString().split('T')[0];
+        if (!grouped[date]) {
+          grouped[date] = [];
+        }
+        grouped[date].push(message);
+      });
+      return grouped;
+    },
   },
   watch: {
     chatId: {
@@ -291,6 +317,11 @@ export default {
     SSEManager.disconnect(this.chatId);
   },
   methods: {
+    formatDate(date) {
+      const options = {day: 'numeric', month: 'long', year: 'numeric',};
+      return new Date(date).toLocaleDateString("ru-RU", options);
+    },
+
     togglePicker() {
       this.showPicker = !this.showPicker;
     },
@@ -734,6 +765,20 @@ export default {
   max-height: 100%;
   overflow-y: scroll;
   padding: 0 15px;
+}
+
+.date-separator {
+  text-align: center;
+  margin: 10px 0;
+  font-size: 14px;
+  font-weight: bold;
+  color: #888;
+  border-top: 1px solid #ddd;
+  padding-top: 5px;
+}
+
+.message-group {
+  margin-bottom: 20px;
 }
 
 .message {
