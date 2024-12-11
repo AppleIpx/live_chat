@@ -4,7 +4,6 @@ from starlette import status
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Chat,
-    ReadStatus,
     User,
 )
 from live_chat.db.utils import get_async_session
@@ -29,24 +28,23 @@ async def update_read_status(
     current_user: User = Depends(current_active_user),
 ) -> ReadStatusSchema | HTTPException:
     """Update read status."""
-    read_status: ReadStatus | None = await get_read_status_by_user_chat_ids(
+    if read_status := await get_read_status_by_user_chat_ids(
         db_session=db_session,
         user_id=current_user.id,
         chat_id=chat.id,
-    )
-    if not read_status:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Read status not found for the given chat and user.",
+    ):
+        read_status.last_read_message_id = update_read_status.last_read_message_id
+        db_session.add(read_status)
+        await db_session.commit()
+        await db_session.refresh(read_status)
+        return ReadStatusSchema(
+            id=read_status.id,
+            last_read_message_id=read_status.last_read_message_id,
+            user_id=read_status.user_id,
+            chat_id=read_status.chat_id,
+            count_unread_msg=update_read_status.count_unread_msg,
         )
-    read_status.last_read_message_id = update_read_status.last_read_message_id
-    db_session.add(read_status)
-    await db_session.commit()
-    await db_session.refresh(read_status)
-    return ReadStatusSchema(
-        id=read_status.id,
-        last_read_message_id=read_status.last_read_message_id,
-        user_id=read_status.user_id,
-        chat_id=read_status.chat_id,
-        count_unread_msg=update_read_status.count_unread_msg,
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Read status not found for the given chat and user.",
     )

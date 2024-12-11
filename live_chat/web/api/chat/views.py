@@ -205,6 +205,13 @@ async def get_detail_chat_view(
         chat_id=chat.id,
         user_id=current_user.id,
     )
+    read_status_schema = ReadStatusSchema(
+        id=read_status.id,
+        chat_id=read_status.chat_id,
+        user_id=read_status.user_id,
+        last_read_message_id=read_status.last_read_message_id,
+        count_unread_msg=0,
+    )
     return ChatSchema(
         id=chat.id,
         chat_type=chat.chat_type,
@@ -213,13 +220,7 @@ async def get_detail_chat_view(
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         users=users_data,
-        read_statuses=ReadStatusSchema(
-            id=read_status.id,
-            chat_id=read_status.chat_id,
-            user_id=read_status.user_id,
-            last_read_message_id=read_status.last_read_message_id,
-            count_unread_msg=0,
-        ),
+        read_statuses=read_status_schema,
     )
 
 

@@ -14,14 +14,14 @@ async def increase_in_unread_messages(
     """Helper function that increments the unread message counter for each users."""
     recipients = [user for user in chat.users if user.id != current_user.id]
     for recipient in recipients:
-        read_status = await get_read_status_by_user_chat_ids(
+        if read_status := await get_read_status_by_user_chat_ids(
             db_session=db_session,
             chat_id=chat.id,
             user_id=recipient.id,
-        )
-        if read_status:
+        ):
             read_status.count_unread_msg += 1
             db_session.add(read_status)
+
         else:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
