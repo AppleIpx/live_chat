@@ -35,7 +35,9 @@ from live_chat.web.api.chat.utils import (
     validate_user_access_to_chat,
 )
 from live_chat.web.api.messages.utils import publish_faststream
-from live_chat.web.api.read_status.utils import get_read_status_by_user_chat_ids
+from live_chat.web.api.read_status.utils.get_read_status_by_id import (
+    get_read_statuses_by_chat_id,
+)
 from live_chat.web.api.users.schemas import UserRead
 from live_chat.web.api.users.utils import (
     collect_users_for_group,
@@ -98,12 +100,11 @@ async def create_direct_chat_view(
         initiator_user=current_user,
         recipient_user=recipient_user,
     )
-    read_status: ReadStatus = await get_read_status_by_user_chat_ids(
+    read_statuses: List[ReadStatus] = await get_read_statuses_by_chat_id(
         db_session=db_session,
         chat_id=chat.id,
-        user_id=current_user.id,
     )
-    return await transformation_chat(chat, read_status)
+    return await transformation_chat(chat, read_statuses)
 
 
 @chat_router.post(
@@ -130,12 +131,11 @@ async def create_group_chat_view(
         recipient_users=recipient_users,
         create_group_chat_schema=create_group_chat_schema,
     )
-    read_status: ReadStatus = await get_read_status_by_user_chat_ids(
+    read_statuses: List[ReadStatus] = await get_read_statuses_by_chat_id(
         db_session=db_session,
         chat_id=chat.id,
-        user_id=current_user.id,
     )
-    return await transformation_chat(chat, read_status)
+    return await transformation_chat(chat, read_statuses)
 
 
 @chat_router.get("", summary="List chats")
@@ -149,7 +149,7 @@ async def get_list_chats_view(
     set_page(CursorPage[ChatSchema])
     query = (
         select(Chat)
-        .options(selectinload(Chat.read_status))
+        .options(selectinload(Chat.read_statuses))
         .where(Chat.users.any(id=current_user.id))
         .order_by(Chat.updated_at.desc())
     )
@@ -166,7 +166,7 @@ async def get_list_chats_view(
         status.chat_id: status for status in read_statuses.scalars().all()
     }
     for chat in chats.items:
-        chat.read_status = read_status_dict.get(chat.id)
+        chat.read_statuses = [read_status_dict.get(chat.id)]
     return chats
 
 
@@ -204,18 +204,20 @@ async def get_detail_chat_view(
 ) -> ChatSchema:
     """Get detail chat by id."""
     users_data: List[UserRead] = transformation_users(chat.users)
-    read_status: ReadStatus = await get_read_status_by_user_chat_ids(
+    read_statuses: List[ReadStatus] = await get_read_statuses_by_chat_id(
         db_session=db_session,
         chat_id=chat.id,
-        user_id=current_user.id,
     )
-    read_status_schema = ReadStatusSchema(
-        id=read_status.id,
-        chat_id=read_status.chat_id,
-        user_id=read_status.user_id,
-        last_read_message_id=read_status.last_read_message_id,
-        count_unread_msg=read_status.count_unread_msg,
-    )
+    read_statuses_schema = [
+        ReadStatusSchema(
+            id=read_status.id,
+            chat_id=read_status.chat_id,
+            user_id=read_status.user_id,
+            last_read_message_id=read_status.last_read_message_id,
+            count_unread_msg=read_status.count_unread_msg,
+        )
+        for read_status in read_statuses
+    ]
     return ChatSchema(
         id=chat.id,
         chat_type=chat.chat_type,
@@ -224,7 +226,7 @@ async def get_detail_chat_view(
         created_at=chat.created_at,
         updated_at=chat.updated_at,
         users=users_data,
-        read_status=read_status_schema,
+        read_statuses=read_statuses_schema,
     )
 
 
