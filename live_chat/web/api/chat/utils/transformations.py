@@ -10,17 +10,16 @@ async def transformation_chat(
     read_statuses: List[ReadStatus],
 ) -> ChatSchema:
     """Transform a  Chat objects into a ChatSchema objects."""
-    if read_statuses:
-        read_statuses_schema = [
-            ReadStatusSchema(
-                id=read_status.id,
-                chat_id=read_status.chat_id,
-                user_id=read_status.user_id,
-                last_read_message_id=read_status.last_read_message_id,
-                count_unread_msg=0,
-            )
-            for read_status in read_statuses
-        ]
+    read_statuses_schema = [
+        ReadStatusSchema(
+            id=read_status.id,
+            chat_id=read_status.chat_id,
+            user_id=read_status.user_id,
+            last_read_message_id=read_status.last_read_message_id,
+            count_unread_msg=0,
+        )
+        for read_status in read_statuses
+    ]
 
     return ChatSchema(
         id=chat.id,
