@@ -40,7 +40,7 @@ class BaseChatSchema(BaseModel):
 class ChatSchema(BaseChatSchema):
     """Represents a get command for a direct/group chat."""
 
-    read_status: ReadStatusSchema
+    read_statuses: List[ReadStatusSchema]
 
     class Config:
         from_attributes = True

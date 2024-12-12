@@ -51,6 +51,7 @@ async def any_chat_with_users(
     recipient = user
     chat = ChatFactory(users=[sender, recipient])
     await create_read_status_for_chat(dbsession=dbsession, chat=chat, user=sender)
+    await create_read_status_for_chat(dbsession=dbsession, chat=chat, user=recipient)
     return chat
 
 

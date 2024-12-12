@@ -1,3 +1,4 @@
+from typing import List, cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -30,3 +31,14 @@ async def get_read_status_by_user_chat_ids(
     )
     result = await db_session.execute(query)
     return result.scalar_one_or_none()
+
+
+async def get_read_statuses_by_chat_id(
+    db_session: AsyncSession,
+    *,
+    chat_id: UUID,
+) -> List[ReadStatus]:
+    """Function to get a list of read statuses of all users in this chat."""
+    query = select(ReadStatus).where(ReadStatus.chat_id == chat_id)
+    result = await db_session.execute(query)
+    return cast(List[ReadStatus], result.scalars().all())
