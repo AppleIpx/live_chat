@@ -214,7 +214,7 @@ async def get_detail_chat_view(
         chat_id=read_status.chat_id,
         user_id=read_status.user_id,
         last_read_message_id=read_status.last_read_message_id,
-        count_unread_msg=0,
+        count_unread_msg=read_status.count_unread_msg,
     )
     return ChatSchema(
         id=chat.id,

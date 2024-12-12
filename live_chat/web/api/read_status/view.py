@@ -34,6 +34,7 @@ async def update_read_status(
         chat_id=chat.id,
     ):
         read_status.last_read_message_id = update_read_status.last_read_message_id
+        read_status.count_unread_msg = update_read_status.count_unread_msg
         db_session.add(read_status)
         await db_session.commit()
         await db_session.refresh(read_status)

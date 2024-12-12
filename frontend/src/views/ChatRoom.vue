@@ -91,6 +91,7 @@
                 class="message"
                 v-for="message in messages"
                 :key="message.id"
+                :ref="el => (messageRefs[message.id] = el)"
                 :class="{'mine': message.isMine, 'other': !message.isMine}">
               <div class="message-header">
                 <strong>
@@ -238,7 +239,7 @@
 
 
 <script>
-import {chatService, messageService} from "@/services/apiService";
+import {chatService, messageService, readStatusService} from "@/services/apiService";
 import SSEManager from "@/services/sseService";
 import EmojiPicker from "vue3-emoji-picker";
 import 'vue3-emoji-picker/css'
@@ -276,6 +277,8 @@ export default {
       messageToDelete: null,
       typingMessage: "",
       isTyping: false,
+      lastReadMessageId: null,
+      messageRefs: {},
     };
   },
   computed: {
@@ -315,9 +318,23 @@ export default {
     });
   },
   beforeUnmount() {
+    this.sendReadStatusOnExit();
     SSEManager.disconnect(this.chatId);
   },
   methods: {
+    async sendReadStatusOnExit() {
+      if (this.lastReadMessageId) {
+        const unreadCount = this.messages.length - this.messages.findIndex(
+            msg => msg.id === this.lastReadMessageId
+        ) - 1;
+
+        await readStatusService.updateReadStatus(this.chatId, {
+          last_read_message_id: this.lastReadMessageId,
+          count_unread_msg: unreadCount,
+        });
+      }
+    },
+
     formatDate(date) {
       const options = {day: 'numeric', month: 'long', year: 'numeric',};
       return new Date(date).toLocaleDateString("ru-RU", options);
@@ -486,7 +503,7 @@ export default {
       try {
         const response = await messageService.fetchMessages(this.chatId, {
           cursor: isInitialLoad ? null : this.cursor,
-          size: 30,
+          size: isInitialLoad ? 100 : 30,
         });
         const newMessages = response.data.items
             .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
@@ -499,20 +516,36 @@ export default {
               showMenu: false,
               isMine: message.user_id === this.user.id,
             }));
-
+        const lastReadMessageId = this.chatData.read_status.last_read_message_id;
+        const countUnreadMessages = this.chatData.read_status.count_unread_msg
         if (isInitialLoad) {
           this.messages = [...newMessages];
         } else {
           this.messages = [...newMessages, ...this.messages];
         }
 
+        if (isInitialLoad && lastReadMessageId && countUnreadMessages < 99) {
+          await this.$nextTick();
+          const targetMessage = this.messageRefs[lastReadMessageId]
+
+          if (targetMessage) {
+            const container = this.$refs.messagesList;
+            container.scrollTop = targetMessage.offsetTop - container.offsetTop;
+          }
+        } else if (isInitialLoad && countUnreadMessages > 99) {
+          this.scrollToBottom();
+          const lastMessageId = this.messages[this.messages.length - 1].id;
+          await readStatusService.updateReadStatus(this.chatId, {
+            last_read_message_id: lastMessageId,
+            count_unread_msg: 0,
+          });
+        }
+
         this.cursor = response.data.next_page;
         this.hasMoreMessages = !!this.cursor;
         const container = this.$refs.messagesList;
 
-        if (isInitialLoad) {
-          this.scrollToBottom();
-        } else {
+        if (!isInitialLoad) {
           const currentScrollTop = container.scrollTop;
           const prevHeight = container.scrollHeight;
           container.scrollTop = currentScrollTop;
@@ -530,8 +563,31 @@ export default {
 
     async onScroll() {
       const container = this.$refs.messagesList;
-      if (container.scrollTop < 100 && this.hasMoreMessages) {
+      const scrollTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+
+      if (scrollTop < 100 && this.hasMoreMessages) {
         await this.loadMessages();
+      }
+
+      const visibleMessages = this.messages.filter(message => {
+        const messageElement = this.messageRefs[message.id];
+        if (!messageElement || !(messageElement instanceof Element)) return false;
+        const rect = messageElement.getBoundingClientRect();
+        return rect.top >= 0 && rect.bottom <= window.innerHeight;
+      });
+
+      if (visibleMessages.length > 0) {
+        const lastVisibleMessage = visibleMessages[visibleMessages.length - 1];
+        this.lastReadMessageId = lastVisibleMessage.id;
+      }
+
+      if (scrollTop + clientHeight >= scrollHeight - 10 && this.lastReadMessageId) {
+        await readStatusService.updateReadStatus(this.chatId, {
+          last_read_message_id: this.lastReadMessageId,
+          count_unread_msg: 0,
+        });
       }
     },
 
@@ -704,8 +760,10 @@ export default {
         console.error("Error sending message:", error);
       }
     },
-  },
-};
+  }
+  ,
+}
+;
 </script>
 
 <style scoped>

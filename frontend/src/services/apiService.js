@@ -262,6 +262,19 @@ export const userService = {
     },
 };
 
+export const readStatusService = {
+    async updateReadStatus(chatId, readStatusData) {
+        try {
+            return await apiClient.patch(`/api/read_status/${chatId}/update`, readStatusData);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+};
+
 export const authService = {
     async loginUser(loginData) {
         return await apiClientWithoutAuth.post('/api/auth/jwt/login', loginData)

@@ -95,7 +95,12 @@
       </div>
       <div v-else-if="chats && chats.length">
         <br>
-        <div class="chat-item" v-for="chat in chats" :key="chat.chat_id">
+        <div
+            class="chat-item"
+            v-for="chat in chats"
+            :key="chat.chat_id"
+            :class="{'unread-chat': chat.read_status && chat.read_status.count_unread_msg > 0}"
+        >
           <a :href="'/chats/' + chat.id" class="chat-item-link">
             <div class="chat-header">
               <span
@@ -110,6 +115,12 @@
                     <img :src="getChatPhoto(chat)" alt="Avatar"/>
                   </div>
                   <span class="chat-name">{{ getChatName(chat) }}</span>
+                  <span v-if="chat.read_status && chat.read_status.count_unread_msg > 0"
+                        class="unread-badge">
+                    {{
+                      chat.read_status.count_unread_msg > 99 ? '99+' : chat.read_status.count_unread_msg
+                    }}
+            </span>
                 </div>
               </strong>
               <span class="timestamp">{{ formatDate(chat.updated_at) }}</span>
@@ -180,6 +191,7 @@ export default {
         }
         params.append("size", "3");
         const response = await this.$store.dispatch("StoreFetchChats", params);
+        console.log(response.data)
         this.nextCursor = response.data.next_page;
         this.previousCursor = response.data.previous_page || null;
         this.chats = response.data.items;
@@ -434,6 +446,21 @@ h2 {
 .chat-item:hover {
   transform: translateY(-5px);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.unread-chat {
+  background-color: #f0f8ff;
+  border-left: 4px solid #37a5de;
+}
+
+.unread-badge {
+  display: inline-block;
+  background-color: #37a5de;
+  color: white;
+  border-radius: 50%;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
 }
 
 .chat-header {
