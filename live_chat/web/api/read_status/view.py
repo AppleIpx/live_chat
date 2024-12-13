@@ -10,7 +10,7 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.schemas import ReadStatusSchema, UpdateReadStatusSchema
 from live_chat.web.api.chat.utils import validate_user_access_to_chat
-from live_chat.web.api.messages.utils import publish_faststream
+from live_chat.web.api.messages.utils import get_message_by_id, publish_faststream
 from live_chat.web.api.read_status.utils import get_read_status_by_user_chat_ids
 from live_chat.web.api.users.utils import current_active_user
 
@@ -35,6 +35,14 @@ async def update_read_status(
         user_id=current_user.id,
         chat_id=chat.id,
     ):
+        if not await get_message_by_id(
+            db_session=db_session,
+            message_id=update_read_status.last_read_message_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Message not found",
+            )
         read_status.last_read_message_id = update_read_status.last_read_message_id
         read_status.count_unread_msg = update_read_status.count_unread_msg
         db_session.add(read_status)
