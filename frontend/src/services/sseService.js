@@ -4,7 +4,14 @@ import {userService} from "@/services/apiService";
 const SSEManager = {
     connections: {},
 
-    async connect(chatId, isChatOpenCallback, messageCallback, typingCallback, groupCallback) {
+    async connect(
+        chatId,
+        isChatOpenCallback,
+        messageCallback,
+        typingCallback,
+        groupCallback,
+        readStatusCallback,
+    ) {
         const token = localStorage.getItem("accessToken");
         if (!token) {
             console.error("Token not found");
@@ -78,6 +85,13 @@ const SSEManager = {
             const group_data = JSON.parse(event.data);
             if (isChatOpenCallback) {
                 groupCallback(group_data, "image");
+            }
+        });
+
+        eventSource.addEventListener("update_read_status", async (event) => {
+            const readStatusData = JSON.parse(event.data);
+            if (isChatOpenCallback) {
+                readStatusCallback(readStatusData);
             }
         });
 
