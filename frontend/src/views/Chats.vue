@@ -99,7 +99,7 @@
             class="chat-item"
             v-for="chat in chats"
             :key="chat.chat_id"
-            :class="{'unread-chat': chat.read_status && chat.read_status.count_unread_msg > 0}"
+            :class="{'unread-chat': chat.read_statuses[0] && chat.read_statuses[0].count_unread_msg > 0}"
         >
           <a :href="'/chats/' + chat.id" class="chat-item-link">
             <div class="chat-header">
@@ -115,10 +115,10 @@
                     <img :src="getChatPhoto(chat)" alt="Avatar"/>
                   </div>
                   <span class="chat-name">{{ getChatName(chat) }}</span>
-                  <span v-if="chat.read_status && chat.read_status.count_unread_msg > 0"
+                  <span v-if="chat.read_statuses[0] && chat.read_statuses[0].count_unread_msg > 0"
                         class="unread-badge">
                     {{
-                      chat.read_status.count_unread_msg > 99 ? '99+' : chat.read_status.count_unread_msg
+                      chat.read_statuses[0].count_unread_msg > 99 ? '99+' : chat.read_statuses[0].count_unread_msg
                     }}
             </span>
                 </div>
@@ -191,7 +191,6 @@ export default {
         }
         params.append("size", "3");
         const response = await this.$store.dispatch("StoreFetchChats", params);
-        console.log(response.data)
         this.nextCursor = response.data.next_page;
         this.previousCursor = response.data.previous_page || null;
         this.chats = response.data.items;

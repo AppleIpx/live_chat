@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -9,6 +10,7 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.schemas import ReadStatusSchema, UpdateReadStatusSchema
 from live_chat.web.api.chat.utils import validate_user_access_to_chat
+from live_chat.web.api.messages.utils import publish_faststream
 from live_chat.web.api.read_status.utils import get_read_status_by_user_chat_ids
 from live_chat.web.api.users.utils import current_active_user
 
@@ -38,13 +40,16 @@ async def update_read_status(
         db_session.add(read_status)
         await db_session.commit()
         await db_session.refresh(read_status)
-        return ReadStatusSchema(
+        read_status_schema = ReadStatusSchema(
             id=read_status.id,
             last_read_message_id=read_status.last_read_message_id,
             user_id=read_status.user_id,
             chat_id=read_status.chat_id,
             count_unread_msg=update_read_status.count_unread_msg,
         )
+        event_data = jsonable_encoder(read_status_schema)
+        await publish_faststream("update_read_status", chat.users, event_data, chat.id)
+        return read_status_schema
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="Read status not found for the given chat and user.",
