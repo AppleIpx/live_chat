@@ -17,7 +17,6 @@ from live_chat.web.api.black_list import (
 )
 from live_chat.web.api.black_list.utils import (
     add_user_to_black_list,
-    check_user_in_black_list,
     create_black_list,
     get_black_list_by_owner,
     transformation_black_list,
@@ -40,51 +39,34 @@ async def add_user_to_black_list_view(
     db_session: AsyncSession = Depends(get_async_session),
 ) -> BlackListSchema:
     """Add user to black list."""
-    try:
-        if not (
-            black_list := await get_black_list_by_owner(
-                current_user=current_user,
-                db_session=db_session,
-            )
-        ):
-            await create_black_list(current_user=current_user, db_session=db_session)
-        if not (
-            black_list_user := await get_user_by_id(
-                db_session=db_session,
-                user_id=create_direct_chat_schema.user_id,
-            )
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No user with this id found",
-            )
-        if await check_user_in_black_list(
-            black_list=black_list,
-            user_id_black_list=black_list_user.id,
-            db_session=db_session,
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User already blocked",
-            )
-        await add_user_to_black_list(
-            black_list=black_list,
-            black_list_user=black_list_user,
+    if not (
+        black_list := await get_black_list_by_owner(
+            current_user=current_user,
             db_session=db_session,
         )
-    except Exception as err:
-        await db_session.rollback()
+    ):
+        await create_black_list(current_user=current_user, db_session=db_session)
+    if not (
+        black_list_user := await get_user_by_id(
+            db_session=db_session,
+            user_id=create_direct_chat_schema.user_id,
+        )
+    ):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"An error occurred while adding a user to the blacklist, {err}",
-        ) from err
-    else:
-        await db_session.commit()
-        return await transformation_black_list(
-            black_list=black_list,
-            owner_id=current_user.id,
-            blocked_user=black_list_user,
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No user with this id found",
         )
+    await add_user_to_black_list(
+        black_list=black_list,
+        black_list_user=black_list_user,
+        db_session=db_session,
+    )
+    await db_session.commit()
+    return await transformation_black_list(
+        black_list=black_list,
+        owner_id=current_user.id,
+        blocked_user=black_list_user,
+    )
 
 
 @black_list_router.get(
