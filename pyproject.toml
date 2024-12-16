@@ -14,6 +14,7 @@ readme = "README.md"
 python = "^3.12"
 fastapi = "^0.115.4"
 fastapi-pagination = "^0.12.32"
+logfire = { version = "^2.7.1", extras = ["fastapi", "sqlalchemy"] }
 sqlakeyset = "^2.0.1726021475"
 faststream = "^0.5.28"
 sse-starlette = "^2.1.3"

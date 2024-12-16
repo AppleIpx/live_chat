@@ -63,6 +63,8 @@ class Settings(BaseSettings):
     aws_region_name: Optional[str] = None
     aws_bucket_name: Optional[str] = None
     minio_url: Optional[str] = None
+    # Logfire
+    use_logfire: bool = False
 
     @property
     def db_url(self) -> URL:
