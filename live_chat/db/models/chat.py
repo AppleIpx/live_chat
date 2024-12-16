@@ -130,6 +130,34 @@ class ReadStatus(RemoveBaseFieldsMixin, Base):  # type: ignore[misc]
         return f"User: {self.user_id}, Message: {self.last_read_message_id}"
 
 
+class BlackList(Base):
+    """Represents a blacklist for a user."""
+
+    __tablename__ = "blacklist"
+
+    id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
+
+    blocked_users: Mapped[List["User"]] = relationship(
+        "User",
+        secondary="blocked_users",
+        back_populates="black_list",
+    )
+    owner = relationship("User", back_populates="black_list")
+
+
+class BlockedUsers(Base):
+    """Association table for the MTM relationship between Blacklist and User."""
+
+    __tablename__ = "blocked_users"
+
+    blacklist_id: Mapped[UUID] = mapped_column(
+        ForeignKey("blacklist.id"),
+        primary_key=True,
+    )
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"), primary_key=True)
+
+
 class User(SQLAlchemyBaseUserTableUUID, Base):
     """Represents a user entity."""
 
@@ -158,6 +186,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     read_statuses: Mapped[List["ReadStatus"]] = relationship(
         back_populates="user",
     )
+    black_list: Mapped["BlackList"] = relationship(back_populates="owner")
 
     def __str__(self) -> str:
         return f"{self.username}"
