@@ -226,7 +226,7 @@ async def get_detail_chat_view(
         updated_at=chat.updated_at,
         users=users_data,
         read_statuses=read_statuses_schema,
-        last_message_content=None,
+        last_message_content=chat.last_message_content,
     )
 
 

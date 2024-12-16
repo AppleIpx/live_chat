@@ -39,7 +39,7 @@ async def test_get_detail_chat(
         "id": str(chat.id),
         "chat_type": chat.chat_type.value,
         "image": chat.image,
-        "last_message_content": None,
+        "last_message_content": chat.last_message_content,
         "name": chat.name,
         "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),

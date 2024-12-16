@@ -233,9 +233,14 @@ export default {
     async fetchUsers() {
       try {
         const response = await userService.fetchUsers(10)
-        const instanceUser = await userService.fetchUserMe()
-        this.users = response.data.items.slice(0, 10);
-        this.filteredUsers = this.users.filter(user => user.id !== instanceUser.data.id)
+        const instanceUser = JSON.parse(localStorage.getItem("user"));
+        if (!instanceUser) {
+            this.$router.push('/login');
+            alert("Пожалуйста, перезайдите в аккаунт");
+            return;
+        }
+        this.users = response.data.items;
+        this.filteredUsers = this.users.filter(user => user.id !== instanceUser.id)
       } catch (error) {
         console.error('Ошибка получения пользователей:', error);
         this.error = 'Не удалось загрузить пользователей.';
