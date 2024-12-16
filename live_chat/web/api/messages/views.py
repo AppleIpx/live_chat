@@ -41,9 +41,6 @@ from live_chat.web.api.messages.utils import (
     validate_user_access_to_message,
 )
 from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
-from live_chat.web.api.messages.utils.get_correct_last_message import (
-    get_correct_last_message,
-)
 from live_chat.web.api.messages.utils.recover_message import restore_message
 from live_chat.web.api.messages.utils.save_message import save_deleted_message_to_db
 from live_chat.web.api.read_status.utils.increase_in_unread_messages import (
@@ -92,22 +89,13 @@ async def get_deleted_messages(
     return await paginate(db_session, query, params=params)
 
 
-@message_router.get("/chats/{chat_id}/messages/last")
-async def get_last_message(
-    chat: Chat = Depends(validate_user_access_to_chat),
-) -> GetMessageSchema | None:
-    """Get the latest message is_deleted=false in chat."""
-    last_message = await get_correct_last_message(chat.messages)
-    return transformation_message([last_message])[0] if chat.messages else None
-
-
 @message_router.post("/chats/{chat_id}/messages")
 async def post_message(
     message: PostMessageSchema,
     chat: Chat = Depends(validate_user_access_to_chat),
     current_user: User = Depends(current_active_user),
     db_session: AsyncSession = Depends(get_async_session),
-) -> dict[str, str]:
+) -> GetMessageSchema:
     """Post message in FastStream."""
     if created_message := await save_message_to_db(
         db_session,
@@ -123,7 +111,7 @@ async def post_message(
             db_session=db_session,
         )
         await publish_faststream("new_message", chat.users, event_data, chat.id)
-        return {"status": "Message published"}
+        return message_data
     raise HTTPException(
         status_code=404,
         detail="Error with saving message. Please try again",

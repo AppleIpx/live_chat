@@ -14,6 +14,7 @@ from live_chat.db.utils import get_async_session
 from live_chat.web.api.users.schemas import (
     UserCreate,
     UserRead,
+    UserShortRead,
     UserUpdate,
 )
 from live_chat.web.api.users.utils import (
@@ -49,9 +50,9 @@ router.include_router(
 async def get_users(
     db_session: AsyncSession = Depends(get_async_session),
     params: CursorParams = Depends(),
-) -> CursorPage[UserRead]:
+) -> CursorPage[UserShortRead]:
     """Gets a list of all users."""
-    set_page(CursorPage[UserRead])
+    set_page(CursorPage[UserShortRead])
     return await paginate(db_session, select(User).order_by(User.id), params=params)
 
 
@@ -61,13 +62,12 @@ async def get_user(
     db_session: AsyncSession = Depends(get_async_session),
 ) -> User:
     """Gets a user by id without authentication."""
-    user = await get_user_by_id(db_session, user_id=user_id)
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-    return user
+    if user := await get_user_by_id(db_session, user_id=user_id):
+        return user
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="User not found",
+    )
 
 
 @router.patch("/users/me/upload-image", tags=["users"])

@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, HttpUrl
 
 from live_chat.db.models.enums import ChatType
-from live_chat.web.api.users.schemas import UserRead
+from live_chat.web.api.users.schemas import UserShortRead
 
 
 class ReadStatusSchema(BaseModel):
@@ -34,13 +34,14 @@ class BaseChatSchema(BaseModel):
     name: str | None
     created_at: datetime
     updated_at: datetime
-    users: list[UserRead]  # type: ignore[type-arg]
+    users: list[UserShortRead]  # type: ignore[type-arg]
 
 
 class ChatSchema(BaseChatSchema):
     """Represents a get command for a direct/group chat."""
 
     read_statuses: List[ReadStatusSchema]
+    last_message_content: str | None
 
     class Config:
         from_attributes = True

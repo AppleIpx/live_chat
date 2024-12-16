@@ -1,8 +1,8 @@
-from typing import List, Optional
+from typing import Optional
 
 from fastapi_users import schemas
 from fastapi_users_db_sqlalchemy import UUID_ID
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, ConfigDict, HttpUrl
 
 
 class BaseUserSchema:
@@ -22,14 +22,15 @@ class BaseUserUpdateSchema:
     username: Optional[str] = None
 
 
+class UserShortRead(BaseUserSchema, BaseModel):
+    """Represents a short read command for a user."""
+
+    id: UUID_ID
+    model_config = ConfigDict(from_attributes=True)
+
+
 class UserRead(BaseUserSchema, schemas.BaseUser[UUID_ID]):
     """Represents a read command for a user."""
-
-
-class ListUserSchema(BaseModel):
-    """Represents a list command for a user."""
-
-    users: List[UserRead]
 
 
 class UserCreate(BaseUserSchema, schemas.BaseUserCreate):
