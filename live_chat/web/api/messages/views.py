@@ -100,7 +100,7 @@ async def post_message(
     if created_message := await save_message_to_db(
         db_session,
         message.content,
-        chat.id,
+        chat,
         current_user,
     ):
         message_data: GetMessageSchema = transformation_message([created_message])[0]
@@ -130,7 +130,8 @@ async def update_message(
 ) -> GetMessageSchema:
     """Update message."""
     message.content = message_schema.content
-    db_session.add(message)
+    chat.last_message_content = message_schema.content[:100]
+    db_session.add_all([message, chat])
     await db_session.commit()
     await db_session.refresh(message)
     message_data: GetMessageSchema = transformation_message([message])[0]
@@ -149,6 +150,8 @@ async def recover_deleted_message(
     if not isinstance(deleted_message, DeletedMessage):
         raise HTTPException(status_code=404, detail="Instance is not deleted message")
     if message := await restore_message(db_session, deleted_message):
+        chat.last_message_content = message.content[:100]
+        await db_session.commit()
         message_data: GetMessageSchema = transformation_message([message])[0]
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("recover_message", chat.users, event_data, chat.id)
@@ -178,13 +181,14 @@ async def delete_message(
     """
     event_data = jsonable_encoder({"id": f"{message.id!s}"})
     if message.is_deleted or is_forever:
-        await delete_message_by_id(message=message, db_session=db_session)
+        await delete_message_by_id(message=message, db_session=db_session, chat=chat)
         await publish_faststream("delete_message", chat.users, event_data, chat.id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     message.is_deleted = True
     if deleted_message := await save_deleted_message_to_db(
         db_session=db_session,
         message=message,
+        chat=chat,
     ):
         db_session.add_all([message, deleted_message])
         await db_session.commit()

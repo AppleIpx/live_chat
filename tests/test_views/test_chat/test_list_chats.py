@@ -44,7 +44,7 @@ async def test_get_list_chats(
             "name": chat.name,
             "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
             "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
-            "last_message_content": None,
+            "last_message_content": chat.last_message_content,
             "users": [
                 {
                     "id": str(sender.id),
@@ -107,7 +107,7 @@ async def test_get_list_chats_with_user(
             "name": chat.name,
             "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
             "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
-            "last_message_content": None,
+            "last_message_content": chat.last_message_content,
             "users": [
                 {
                     "id": str(sender.id),

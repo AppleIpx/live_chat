@@ -48,6 +48,7 @@ async def test_post_message(
         channel=target_channel,
     )
     assert read_status.count_unread_msg == 1
+    assert direct_chat_with_users.last_message_content == "test"
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "id": f"{message.id}",

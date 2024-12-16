@@ -15,7 +15,6 @@ from starlette.responses import JSONResponse
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Chat,
     DeletedMessage,
-    Message,
     ReadStatus,
     User,
 )
@@ -157,12 +156,6 @@ async def get_list_chats_view(
     if user_id_exists and await get_user_by_id(db_session, user_id=user_id_exists):
         query = query.where(Chat.users.any(id=user_id_exists))
     chats = await paginate(db_session, query, params=params)
-    last_messages_query = select(Message.chat_id, Message.content).where(
-        Message.chat_id.in_([chat.id for chat in chats.items]),
-        Message.is_deleted is False,  # type: ignore[arg-type]
-    )
-    last_messages = await db_session.execute(last_messages_query)
-    last_messages_dict: dict[str, str] = dict(last_messages.fetchall())  # type: ignore[arg-type]
     read_status_query = select(ReadStatus).where(
         ReadStatus.user_id == current_user.id,
         ReadStatus.chat_id.in_([chat.id for chat in chats.items]),
@@ -172,11 +165,6 @@ async def get_list_chats_view(
         status.chat_id: status for status in read_statuses.scalars().all()
     }
     for chat in chats.items:
-        chat.last_message_content = (
-            last_messages_dict[chat.id][100:]
-            if last_messages_dict.get(chat.id)
-            else None
-        )
         chat.read_statuses = [read_status_dict.get(chat.id)]
     return chats
 
