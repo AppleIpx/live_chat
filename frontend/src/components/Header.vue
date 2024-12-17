@@ -7,9 +7,20 @@
       </div>
     </router-link>
     <nav class="nav-links">
-      <router-link to="/chats" class="nav-item">Чаты</router-link>
-      <router-link to="/chats/deleted" class="nav-item">Удалённые сообщения</router-link>
-      <router-link to="/users" class="nav-item">Пользователи</router-link>
+      <div class="nav-item dropdown">
+        <span class="dropdown-toggle">Чаты</span>
+        <div class="dropdown-menu">
+          <router-link to="/chats" class="dropdown-item">Все чаты</router-link>
+          <router-link to="/chats/deleted" class="dropdown-item">Удалённые сообщения</router-link>
+        </div>
+      </div>
+      <div class="nav-item dropdown">
+        <span class="dropdown-toggle">Пользователи</span>
+        <div class="dropdown-menu">
+          <router-link to="/users" class="dropdown-item">Все пользователи</router-link>
+          <router-link to="/black-list" class="dropdown-item">Чёрный список</router-link>
+        </div>
+      </div>
       <router-link to="/profile/me" class="nav-item">Мой профиль</router-link>
       <button @click="handleAuth" class="btn-auth">
         {{ isAuthenticated ? 'Выйти' : 'Войти' }}
@@ -141,6 +152,53 @@ export default {
 
 .logo-link:hover .chat-icon {
   transform: scale(1.1);
+}
+
+.dropdown {
+  position: relative;
+  cursor: pointer;
+}
+
+.dropdown-toggle {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.dropdown-toggle:hover {
+  color: #ece0e0;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+.dropdown-item {
+  display: block;
+  padding: 10px 15px;
+  color: #333;
+  text-decoration: none;
+  font-size: 16px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #37a5de;
+  color: white;
 }
 
 </style>

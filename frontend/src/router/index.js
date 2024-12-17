@@ -12,6 +12,7 @@ import chatsDeletedRoom from "@/views/ChatsDeletedRoom.vue";
 import NotFound from "@/components/NotFound.vue";
 import Forbidden from "@/components/Forbidden.vue";
 import ServerError from "@/components/ServerError.vue";
+import BlackList from "@/views/BlackList.vue";
 
 const routes = [
     {path: '/', name: 'Home', component: home},
@@ -25,9 +26,10 @@ const routes = [
         component: chatsDeletedRoom,
         props: true
     },
-    {path: '/profile/me/', name: "Profile", component: profile},
-    {path: '/profile/:user_id/', name: "AnotherProfile", component: anotherProfile},
+    {path: '/profile/me', name: "Profile", component: profile},
+    {path: '/profile/:user_id', name: "AnotherProfile", component: anotherProfile},
     {path: '/users/', name: 'Users', component: Users},
+    {path: '/black-list', name: 'BlackList', component: BlackList},
     {path: '/chats/:chat_id', name: 'ChatRoom', component: chatRoom, props: true},
     {path: '/403', name: 'Forbidden', component: Forbidden},
     {path: '/500', name: 'ServerError', component: ServerError},

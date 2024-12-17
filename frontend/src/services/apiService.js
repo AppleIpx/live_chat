@@ -265,6 +265,45 @@ export const readStatusService = {
     },
 };
 
+export const blackListService = {
+    async fetchBlockedUsers(size, pageCursor) {
+        try {
+            if (!pageCursor) {
+                return await apiClient.get(`/api/black-list?size=${size}`)
+            }
+            return await apiClient.get(`/api/black-list?size=${size}&cursor=${pageCursor}`)
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+
+    async addToBlackList(userId) {
+        try {
+            return await apiClient.post('/api/black-list', {"user_id": userId});
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+    async removeFromBlackList(userId) {
+        try {
+            return await apiClient.delete('/api/black-list', {
+                data: {user_id: userId},
+            });
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    }
+}
+
 export const authService = {
     async loginUser(loginData) {
         return await apiClientWithoutAuth.post('/api/auth/jwt/login', loginData)

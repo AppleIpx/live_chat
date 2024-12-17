@@ -11,10 +11,10 @@
           <i class="fas fa-arrow-right"></i>
         </button>
       </div>
-      <div v-if="users">
-        <h2>Список пользователей</h2>
-        <div v-if="filteredUsers.length" class="users-list">
-          <div v-for="user in filteredUsers" :key="user.id" class="user-card">
+      <div v-if="black_list">
+        <div v-if="black_list.length" class="users-list">
+          <h2>Чёрный список</h2>
+          <div v-for="user in black_list" :key="user.id" class="user-card">
             <div class="avatar-container">
               <div class="avatar-wrapper">
                 <img
@@ -40,6 +40,9 @@
             <p>{{ user.first_name }}</p>
           </div>
         </div>
+        <div v-else>
+          <h2>В вашем чёрном списке пусто</h2>
+        </div>
       </div>
       <div v-else>
         <div class="loading-container">
@@ -52,12 +55,13 @@
 </template>
 
 <script>
-import {userService} from "@/services/apiService";
+import {blackListService} from "@/services/apiService";
+import router from "@/router";
 
 export default {
   data() {
     return {
-      users: [],
+      black_list: null,
       filteredUsers: [],
       searchQuery: "",
       currentUser: {},
@@ -68,46 +72,43 @@ export default {
   },
   async mounted() {
     try {
-      const currentUsername = localStorage.getItem("username").split("@")[0];
-      this.currentUser = {username: currentUsername};
-      const response = await userService.fetchUsers(3)
+      const response = await blackListService.fetchBlockedUsers(3)
       this.nextCursor = response.data.next_page;
       this.previousCursor = response.data.previous_page || null;
-      this.users = response.data.items.filter(
-          (user) => user.username !== currentUsername
-      );
-      this.filteredUsers = this.users;
+      this.black_list = response.data.items
     } catch (error) {
+      if (error.response) {
+        const status = error.response.status;
+        switch (status) {
+          case 403:
+            await router.push("/403");
+            break;
+          case 404:
+            await router.push("/404");
+            break;
+          case 500:
+            await router.push("/500");
+            break;
+        }
+      }
       console.error("Ошибка при получении списка пользователей:", error);
     }
   },
   methods: {
-    filterUsers() {
-      const query = this.searchQuery.toLowerCase();
-      this.filteredUsers = this.users.filter((user) =>
-          user.username.toLowerCase().includes(query)
-      );
-    },
     async loadNextPage() {
       if (this.nextCursor) {
-        const response = await userService.fetchUsers(3, this.nextCursor);
+        const response = await blackListService.fetchBlockedUsers(3, this.nextCursor);
         this.nextCursor = response.data.next_page;
         this.previousCursor = response.data.previous_page || null;
-        this.users = response.data.items.filter(
-            (user) => user.username !== this.currentUser.username
-        );
-        this.filteredUsers = this.users;
+        this.black_list = response.data.items
       }
     },
     async loadPreviousPage() {
       if (this.previousCursor) {
-        const response = await userService.fetchUsers(3, this.previousCursor);
+        const response = await blackListService.fetchBlockedUsers(3, this.previousCursor);
         this.nextCursor = response.data.next_page;
         this.previousCursor = response.data.previous_page || null;
-        this.users = response.data.items.filter(
-            (user) => user.username !== this.currentUser.username
-        );
-        this.filteredUsers = this.users;
+        this.black_list = response.data.items
       }
     }
   }

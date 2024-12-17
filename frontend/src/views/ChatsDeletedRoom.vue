@@ -198,6 +198,9 @@ export default {
         await messageService.recoverMessage(this.chatId, this.messageToDelete.id);
         this.messages = this.messages.filter(msg => msg.id !== this.messageToDelete.id);
         this.closeDeleteModal();
+        if (this.messages.length === 0) {
+          this.goBack();
+        }
       } catch (error) {
         console.error("Ошибка при восстановлении сообщения", error);
         this.closeDeleteModal();
@@ -211,6 +214,9 @@ export default {
         await messageService.deleteMessage(this.chatId, this.messageToDelete.id);
         this.messages = this.messages.filter(msg => msg.id !== this.messageToDelete.id);
         this.closeDeleteModal();
+        if (this.messages.length === 0) {
+          this.goBack();
+        }
       } catch (error) {
         console.error("Ошибка при удалении сообщения", error);
         this.closeDeleteModal();

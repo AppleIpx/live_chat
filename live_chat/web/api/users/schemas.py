@@ -33,6 +33,8 @@ class UserShortRead(BaseUserSchema, BaseModel):
 class UserRead(BaseUserSchema, schemas.BaseUser[UUID_ID]):
     """Represents a read command for a user."""
 
+    is_blocked: bool = False
+
 
 class UserCreate(BaseUserSchema, schemas.BaseUserCreate):
     """Represents a create command for a user."""
