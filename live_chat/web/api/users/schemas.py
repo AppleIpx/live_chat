@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 
 from fastapi_users import schemas
 from fastapi_users_db_sqlalchemy import UUID_ID
@@ -25,7 +26,7 @@ class BaseUserUpdateSchema:
 class UserShortRead(BaseUserSchema, BaseModel):
     """Represents a short read command for a user."""
 
-    id: UUID_ID
+    id: UUID
     model_config = ConfigDict(from_attributes=True)
 
 
