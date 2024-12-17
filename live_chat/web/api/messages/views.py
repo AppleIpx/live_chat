@@ -165,7 +165,7 @@ async def recover_deleted_message(
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("recover_message", chat.users, event_data, chat.id)
         return JSONResponse(
-            content={"detail": "Сообщение восстановлено"},
+            content={"detail": "Message restored"},
             status_code=status.HTTP_200_OK,
         )
     raise HTTPException(status_code=404, detail="Message not restored")
@@ -203,7 +203,7 @@ async def delete_message(
         await db_session.refresh(message)
         await publish_faststream("delete_message", chat.users, event_data, chat.id)
         return JSONResponse(
-            content={"detail": "Сообщение помещено в недавно удаленные"},
+            content={"detail": "Message added to recently deleted"},
             status_code=status.HTTP_202_ACCEPTED,
         )
     raise HTTPException(

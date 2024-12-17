@@ -37,7 +37,7 @@ async def test_mark_messages_is_deleted(
         channel=f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{chat.users[1].id!s}",
     )
     assert response.status_code == status.HTTP_202_ACCEPTED
-    assert response.json() == {"detail": "Сообщение помещено в недавно удаленные"}
+    assert response.json() == {"detail": "Message added to recently deleted"}
 
 
 @pytest.mark.anyio
@@ -104,7 +104,7 @@ async def test_create_deleted_message(
     )
     deleted_message = await get_first_deleted_message(db_session=dbsession)
     assert response.status_code == status.HTTP_202_ACCEPTED
-    assert response.json() == {"detail": "Сообщение помещено в недавно удаленные"}
+    assert response.json() == {"detail": "Message added to recently deleted"}
     assert deleted_message.message_type == message_in_chat.message_type
     assert deleted_message.is_deleted is True
     assert deleted_message.user == message_in_chat.user
@@ -121,7 +121,7 @@ async def test_create_deleted_message(
         (
             False,
             status.HTTP_202_ACCEPTED,
-            {"detail": "Сообщение помещено в недавно удаленные"},
+            {"detail": "Message added to recently deleted"},
         ),
         (True, status.HTTP_204_NO_CONTENT, None),
     ],

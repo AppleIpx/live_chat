@@ -14,6 +14,6 @@ api_router.include_router(
 )
 api_router.include_router(
     black_list.black_list_router,
-    prefix="/black_list",
-    tags=["black_list"],
+    prefix="/black-list",
+    tags=["black-list"],
 )
