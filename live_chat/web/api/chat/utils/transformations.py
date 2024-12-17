@@ -30,4 +30,5 @@ async def transformation_chat(
         updated_at=chat.updated_at,
         users=chat.users,
         read_statuses=read_statuses_schema,
+        last_message_content=None,
     )

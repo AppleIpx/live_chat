@@ -48,8 +48,17 @@ async def test_post_message(
         channel=target_channel,
     )
     assert read_status.count_unread_msg == 1
+    assert direct_chat_with_users.last_message_content == "test"
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"status": "Message published"}
+    assert response.json() == {
+        "id": f"{message.id}",
+        "chat_id": f"{chat_id}",
+        "content": "test",
+        "created_at": message.created_at.isoformat().replace("+00:00", "Z"),
+        "is_deleted": False,
+        "updated_at": message.updated_at.isoformat().replace("+00:00", "Z"),
+        "user_id": f"{direct_chat_with_users.users[0].id}",
+    }
 
 
 @pytest.mark.anyio

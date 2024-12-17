@@ -24,10 +24,6 @@ async def test_get_all_users(
         user = await get_user_by_id(user_id=user_data["id"], db_session=dbsession)
         assert user_data == {
             "id": str(user.id),
-            "email": user.email,
-            "is_active": user.is_active,
-            "is_superuser": user.is_superuser,
-            "is_verified": user.is_verified,
             "first_name": user.first_name,
             "last_name": user.last_name,
             "username": user.username,

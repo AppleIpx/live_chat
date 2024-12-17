@@ -41,9 +41,6 @@ from live_chat.web.api.messages.utils import (
     validate_user_access_to_message,
 )
 from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
-from live_chat.web.api.messages.utils.get_correct_last_message import (
-    get_correct_last_message,
-)
 from live_chat.web.api.messages.utils.recover_message import restore_message
 from live_chat.web.api.messages.utils.save_message import save_deleted_message_to_db
 from live_chat.web.api.read_status.utils.increase_in_unread_messages import (
@@ -92,27 +89,18 @@ async def get_deleted_messages(
     return await paginate(db_session, query, params=params)
 
 
-@message_router.get("/chats/{chat_id}/messages/last")
-async def get_last_message(
-    chat: Chat = Depends(validate_user_access_to_chat),
-) -> GetMessageSchema | None:
-    """Get the latest message is_deleted=false in chat."""
-    last_message = await get_correct_last_message(chat.messages)
-    return transformation_message([last_message])[0] if chat.messages else None
-
-
 @message_router.post("/chats/{chat_id}/messages")
 async def post_message(
     message: PostMessageSchema,
     chat: Chat = Depends(validate_user_access_to_chat),
     current_user: User = Depends(current_active_user),
     db_session: AsyncSession = Depends(get_async_session),
-) -> dict[str, str]:
+) -> GetMessageSchema:
     """Post message in FastStream."""
     if created_message := await save_message_to_db(
         db_session,
         message.content,
-        chat.id,
+        chat,
         current_user,
     ):
         message_data: GetMessageSchema = transformation_message([created_message])[0]
@@ -123,7 +111,7 @@ async def post_message(
             db_session=db_session,
         )
         await publish_faststream("new_message", chat.users, event_data, chat.id)
-        return {"status": "Message published"}
+        return message_data
     raise HTTPException(
         status_code=404,
         detail="Error with saving message. Please try again",
@@ -142,7 +130,8 @@ async def update_message(
 ) -> GetMessageSchema:
     """Update message."""
     message.content = message_schema.content
-    db_session.add(message)
+    chat.last_message_content = message_schema.content[:100]
+    db_session.add_all([message, chat])
     await db_session.commit()
     await db_session.refresh(message)
     message_data: GetMessageSchema = transformation_message([message])[0]
@@ -161,6 +150,8 @@ async def recover_deleted_message(
     if not isinstance(deleted_message, DeletedMessage):
         raise HTTPException(status_code=404, detail="Instance is not deleted message")
     if message := await restore_message(db_session, deleted_message):
+        chat.last_message_content = message.content[:100]
+        await db_session.commit()
         message_data: GetMessageSchema = transformation_message([message])[0]
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("recover_message", chat.users, event_data, chat.id)
@@ -190,13 +181,14 @@ async def delete_message(
     """
     event_data = jsonable_encoder({"id": f"{message.id!s}"})
     if message.is_deleted or is_forever:
-        await delete_message_by_id(message=message, db_session=db_session)
+        await delete_message_by_id(message=message, db_session=db_session, chat=chat)
         await publish_faststream("delete_message", chat.users, event_data, chat.id)
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     message.is_deleted = True
     if deleted_message := await save_deleted_message_to_db(
         db_session=db_session,
         message=message,
+        chat=chat,
     ):
         db_session.add_all([message, deleted_message])
         await db_session.commit()

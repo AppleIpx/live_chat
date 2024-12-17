@@ -1,5 +1,4 @@
 import store from "@/store";
-import {userService} from "@/services/apiService";
 
 const SSEManager = {
     connections: {},
@@ -27,7 +26,12 @@ const SSEManager = {
             console.warn(`SSE для чата ${chatId} уже установлено.`);
             return;
         }
-        const user = await userService.fetchUserMe();
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (!user) {
+            this.$router.push('/login');
+            alert("Пожалуйста, перезайдите в аккаунт");
+            return;
+        }
         const baseURL = process.env.VUE_APP_BACKEND_URL;
         const eventSource = new EventSource(
             `${baseURL}/api/chats/${chatId}/events?token=${encodeURIComponent(token)}`
@@ -35,7 +39,7 @@ const SSEManager = {
 
         eventSource.addEventListener("new_message", async (event) => {
             const message = JSON.parse(event.data);
-            if (message.user_id !== user.data.id) {
+            if (message.user_id !== user.id) {
                 await store.dispatch("receiveMessage", {
                     message: message,
                     isChatOpenCallback: isChatOpenCallback
@@ -62,14 +66,14 @@ const SSEManager = {
 
         eventSource.addEventListener("update_message", async (event) => {
             const message = JSON.parse(event.data);
-            if (message.user_id !== user.data.id && isChatOpenCallback) {
+            if (message.user_id !== user.id && isChatOpenCallback) {
                 messageCallback(message, "update");
             }
         });
 
         eventSource.addEventListener("user_typing", async (event) => {
             const typing_status = JSON.parse(event.data);
-            if (typing_status.user_id !== user.data.id && isChatOpenCallback) {
+            if (typing_status.user_id !== user.id && isChatOpenCallback) {
                 typingCallback(typing_status)
             }
         });

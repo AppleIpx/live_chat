@@ -40,10 +40,6 @@ async def test_create_group_chat(
     expected_users = [
         {
             "id": str(user.id),
-            "email": user.email,
-            "is_active": user.is_active,
-            "is_superuser": user.is_superuser,
-            "is_verified": user.is_verified,
             "first_name": user.first_name,
             "last_name": user.last_name,
             "username": user.username,
@@ -70,6 +66,7 @@ async def test_create_group_chat(
         "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
         "users": expected_users,
         "image": chat.image,
+        "last_message_content": None,
         "name": chat.name,
         "read_statuses": expected_read_statuses,
     }

@@ -44,13 +44,10 @@ async def test_get_list_chats(
             "name": chat.name,
             "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
             "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
+            "last_message_content": chat.last_message_content,
             "users": [
                 {
                     "id": str(sender.id),
-                    "email": sender.email,
-                    "is_active": sender.is_active,
-                    "is_superuser": sender.is_superuser,
-                    "is_verified": sender.is_verified,
                     "first_name": sender.first_name,
                     "last_name": sender.last_name,
                     "username": sender.username,
@@ -58,10 +55,6 @@ async def test_get_list_chats(
                 },
                 {
                     "id": str(recipient.id),
-                    "email": recipient.email,
-                    "is_active": recipient.is_active,
-                    "is_superuser": recipient.is_superuser,
-                    "is_verified": recipient.is_verified,
                     "first_name": recipient.first_name,
                     "last_name": recipient.last_name,
                     "username": recipient.username,
@@ -114,13 +107,10 @@ async def test_get_list_chats_with_user(
             "name": chat.name,
             "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
             "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
+            "last_message_content": chat.last_message_content,
             "users": [
                 {
                     "id": str(sender.id),
-                    "email": sender.email,
-                    "is_active": sender.is_active,
-                    "is_superuser": sender.is_superuser,
-                    "is_verified": sender.is_verified,
                     "first_name": sender.first_name,
                     "last_name": sender.last_name,
                     "username": sender.username,
@@ -128,10 +118,6 @@ async def test_get_list_chats_with_user(
                 },
                 {
                     "id": str(recipient.id),
-                    "email": recipient.email,
-                    "is_active": recipient.is_active,
-                    "is_superuser": recipient.is_superuser,
-                    "is_verified": recipient.is_verified,
                     "first_name": recipient.first_name,
                     "last_name": recipient.last_name,
                     "username": recipient.username,

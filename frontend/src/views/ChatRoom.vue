@@ -686,7 +686,7 @@ export default {
         this.lastReadMessageId = lastVisibleMessage.id;
       }
 
-      if (scrollTop + clientHeight >= scrollHeight - 10 && this.lastReadMessageId) {
+      if (scrollTop + clientHeight >= scrollHeight - 5 && this.lastReadMessageId) {
         await readStatusService.updateReadStatus(this.chatId, {
           last_read_message_id: this.lastReadMessageId,
           count_unread_msg: 0,
@@ -858,7 +858,7 @@ export default {
       this.typingTimeout = setTimeout(() => {
         this.isTyping = false;
         chatService.sendTypingStatus(this.chatId, false);
-      }, 1000);
+      }, 2000);
     },
 
     handleEnter(event) {
@@ -871,14 +871,12 @@ export default {
 
     // Send message
     async sendMessage() {
-      this.isTyping = false;
       if (this.messageText.trim() === "") return;
       try {
         const messageData = {
           content: this.messageText,
         }
-        await messageService.sendMessage(this.chatId, messageData)
-        const lastMessageResponse = await messageService.fetchLastMessage(this.chatId)
+        const lastMessageResponse = await messageService.sendMessage(this.chatId, messageData)
         this.messages.push({
           id: lastMessageResponse.data.id,
           user: {

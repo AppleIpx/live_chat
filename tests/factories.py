@@ -40,6 +40,7 @@ class ChatFactory(factory.alchemy.SQLAlchemyModelFactory):
     chat_type = factory.Faker("random_element", elements=list(ChatType))
     name = factory.Faker("name")
     image = factory.Faker("image_url")
+    last_message_content = factory.Faker("text", max_nb_chars=100)
     created_at = factory.LazyFunction(datetime.now)
     updated_at = factory.LazyFunction(datetime.now)
 
