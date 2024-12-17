@@ -43,7 +43,7 @@ async def test_recover_deleted_message(
         channel=target_channel,
     )
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"detail": "Сообщение восстановлено"}
+    assert response.json() == {"detail": "Message restored"}
     assert deleted_mesage_db is None
     assert orig_message is not None
     assert orig_message.is_deleted is False

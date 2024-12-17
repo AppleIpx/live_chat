@@ -60,7 +60,7 @@ async def create_direct_chat_view(
     create_direct_chat_schema: CreateDirectChatSchema,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(current_active_user),
-) -> ChatSchema | HTTPException:
+) -> ChatSchema:
     """Create a new direct chat between the current user and a recipient user.
 
     This endpoint allows the current user to initiate a direct chat with another user.
