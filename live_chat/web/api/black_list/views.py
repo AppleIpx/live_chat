@@ -23,7 +23,7 @@ from live_chat.web.api.black_list.utils import (
     get_black_list_by_owner,
     transformation_black_list,
 )
-from live_chat.web.api.users.schemas import UserRead
+from live_chat.web.api.users.schemas import UserShortRead
 from live_chat.web.api.users.utils import current_active_user, get_user_by_id
 
 black_list_router = APIRouter()
@@ -114,14 +114,14 @@ async def delete_user_from_black_list_view(
 @black_list_router.get(
     "",
     summary="Get all black listed users",
-    response_model=CursorPage[UserRead],
+    response_model=CursorPage[UserShortRead],
     status_code=status.HTTP_200_OK,
 )
 async def get_black_list_users(
     current_user: User = Depends(current_active_user),
     db_session: AsyncSession = Depends(get_async_session),
     params: CursorParams = Depends(),
-) -> CursorPage[UserRead]:
+) -> CursorPage[UserShortRead]:
     """Getting all users from the black list."""
     blacklist_query = select(BlackList.id).where(BlackList.owner_id == current_user.id)
     result = await db_session.execute(blacklist_query)

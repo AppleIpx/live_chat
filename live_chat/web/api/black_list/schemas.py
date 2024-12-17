@@ -2,7 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from live_chat.web.api.users.schemas import UserRead
+from live_chat.web.api.users.schemas import UserShortRead
 
 
 class BlackListSchema(BaseModel):
@@ -10,7 +10,7 @@ class BlackListSchema(BaseModel):
 
     id: UUID
     owner_id: UUID
-    blocked_user: UserRead
+    blocked_user: UserShortRead
 
 
 class BlackListCreateSchema(BaseModel):
