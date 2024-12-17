@@ -47,7 +47,10 @@ async def add_user_to_black_list_view(
             db_session=db_session,
         )
     ):
-        await create_black_list(current_user=current_user, db_session=db_session)
+        black_list = await create_black_list(
+            current_user=current_user,
+            db_session=db_session,
+        )
     if not (
         black_list_user := await get_user_by_id(
             db_session=db_session,
