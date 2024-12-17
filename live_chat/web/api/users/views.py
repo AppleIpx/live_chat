@@ -16,6 +16,7 @@ from live_chat.web.api.black_list.utils.get import (
     get_user_in_black_list,
 )
 from live_chat.web.api.users.schemas import (
+    OtherUserRead,
     UserCreate,
     UserRead,
     UserShortRead,
@@ -60,7 +61,7 @@ async def get_users(
     return await paginate(db_session, select(User).order_by(User.id), params=params)
 
 
-@router.get("/users/read/{user_id}", response_model=UserRead, tags=["users"])
+@router.get("/users/read/{user_id}", response_model=OtherUserRead, tags=["users"])
 async def get_user(
     user_id: UUID,
     current_user: User = Depends(current_active_user),
