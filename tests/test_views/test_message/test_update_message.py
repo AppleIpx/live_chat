@@ -33,6 +33,7 @@ async def test_update_message(
         json.dumps({"event": "update_message", "data": message_data}),
         channel=target_channel,
     )
+    assert chat.last_message_content == "test"
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "id": str(message_in_chat.id),

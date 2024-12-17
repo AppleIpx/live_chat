@@ -36,6 +36,7 @@ async def test_mark_messages_is_deleted(
         json.dumps({"event": "delete_message", "data": message_data}),
         channel=f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{chat.users[1].id!s}",
     )
+    assert chat.last_message_content is None
     assert response.status_code == status.HTTP_202_ACCEPTED
     assert response.json() == {"detail": "Message added to recently deleted"}
 
@@ -59,6 +60,7 @@ async def test_delete_message(
         json.dumps({"event": "delete_message", "data": message_data}),
         channel=f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{chat.users[1].id!s}",
     )
+    assert chat.last_message_content is None
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
 
@@ -85,6 +87,7 @@ async def test_delete_orig_message(
         orig_message_id=message_in_chat.id,
     )
     assert response.status_code == status.HTTP_204_NO_CONTENT
+    assert chat.last_message_content is None
     assert message_db is None
     assert deleted_message_db is None
 
@@ -104,6 +107,7 @@ async def test_create_deleted_message(
     )
     deleted_message = await get_first_deleted_message(db_session=dbsession)
     assert response.status_code == status.HTTP_202_ACCEPTED
+    assert chat.last_message_content is None
     assert response.json() == {"detail": "Message added to recently deleted"}
     assert deleted_message.message_type == message_in_chat.message_type
     assert deleted_message.is_deleted is True

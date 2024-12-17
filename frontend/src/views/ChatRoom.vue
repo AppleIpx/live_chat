@@ -91,6 +91,7 @@
                 class="message"
                 v-for="message in messages"
                 :key="message.id"
+                :ref="el => (messageRefs[message.id] = el)"
                 :class="{'mine': message.isMine, 'other': !message.isMine}">
               <div class="message-header">
                 <strong>
@@ -106,6 +107,20 @@
              class="fa fa-pencil edited-indicator"
              title="Сообщение было изменено"></i>
             </span>
+                <div v-if="message.isMine" class="read-status">
+                  <i
+                      v-if="message.readStatus.includes('read')"
+                      :class="{
+                        'fa fa-check-double read': message.readStatus.includes('read')
+                      }"
+                  ></i>
+                  <i
+                      v-if="!message.readStatus.includes('read') && message.readStatus.includes('delivered')"
+                      :class="{
+                        'fa fa-check delivered': message.readStatus.includes('delivered')
+                      }"
+                  ></i>
+                </div>
               </div>
               <div class="message-content">{{ message.content }}</div>
               <div v-if="message.isMine" class="message-options">
@@ -116,6 +131,10 @@
                   </button>
                   <button @click="openDeleteModal(message)" class="icon-button-delete">
                     <i class="fa fa-trash"></i>
+                  </button>
+                  <button v-if="chatType === 'group'"
+                          @click="openReadStatusModal(message)" class="icon-button-eye">
+                    <i class="fa fa-eye"></i>
                   </button>
                 </div>
               </div>
@@ -202,6 +221,36 @@
         </div>
       </div>
 
+      <!-- Read Status Modal -->
+      <div v-if="isReadStatusModalVisible" class="modal-overlay"
+           @click.self="closeReadStatusModal">
+        <div class="modal">
+          <h3 class="modal-title">Кто прочитал сообщение?</h3>
+          <ul class="read-status-list">
+            <li
+                v-for="user in chatData.users.filter(user => user.id !== this.user.id)"
+                :key="user.id"
+                class="read-status-item"
+            >
+              <span>{{ user.first_name }} {{ user.last_name }}</span>
+              <span>
+          <i
+              :class="{
+              'fa fa-check-double read': isMessageReadByUser(user.id, currentMessage),
+              'fa fa-check delivered': !isMessageReadByUser(user.id, currentMessage)
+            }"
+          ></i>
+        </span>
+            </li>
+          </ul>
+          <div class="modal-actions">
+            <button @click="closeReadStatusModal" class="close-button">
+              Закрыть
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Edit Modal -->
       <div v-if="isEditModalVisible" class="modal-overlay"
            @click.self="closeEditModal">
@@ -238,7 +287,7 @@
 
 
 <script>
-import {chatService, messageService} from "@/services/apiService";
+import {chatService, messageService, readStatusService} from "@/services/apiService";
 import SSEManager from "@/services/sseService";
 import EmojiPicker from "vue3-emoji-picker";
 import 'vue3-emoji-picker/css'
@@ -256,6 +305,7 @@ export default {
       user: null,
       chatId: null,
       chatData: null,
+      chatType: "",
       otherUser: null,
       chatName: '',
       chatImage: "",
@@ -276,6 +326,10 @@ export default {
       messageToDelete: null,
       typingMessage: "",
       isTyping: false,
+      lastReadMessageId: null,
+      messageRefs: {},
+      isReadStatusModalVisible: false,
+      currentMessage: null,
     };
   },
   computed: {
@@ -301,7 +355,14 @@ export default {
         if (oldChatId) {
           SSEManager.disconnect(oldChatId);
         }
-        SSEManager.connect(newChatId, this.isChatOpen, this.handleNewMessage, this.typingCallback, this.groupCallback);
+        SSEManager.connect(
+            newChatId,
+            this.isChatOpen,
+            this.handleNewMessage,
+            this.typingCallback,
+            this.groupCallback,
+            this.readStatusCallback,
+        );
       },
     },
   },
@@ -315,9 +376,23 @@ export default {
     });
   },
   beforeUnmount() {
+    this.sendReadStatusOnExit();
     SSEManager.disconnect(this.chatId);
   },
   methods: {
+    async sendReadStatusOnExit() {
+      if (this.lastReadMessageId) {
+        const unreadCount = this.messages.length - this.messages.findIndex(
+            msg => msg.id === this.lastReadMessageId
+        ) - 1;
+
+        await readStatusService.updateReadStatus(this.chatId, {
+          last_read_message_id: this.lastReadMessageId,
+          count_unread_msg: unreadCount,
+        });
+      }
+    },
+
     formatDate(date) {
       const options = {day: 'numeric', month: 'long', year: 'numeric',};
       return new Date(date).toLocaleDateString("ru-RU", options);
@@ -337,6 +412,21 @@ export default {
 
     addSmallEmoji(emoji) {
       this.editMessageText += emoji.i;
+    },
+
+    openReadStatusModal(message) {
+      this.currentMessage = message;
+      this.isReadStatusModalVisible = true;
+      message.showMenu = false;
+    },
+
+    closeReadStatusModal() {
+      this.isReadStatusModalVisible = false;
+      this.currentMessage = null;
+    },
+
+    isMessageReadByUser(userId, message) {
+      return message.readUsers && message.readUsers.includes(userId);
     },
 
     onGroupMouseLeave() {
@@ -375,6 +465,7 @@ export default {
         const chatResponse = await this.$store.dispatch("StoreFetchChatDetail", chatId);
         this.user = JSON.parse(localStorage.getItem("user"));
         this.chatData = chatResponse.data;
+        this.chatType = chatResponse.data.chat_type
 
         // Set the other user for direct chats
         if (this.chatData.chat_type === "direct") {
@@ -486,7 +577,7 @@ export default {
       try {
         const response = await messageService.fetchMessages(this.chatId, {
           cursor: isInitialLoad ? null : this.cursor,
-          size: 30,
+          size: isInitialLoad ? 100 : 30,
         });
         const newMessages = response.data.items
             .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
@@ -498,29 +589,74 @@ export default {
               updated_at: new Date(message.updated_at).toLocaleString(),
               showMenu: false,
               isMine: message.user_id === this.user.id,
+              readStatus: [],
+              readUsers: [],
             }));
 
-        if (isInitialLoad) {
-          this.messages = [...newMessages];
-        } else {
-          this.messages = [...newMessages, ...this.messages];
+        const currentUserStatus = this.chatData.read_statuses.find(
+            status => status.user_id === this.user.id
+        );
+
+        if (currentUserStatus) {
+          const {last_read_message_id, count_unread_msg} = currentUserStatus;
+          const lastReadMessageId = last_read_message_id;
+          const countUnreadMessages = count_unread_msg
+
+          if (isInitialLoad) {
+            this.messages = [...newMessages];
+          } else {
+            this.messages = [...newMessages, ...this.messages];
+          }
+          this.chatData.read_statuses
+              .filter(status => status.user_id !== this.user.id)
+              .forEach(status => {
+                const {last_read_message_id} = status;
+
+                const lastReadIndex = this.messages.findIndex(
+                    message => message.id === last_read_message_id
+                );
+
+                this.messages.forEach((message, index) => {
+                  if (message.isMine) {
+                    if (index <= lastReadIndex) {
+                      message.readStatus.push('read');
+                      message.readUsers.push(status.user_id);
+                    } else {
+                      message.readStatus.push('delivered');
+                    }
+                  }
+                });
+              });
+          if (isInitialLoad && lastReadMessageId && countUnreadMessages < 99) {
+            await this.$nextTick();
+            const targetMessage = this.messageRefs[lastReadMessageId]
+
+            if (targetMessage) {
+              const container = this.$refs.messagesList;
+              container.scrollTop = targetMessage.offsetTop - container.offsetTop;
+            }
+          } else if (isInitialLoad && countUnreadMessages > 99) {
+            this.scrollToBottom();
+            const lastMessageId = this.messages[this.messages.length - 1].id;
+            await readStatusService.updateReadStatus(this.chatId, {
+              last_read_message_id: lastMessageId,
+              count_unread_msg: 0,
+            });
+          }
+
+          this.cursor = response.data.next_page;
+          this.hasMoreMessages = !!this.cursor;
+          const container = this.$refs.messagesList;
+
+          if (!isInitialLoad) {
+            const currentScrollTop = container.scrollTop;
+            const prevHeight = container.scrollHeight;
+            container.scrollTop = currentScrollTop;
+            await this.$nextTick();
+            const newHeight = container.scrollHeight;
+            container.scrollTop = newHeight - prevHeight + currentScrollTop;
+          }
         }
-
-        this.cursor = response.data.next_page;
-        this.hasMoreMessages = !!this.cursor;
-        const container = this.$refs.messagesList;
-
-        if (isInitialLoad) {
-          this.scrollToBottom();
-        } else {
-          const currentScrollTop = container.scrollTop;
-          const prevHeight = container.scrollHeight;
-          container.scrollTop = currentScrollTop;
-          await this.$nextTick();
-          const newHeight = container.scrollHeight;
-          container.scrollTop = newHeight - prevHeight + currentScrollTop;
-        }
-
       } catch (error) {
         console.error("Ошибка загрузки сообщений:", error);
       } finally {
@@ -530,8 +666,31 @@ export default {
 
     async onScroll() {
       const container = this.$refs.messagesList;
-      if (container.scrollTop < 100 && this.hasMoreMessages) {
+      const scrollTop = container.scrollTop;
+      const scrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+
+      if (scrollTop < 100 && this.hasMoreMessages) {
         await this.loadMessages();
+      }
+
+      const visibleMessages = this.messages.filter(message => {
+        const messageElement = this.messageRefs[message.id];
+        if (!messageElement || !(messageElement instanceof Element)) return false;
+        const rect = messageElement.getBoundingClientRect();
+        return rect.top >= 0 && rect.bottom <= window.innerHeight;
+      });
+
+      if (visibleMessages.length > 0) {
+        const lastVisibleMessage = visibleMessages[visibleMessages.length - 1];
+        this.lastReadMessageId = lastVisibleMessage.id;
+      }
+
+      if (scrollTop + clientHeight >= scrollHeight - 5 && this.lastReadMessageId) {
+        await readStatusService.updateReadStatus(this.chatId, {
+          last_read_message_id: this.lastReadMessageId,
+          count_unread_msg: 0,
+        });
       }
     },
 
@@ -556,6 +715,39 @@ export default {
       } else {
         this.typingMessage = "печатает...";
       }
+    },
+
+    readStatusCallback(read_status_data) {
+      if (read_status_data.user_id === this.user.id) return
+      const lastReadIndex = this.messages.findIndex(
+          message => message.id === read_status_data.last_read_message_id
+      );
+
+      this.messages.forEach((message, index) => {
+        if (!message.readUsers) {
+          message.readUsers = [];
+        }
+        if (!message.readStatus) {
+          message.readStatus = [];
+        }
+        if (message.isMine && index <= lastReadIndex) {
+          if (!message.readStatus.includes('read')) {
+            const deliveredIndex = message.readStatus.indexOf('delivered');
+            if (deliveredIndex !== -1) {
+              message.readStatus.splice(deliveredIndex, 1);
+            }
+            message.readStatus.push('read');
+          }
+        }
+        if (index <= lastReadIndex) {
+          if (!message.readUsers.includes(read_status_data.user_id)) {
+            message.readUsers.push(read_status_data.user_id);
+          }
+          if (message.readUsers.length > 0 && !message.readStatus.includes('read')) {
+            message.readStatus.push('read');
+          }
+        }
+      });
     },
 
     handleNewMessage(newMessage, action) {
@@ -666,7 +858,7 @@ export default {
       this.typingTimeout = setTimeout(() => {
         this.isTyping = false;
         chatService.sendTypingStatus(this.chatId, false);
-      }, 1000);
+      }, 2000);
     },
 
     handleEnter(event) {
@@ -679,14 +871,12 @@ export default {
 
     // Send message
     async sendMessage() {
-      this.isTyping = false;
       if (this.messageText.trim() === "") return;
       try {
         const messageData = {
           content: this.messageText,
         }
-        await messageService.sendMessage(this.chatId, messageData)
-        const lastMessageResponse = await messageService.fetchLastMessage(this.chatId)
+        const lastMessageResponse = await messageService.sendMessage(this.chatId, messageData)
         this.messages.push({
           id: lastMessageResponse.data.id,
           user: {
@@ -697,6 +887,7 @@ export default {
           created_at: new Date(lastMessageResponse.data.created_at).toLocaleString(),
           updated_at: new Date(lastMessageResponse.data.updated_at).toLocaleString(),
           isMine: true,
+          readStatus: ['delivered'],
         });
         this.messageText = "";
         this.scrollToBottom();
@@ -780,6 +971,26 @@ export default {
   max-height: 100%;
   overflow-y: scroll;
   padding: 0 15px;
+}
+
+.delivered {
+  color: gray;
+  margin-left: 5px;
+}
+
+.read {
+  color: #8383e8;
+  margin-left: 5px;
+}
+
+.fa-check-circle-half-o.delivered {
+  color: rgba(128, 128, 128, 0.6);
+  margin-left: 5px;
+}
+
+.fa-check-circle.delivered {
+  color: #4f92e8;
+  margin-left: 5px;
 }
 
 .date-separator {
@@ -888,6 +1099,19 @@ export default {
   color: #007bff;
 }
 
+.icon-button-eye {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px;
+  color: #333;
+}
+
+.icon-button-eye:hover {
+  color: #72a4e3;
+}
+
 .icon-button-delete {
   background: none;
   border: none;
@@ -899,6 +1123,18 @@ export default {
 
 .icon-button-delete:hover {
   color: #da0707;
+}
+
+.read-status-list {
+  list-style: none;
+  padding: 0;
+}
+
+.read-status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
 }
 
 .chat-input-container {

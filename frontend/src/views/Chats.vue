@@ -95,7 +95,12 @@
       </div>
       <div v-else-if="chats && chats.length">
         <br>
-        <div class="chat-item" v-for="chat in chats" :key="chat.chat_id">
+        <div
+            class="chat-item"
+            v-for="chat in chats"
+            :key="chat.chat_id"
+            :class="{'unread-chat': chat.read_statuses[0] && chat.read_statuses[0].count_unread_msg > 0}"
+        >
           <a :href="'/chats/' + chat.id" class="chat-item-link">
             <div class="chat-header">
               <span
@@ -110,11 +115,17 @@
                     <img :src="getChatPhoto(chat)" alt="Avatar"/>
                   </div>
                   <span class="chat-name">{{ getChatName(chat) }}</span>
+                  <span v-if="chat.read_statuses[0] && chat.read_statuses[0].count_unread_msg > 0"
+                        class="unread-badge">
+                    {{
+                      chat.read_statuses[0].count_unread_msg > 99 ? '99+' : chat.read_statuses[0].count_unread_msg
+                    }}
+            </span>
                 </div>
               </strong>
               <span class="timestamp">{{ formatDate(chat.updated_at) }}</span>
             </div>
-            <p class="last-message">{{ chat.last_message_content }}</p>
+            <p class="last-message">{{ chat.last_message_content || "Нет сообщений" }}</p>
           </a>
         </div>
       </div>
@@ -131,7 +142,7 @@
 
 <script>
 import SSEManager from "@/services/sseService";
-import {chatService, messageService, userService} from "@/services/apiService";
+import {chatService, userService} from "@/services/apiService";
 import router from "@/router";
 
 export default {
@@ -184,21 +195,6 @@ export default {
         this.previousCursor = response.data.previous_page || null;
         this.chats = response.data.items;
         this.chats.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-
-        const messagePromises = this.chats.map(async (chat) => {
-          try {
-            const messageResponse = await messageService.fetchLastMessage(chat.id);
-            if (!messageResponse.data) {
-              chat.last_message_content = "Нет сообщений";
-            } else {
-              chat.last_message_content = messageResponse.data.content;
-            }
-          } catch (error) {
-            console.error(`Ошибка загрузки сообщения для чата ${chat.id}:`, error);
-            chat.last_message_content = "Ошибка получения сообщения";
-          }
-        });
-        await Promise.all(messagePromises);
         clearTimeout(timeout);
         this.isLoading = false;
       } catch (error) {
@@ -237,9 +233,14 @@ export default {
     async fetchUsers() {
       try {
         const response = await userService.fetchUsers(10)
-        const instanceUser = await userService.fetchUserMe()
-        this.users = response.data.items.slice(0, 10);
-        this.filteredUsers = this.users.filter(user => user.id !== instanceUser.data.id)
+        const instanceUser = JSON.parse(localStorage.getItem("user"));
+        if (!instanceUser) {
+            this.$router.push('/login');
+            alert("Пожалуйста, перезайдите в аккаунт");
+            return;
+        }
+        this.users = response.data.items;
+        this.filteredUsers = this.users.filter(user => user.id !== instanceUser.id)
       } catch (error) {
         console.error('Ошибка получения пользователей:', error);
         this.error = 'Не удалось загрузить пользователей.';
@@ -434,6 +435,21 @@ h2 {
 .chat-item:hover {
   transform: translateY(-5px);
   box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.unread-chat {
+  background-color: #f0f8ff;
+  border-left: 4px solid #37a5de;
+}
+
+.unread-badge {
+  display: inline-block;
+  background-color: #37a5de;
+  color: white;
+  border-radius: 50%;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
 }
 
 .chat-header {

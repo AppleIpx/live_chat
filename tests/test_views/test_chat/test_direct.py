@@ -40,16 +40,13 @@ async def test_create_direct_chat(
         "id": str(chat.id),
         "chat_type": chat.chat_type.value,
         "image": chat.image,
+        "last_message_content": None,
         "name": chat.name,
         "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
         "users": [
             {
                 "id": str(sender.id),
-                "email": sender.email,
-                "is_active": sender.is_active,
-                "is_superuser": sender.is_superuser,
-                "is_verified": sender.is_verified,
                 "first_name": sender.first_name,
                 "last_name": sender.last_name,
                 "username": sender.username,
@@ -57,10 +54,6 @@ async def test_create_direct_chat(
             },
             {
                 "id": str(user.id),
-                "email": user.email,
-                "is_active": user.is_active,
-                "is_superuser": user.is_superuser,
-                "is_verified": user.is_verified,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "username": user.username,

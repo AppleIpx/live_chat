@@ -38,13 +38,13 @@ from live_chat.web.api.messages.utils import publish_faststream
 from live_chat.web.api.read_status.utils.get_read_status_by_id import (
     get_read_statuses_by_chat_id,
 )
-from live_chat.web.api.users.schemas import UserRead
+from live_chat.web.api.users.schemas import UserShortRead
 from live_chat.web.api.users.utils import (
     collect_users_for_group,
     current_active_user,
     get_user_by_id,
-    transformation_users,
 )
+from live_chat.web.api.users.utils.transformations import transformation_short_users
 from live_chat.web.utils import ImageSaver
 
 chat_router = APIRouter()
@@ -156,10 +156,9 @@ async def get_list_chats_view(
     if user_id_exists and await get_user_by_id(db_session, user_id=user_id_exists):
         query = query.where(Chat.users.any(id=user_id_exists))
     chats = await paginate(db_session, query, params=params)
-    read_status_query = (
-        select(ReadStatus)
-        .where(ReadStatus.user_id == current_user.id)
-        .where(ReadStatus.chat_id.in_([chat.id for chat in chats.items]))
+    read_status_query = select(ReadStatus).where(
+        ReadStatus.user_id == current_user.id,
+        ReadStatus.chat_id.in_([chat.id for chat in chats.items]),
     )
     read_statuses = await db_session.execute(read_status_query)
     read_status_dict = {
@@ -203,7 +202,7 @@ async def get_detail_chat_view(
     chat: Chat = Depends(validate_user_access_to_chat),
 ) -> ChatSchema:
     """Get detail chat by id."""
-    users_data: List[UserRead] = transformation_users(chat.users)
+    users_data: List[UserShortRead] = transformation_short_users(chat.users)
     read_statuses: List[ReadStatus] = await get_read_statuses_by_chat_id(
         db_session=db_session,
         chat_id=chat.id,
@@ -227,6 +226,7 @@ async def get_detail_chat_view(
         updated_at=chat.updated_at,
         users=users_data,
         read_statuses=read_statuses_schema,
+        last_message_content=chat.last_message_content,
     )
 
 

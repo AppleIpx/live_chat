@@ -1,10 +1,16 @@
 import store from "@/store";
-import {userService} from "@/services/apiService";
 
 const SSEManager = {
     connections: {},
 
-    async connect(chatId, isChatOpenCallback, messageCallback, typingCallback, groupCallback) {
+    async connect(
+        chatId,
+        isChatOpenCallback,
+        messageCallback,
+        typingCallback,
+        groupCallback,
+        readStatusCallback,
+    ) {
         const token = localStorage.getItem("accessToken");
         if (!token) {
             console.error("Token not found");
@@ -20,7 +26,12 @@ const SSEManager = {
             console.warn(`SSE для чата ${chatId} уже установлено.`);
             return;
         }
-        const user = await userService.fetchUserMe();
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (!user) {
+            this.$router.push('/login');
+            alert("Пожалуйста, перезайдите в аккаунт");
+            return;
+        }
         const baseURL = process.env.VUE_APP_BACKEND_URL;
         const eventSource = new EventSource(
             `${baseURL}/api/chats/${chatId}/events?token=${encodeURIComponent(token)}`
@@ -28,7 +39,7 @@ const SSEManager = {
 
         eventSource.addEventListener("new_message", async (event) => {
             const message = JSON.parse(event.data);
-            if (message.user_id !== user.data.id) {
+            if (message.user_id !== user.id) {
                 await store.dispatch("receiveMessage", {
                     message: message,
                     isChatOpenCallback: isChatOpenCallback
@@ -55,14 +66,14 @@ const SSEManager = {
 
         eventSource.addEventListener("update_message", async (event) => {
             const message = JSON.parse(event.data);
-            if (message.user_id !== user.data.id && isChatOpenCallback) {
+            if (message.user_id !== user.id && isChatOpenCallback) {
                 messageCallback(message, "update");
             }
         });
 
         eventSource.addEventListener("user_typing", async (event) => {
             const typing_status = JSON.parse(event.data);
-            if (typing_status.user_id !== user.data.id && isChatOpenCallback) {
+            if (typing_status.user_id !== user.id && isChatOpenCallback) {
                 typingCallback(typing_status)
             }
         });
@@ -78,6 +89,13 @@ const SSEManager = {
             const group_data = JSON.parse(event.data);
             if (isChatOpenCallback) {
                 groupCallback(group_data, "image");
+            }
+        });
+
+        eventSource.addEventListener("update_read_status", async (event) => {
+            const readStatusData = JSON.parse(event.data);
+            if (isChatOpenCallback) {
+                readStatusCallback(readStatusData);
             }
         });
 

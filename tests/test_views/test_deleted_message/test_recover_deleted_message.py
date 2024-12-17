@@ -47,6 +47,7 @@ async def test_recover_deleted_message(
     assert deleted_mesage_db is None
     assert orig_message is not None
     assert orig_message.is_deleted is False
+    assert chat.last_message_content == orig_message.content[:100]
 
 
 @pytest.mark.anyio

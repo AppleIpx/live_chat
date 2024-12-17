@@ -117,16 +117,6 @@ export const chatService = {
 };
 
 export const messageService = {
-    fetchLastMessage(chatId) {
-        try {
-            return apiClient.get(`/api/chats/${chatId}/messages/last`);
-        } catch (error) {
-            if (error.message === "Нет токена доступа") {
-                this.$router.push("/");
-            }
-            throw error;
-        }
-    },
     async fetchMessages(chatId, {cursor, size}) {
         try {
             const params = new URLSearchParams();
@@ -256,6 +246,19 @@ export const userService = {
         } catch (error) {
             if (error.message === "Нет токена доступа") {
                 this.$router.push("/");
+            }
+            throw error;
+        }
+    },
+};
+
+export const readStatusService = {
+    async updateReadStatus(chatId, readStatusData) {
+        try {
+            return await apiClient.patch(`/api/read_status/${chatId}/update`, readStatusData);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
             }
             throw error;
         }

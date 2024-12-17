@@ -88,6 +88,11 @@ class Chat(Base):
     chat_type: Mapped[ChatType] = mapped_column(Enum(ChatType, inherit_schema=True))
     name: Mapped[str] = mapped_column(String(50), nullable=True, default=None)
     image: Mapped[str] = mapped_column(String(1048), nullable=True, default=None)
+    last_message_content: Mapped[str] = mapped_column(
+        String(100),
+        nullable=True,
+        default=None,
+    )
 
     users: Mapped[List["User"]] = relationship(
         secondary="chat_participant",
