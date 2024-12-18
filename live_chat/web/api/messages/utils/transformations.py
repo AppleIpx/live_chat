@@ -15,6 +15,9 @@ def transformation_message(messages: List[Message]) -> List[GetMessageSchema]:
             chat_id=msg.chat.id,
             user_id=msg.user.id,
             is_deleted=msg.is_deleted,
+            message_type=msg.message_type,
+            file_name=msg.file_name,
+            file_path=msg.file_path,
         )
         for msg in messages
     ]

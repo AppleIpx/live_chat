@@ -113,6 +113,24 @@ export const chatService = {
             }
             throw error;
         }
+    },
+
+    async uploadAttachments(chatId, formData) {
+        try {
+            return await apiClient.post(
+                `/api/chats/${chatId}/upload-attachments`,
+                formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                    }
+                }
+            );
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
     }
 };
 

@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 import factory
+from factory.fuzzy import FuzzyChoice
 
 from live_chat.db.models.chat import Chat, DeletedMessage, Message, ReadStatus, User
 from live_chat.db.models.enums import ChatType, MessageType
@@ -53,8 +54,10 @@ class MessageFactory(factory.alchemy.SQLAlchemyModelFactory):
         sqlalchemy_session = None
 
     id = factory.LazyFunction(uuid.uuid4)
-    message_type = MessageType.TEXT
-    content = factory.Faker("text", max_nb_chars=500)
+    message_type = FuzzyChoice(MessageType)
+    content = factory.Faker("text", max_nb_chars=5000)
+    file_name = factory.Faker("text", max_nb_chars=50)
+    file_path = factory.Faker("url")
     user = factory.SubFactory(UserFactory)
     chat = factory.SubFactory(ChatFactory)
     created_at = factory.LazyFunction(datetime.now)

@@ -23,7 +23,8 @@ from live_chat.web.api.users.utils import (
     current_active_user,
     get_user_by_id,
 )
-from live_chat.web.utils.image_saver import ImageSaver
+from live_chat.web.enums import UploadFileDirectoryEnum
+from live_chat.web.utils.image_saver import FileSaver
 
 http_bearer = HTTPBearer(auto_error=False)
 router = APIRouter(dependencies=[Depends(http_bearer)])
@@ -77,8 +78,11 @@ async def upload_user_image(
     db_session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, str]:
     """Update a user avatar."""
-    image_saver = ImageSaver(user.id)
-    image_url = await image_saver.save_image(uploaded_image, "avatars")
+    image_saver = FileSaver(user.id)
+    image_url = await image_saver.save_file(
+        uploaded_image,
+        UploadFileDirectoryEnum.avatars,
+    )
     if not image_url:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

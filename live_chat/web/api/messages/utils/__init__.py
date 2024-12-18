@@ -1,4 +1,5 @@
-from live_chat.web.api.messages.utils.check_user_message import (
+from live_chat.web.api.messages.utils.dependency import (
+    validate_message_schema,
     validate_user_access_to_message,
 )
 from live_chat.web.api.messages.utils.get_correct_last_message import (
@@ -23,6 +24,7 @@ __all__ = (
     "message_generator",
     "get_user_from_token",
     "validate_user_access_to_message",
+    "validate_message_schema",
     "get_correct_last_message",
     "publish_faststream",
     "get_deleted_message_by_id",

@@ -45,7 +45,8 @@ from live_chat.web.api.users.utils import (
     get_user_by_id,
 )
 from live_chat.web.api.users.utils.transformations import transformation_short_users
-from live_chat.web.utils import ImageSaver
+from live_chat.web.enums import UploadFileDirectoryEnum
+from live_chat.web.utils import FileSaver
 
 chat_router = APIRouter()
 
@@ -238,8 +239,11 @@ async def upload_group_image(
 ) -> dict[str, str]:
     """Update group image."""
 
-    image_saver = ImageSaver(chat.id)
-    image_url = await image_saver.save_image(uploaded_image, "group_images")
+    image_saver = FileSaver(chat.id)
+    image_url = await image_saver.save_file(
+        uploaded_image,
+        UploadFileDirectoryEnum.group_images,
+    )
 
     if not image_url:
         raise HTTPException(

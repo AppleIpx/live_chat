@@ -122,11 +122,35 @@
                   ></i>
                 </div>
               </div>
-              <div class="message-content">{{ message.content }}</div>
+              <div class="message-content">
+                <span v-if="message.content">{{ message.content }}</span>
+                <img
+                    v-if="message.file_path && isImage(message.file_path)"
+                    :src="message.file_path"
+                    class="message-image"
+                    alt="Message attachment"
+                />
+                <video
+                    v-if="message.file_path && isVideo(message.file_path)"
+                    :src="message.file_path"
+                    controls
+                    class="message-video"
+                ></video>
+                <a
+                    v-if="message.file_path && !isImage(message.file_path) && !isVideo(message.file_path)"
+                    :href="message.file_path"
+                    target="_blank"
+                    class="message-other-file"
+                >
+                  <i class="fa fa-file"></i> {{ message.file_name }}
+                </a>
+              </div>
               <div v-if="message.isMine" class="message-options">
                 <button @click="toggleMenu(message.id)" class="menu-button">...</button>
                 <div v-if="message.showMenu" class="menu-dropdown">
-                  <button @click="openEditModal(message)" class="icon-button-update">
+                  <button v-if="message.message_type === 'text'"
+                          @click="openEditModal(message)"
+                          class="icon-button-update">
                     <i class="fa fa-pencil"></i>
                   </button>
                   <button @click="openDeleteModal(message)" class="icon-button-delete">
@@ -148,12 +172,16 @@
 
       <!-- Message Input -->
       <div class="chat-input-container">
+        <label class="attachment-button">
+          <i class="fa fa-paperclip"></i>
+          <input type="file" @change="handleFileUpload" hidden/>
+        </label>
         <textarea
             v-model="messageText"
             @keydown.enter="handleEnter"
             @input="onTyping"
             @keyup="onTyping"
-            placeholder="Напишите сообщение..."
+            placeholder="Написать сообщение..."
             class="chat-input"
             rows="3"
         ></textarea>
@@ -175,7 +203,7 @@
               <input
                   type="text"
                   v-model="newChatName"
-                  placeholder="Новое имя чата"
+                  placeholder="Написать новое имя чата..."
                   class="chat-name-input"
                   required
               />
@@ -251,6 +279,44 @@
         </div>
       </div>
 
+      <!-- Upload attachments Modal -->
+      <div v-if="isUploadModalOpen" class="modal-overlay">
+        <div class="modal-content">
+          <div class="edit-container">
+                <textarea
+                    v-model="messageText"
+                    class="modal-textarea"
+                    placeholder="Написать сообщение..."
+                ></textarea>
+            <button @click="toggleSmallPicker" class="emoji-button">
+              <i class="fas fa-smile"></i>
+            </button>
+            <emoji-picker
+                v-if="showSmallPicker"
+                @select="addSmallEmoji"
+                class="emoji-picker-small"
+            />
+          </div>
+          <div class="upload-content">
+            <!-- File Preview -->
+            <div v-if="messageFilePreview">
+              <img v-if="isImage(messageFileName)" :src="messageFilePreview"
+                   alt="Preview" class="file-image-preview"/>
+              <video v-if="isVideo(messageFileName)" :src="messageFilePreview" controls
+                     class="file-video-preview"></video>
+              <span
+                  v-if="messageFileName && !isImage(messageFileName) && !isVideo(messageFileName)">{{
+                  messageFileName
+                }}</span>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button @click="sendMessage">Отправить</button>
+            <button @click="closeUploadModal">Отмена</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Edit Modal -->
       <div v-if="isEditModalVisible" class="modal-overlay"
            @click.self="closeEditModal">
@@ -260,7 +326,7 @@
                 <textarea
                     v-model="editMessageText"
                     class="edit-textarea"
-                    placeholder="Введите новый текст"
+                    placeholder="Ввести новый текст..."
                 ></textarea>
             <button @click="toggleSmallPicker" class="emoji-button">
               <i class="fas fa-smile"></i>
@@ -330,6 +396,11 @@ export default {
       messageRefs: {},
       isReadStatusModalVisible: false,
       currentMessage: null,
+      messageFilePath: null,
+      messageFileName: null,
+      messageFilePreview: null,
+      isUploadModalOpen: false,
+      fileToUpload: null,
     };
   },
   computed: {
@@ -423,6 +494,17 @@ export default {
     closeReadStatusModal() {
       this.isReadStatusModalVisible = false;
       this.currentMessage = null;
+    },
+
+    openUploadModal() {
+      this.isUploadModalOpen = true;
+    },
+
+    closeUploadModal() {
+      this.isUploadModalOpen = false;
+      this.messageFilePath = null;
+      this.messageFilePreview = null;
+      this.messageText = '';
     },
 
     isMessageReadByUser(userId, message) {
@@ -585,6 +667,9 @@ export default {
               id: message.id,
               user: this.chatData.users.find(user => user.id === message.user_id) || {},
               content: message.content,
+              file_path: message.file_path,
+              file_name: message.file_name,
+              message_type: message.message_type,
               created_at: new Date(message.created_at).toLocaleString(),
               updated_at: new Date(message.updated_at).toLocaleString(),
               showMenu: false,
@@ -758,6 +843,9 @@ export default {
           id: newMessage.id,
           user: message_user || {},
           content: newMessage.content,
+          file_path: newMessage.file_path,
+          file_name: newMessage.file_name,
+          message_type: newMessage.message_type,
           created_at: new Date(newMessage.created_at).toLocaleString(),
           updated_at: new Date(newMessage.updated_at).toLocaleString(),
           isMine: newMessage.user_id === this.user.id,
@@ -869,13 +957,57 @@ export default {
       this.sendMessage();
     },
 
+    isImage(filePath) {
+      return /\.(jpg|jpeg|png|gif|webp)$/i.test(filePath);
+    },
+    isVideo(filePath) {
+      return /\.(mp4|webm|avi|mkv)$/i.test(filePath);
+    },
+
+    async handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        this.messageFilePreview = e.target.result;
+        this.messageFileName = file.name;
+        this.fileToUpload = file
+      };
+      reader.readAsDataURL(file);
+      this.openUploadModal()
+    },
+
+    removeFile() {
+      this.messageFilePath = null;
+      this.messageFileName = null;
+      this.messageFilePreview = null;
+      this.fileToUpload = null
+    },
+
     // Send message
     async sendMessage() {
-      if (this.messageText.trim() === "") return;
-      try {
-        const messageData = {
-          content: this.messageText,
+      if (!this.messageText.trim() && !this.messageFileName) return;
+      if (this.fileToUpload) {
+        const formData = new FormData();
+        formData.append("uploaded_file", this.fileToUpload);
+        try {
+          const response = await chatService.uploadAttachments(this.chatId, formData);
+          this.messageFilePath = response.data.file_path;
+          this.messageFileName = response.data.file_name;
+        } catch (error) {
+          console.error("Ошибка при загрузке файла:", error);
         }
+      }
+
+      const messageData = {
+        content: this.messageText || null,
+        file_path: this.messageFilePath || null,
+        file_name: this.messageFileName || null,
+        message_type: this.messageFilePath ? "file" : "text",
+      };
+
+      try {
         const lastMessageResponse = await messageService.sendMessage(this.chatId, messageData)
         this.messages.push({
           id: lastMessageResponse.data.id,
@@ -884,12 +1016,17 @@ export default {
             username: this.user.username,
           },
           content: this.messageText,
+          file_path: this.messageFilePath,
+          file_name: this.messageFileName,
+          message_type: messageData.message_type,
           created_at: new Date(lastMessageResponse.data.created_at).toLocaleString(),
           updated_at: new Date(lastMessageResponse.data.updated_at).toLocaleString(),
           isMine: true,
           readStatus: ['delivered'],
         });
         this.messageText = "";
+        this.removeFile()
+        this.closeUploadModal()
         this.scrollToBottom();
       } catch (error) {
         console.error("Error sending message:", error);
@@ -1042,6 +1179,69 @@ export default {
   white-space: pre-wrap;
 }
 
+.file-image-preview {
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.file-video-preview {
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.file-preview span {
+  font-size: 14px;
+  color: #333;
+  margin-top: 5px;
+  word-wrap: break-word;
+}
+
+.attachment-button {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  font-size: 20px;
+  margin-right: 8px;
+  color: #007bff;
+}
+
+.attachment-button input[type="file"] {
+  display: none;
+}
+
+.message-image {
+  max-width: 25%;
+  max-height: 25%;
+  height: auto;
+  margin-top: 4px;
+  display: flex;
+  justify-content: center;
+  margin-left: 35%;
+}
+
+.message-video {
+  max-width: 25%;
+  max-height: 25%;
+  margin-top: 4px;
+  display: flex;
+  justify-content: center;
+  margin-left: 35%;
+}
+
+.message-other-file {
+  max-width: 50%;
+  max-height: 50%;
+  height: auto;
+  margin-top: 4px;
+  display: flex;
+  justify-content: center;
+  margin-left: 35%;
+}
+
 .message.mine {
   align-self: flex-end;
   background-color: #e1e1e1;
@@ -1140,16 +1340,9 @@ export default {
 .chat-input-container {
   display: flex;
   align-items: center;
-  padding: 10px;
+  justify-content: space-between;
+  padding: 12px;
   background: #f9f9f9;
-}
-
-.chat-input {
-  flex-grow: 1;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 10px;
-  resize: none;
 }
 
 .emoji-button {
@@ -1265,7 +1458,8 @@ export default {
   text-align: center;
 }
 
-.edit-textarea {
+.edit-textarea,
+.modal-textarea {
   width: 80%;
   height: 90%;
   margin: 15px 30px;
@@ -1275,10 +1469,11 @@ export default {
   font-size: 14px;
   line-height: 1.4;
   resize: none;
+  font-family: Arial, sans-serif;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.edit-textarea:focus {
+.edit-textarea, .modal-textarea:focus {
   border-color: #007bff;
   outline: none;
   box-shadow: 0 0 4px rgba(0, 123, 255, 0.25);
@@ -1329,12 +1524,6 @@ export default {
   text-align: center;
 }
 
-.chat-input-container {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
-}
-
 .chat-input {
   width: 85%;
   padding: 12px 18px;
@@ -1343,7 +1532,7 @@ export default {
   border-radius: 12px;
   background-color: #f4f6f9;
   font-family: Arial, sans-serif;
-  resize: vertical;
+  resize: none;
   overflow: hidden;
   white-space: pre-wrap;
   word-wrap: break-word;

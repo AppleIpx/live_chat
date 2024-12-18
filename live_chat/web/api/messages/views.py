@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_pagination import set_page
@@ -18,6 +18,7 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Message,
     User,
 )
+from live_chat.db.models.enums import MessageType
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.utils import (
     get_chat_by_id,
@@ -38,6 +39,7 @@ from live_chat.web.api.messages.utils import (
     publish_faststream,
     save_message_to_db,
     transformation_message,
+    validate_message_schema,
     validate_user_access_to_message,
 )
 from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
@@ -48,6 +50,8 @@ from live_chat.web.api.read_status.utils.increase_in_unread_messages import (
 )
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils import current_active_user, get_user_manager
+from live_chat.web.enums import UploadFileDirectoryEnum
+from live_chat.web.utils import FileSaver
 
 message_router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -89,17 +93,43 @@ async def get_deleted_messages(
     return await paginate(db_session, query, params=params)
 
 
+@message_router.post("/chats/{chat_id}/upload-attachments")
+async def upload_message_file(
+    uploaded_file: UploadFile,
+    chat: Chat = Depends(validate_user_access_to_chat),
+) -> dict[str, str]:
+    """Upload a file to use as an attachment in a message."""
+
+    file_saver = FileSaver()
+    file_url = await file_saver.save_file(
+        uploaded_file,
+        f"{UploadFileDirectoryEnum.chat_attachments}/{chat.id}",
+    )
+
+    if not file_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file upload",
+        )
+
+    return {
+        "file_name": file_url.split("/")[-1],
+        "file_path": file_url,
+    }
+
+
 @message_router.post("/chats/{chat_id}/messages")
 async def post_message(
-    message: PostMessageSchema,
+    message_schema: PostMessageSchema,
     chat: Chat = Depends(validate_user_access_to_chat),
     current_user: User = Depends(current_active_user),
     db_session: AsyncSession = Depends(get_async_session),
+    _: None = Depends(validate_message_schema),
 ) -> GetMessageSchema:
     """Post message in FastStream."""
     if created_message := await save_message_to_db(
         db_session,
-        message.content,
+        message_schema,
         chat,
         current_user,
     ):
@@ -127,10 +157,15 @@ async def update_message(
     chat: Chat = Depends(validate_user_access_to_chat),
     message: Message = Depends(validate_user_access_to_message),
     db_session: AsyncSession = Depends(get_async_session),
+    _: None = Depends(validate_message_schema),
 ) -> GetMessageSchema:
     """Update message."""
-    message.content = message_schema.content
-    chat.last_message_content = message_schema.content[:100]
+    if message_schema.message_type == MessageType.TEXT:
+        message.content = message_schema.content
+        chat.last_message_content = message_schema.content[:100]  # type: ignore[index]
+    elif message_schema.message_type == MessageType.FILE:
+        message.file_path = message_schema.file_path
+        message.file_name = message_schema.file_name
     db_session.add_all([message, chat])
     await db_session.commit()
     await db_session.refresh(message)

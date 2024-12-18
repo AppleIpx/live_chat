@@ -53,7 +53,10 @@ async def test_post_message(
     assert response.json() == {
         "id": f"{message.id}",
         "chat_id": f"{chat_id}",
+        "message_type": message.message_type.value,
         "content": "test",
+        "file_name": message.file_name,
+        "file_path": message.file_path,
         "created_at": message.created_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": False,
         "updated_at": message.updated_at.isoformat().replace("+00:00", "Z"),

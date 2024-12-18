@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
+from live_chat.db.models.enums import MessageType
 from live_chat.web.api.chat.schemas import ChatSchema
 
 
@@ -12,7 +13,10 @@ class GetMessageSchema(BaseModel):
     id: UUID
     user_id: UUID
     chat_id: UUID
-    content: str
+    message_type: MessageType
+    file_name: str | None
+    file_path: str | None
+    content: str | None
     created_at: datetime
     updated_at: datetime
     is_deleted: bool
@@ -27,7 +31,10 @@ class GetListMessagesSchema(ChatSchema):
 class PostMessageSchema(BaseModel):
     """Represents a message for create."""
 
-    content: str
+    message_type: MessageType = MessageType.TEXT
+    content: str | None = None
+    file_name: str | None = None
+    file_path: str | None = None
 
 
 class UpdateMessageSchema(PostMessageSchema):
