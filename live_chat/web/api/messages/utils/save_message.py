@@ -53,7 +53,7 @@ async def save_deleted_message_to_db(
         original_message_id=message.id,
         is_deleted=True,
     )
-    if message.content != "":
+    if message.content is not None:
         await set_previous_message_content(chat, db_session)
     db_session.add_all([deleted_message, chat])
     await db_session.commit()

@@ -293,7 +293,7 @@
             </button>
             <emoji-picker
                 v-if="showSmallPicker"
-                @select="addSmallEmoji"
+                @select="addEmoji"
                 class="emoji-picker-small"
             />
           </div>
