@@ -32,4 +32,5 @@ async def test_get_user_by_id(
         "last_name": user.last_name,
         "username": user.username,
         "user_image": user.user_image,
+        "is_blocked": False,
     }

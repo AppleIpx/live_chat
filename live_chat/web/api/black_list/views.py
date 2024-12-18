@@ -21,8 +21,8 @@ from live_chat.web.api.black_list.utils import (
     create_black_list,
     delete_user_from_black_list,
     get_black_list_by_owner,
-    transformation_black_list,
 )
+from live_chat.web.api.black_list.utils.transformation import transformation_black_list
 from live_chat.web.api.users.schemas import UserShortRead
 from live_chat.web.api.users.utils import current_active_user, get_user_by_id
 
