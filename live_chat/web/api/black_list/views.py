@@ -61,6 +61,11 @@ async def add_user_to_black_list_view(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No user with this id found",
         )
+    if add_user_in_black_list_schema.user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="It is impossible to add yourself to the blacklist",
+        )
     await add_user_to_black_list(
         black_list=black_list,
         black_list_user=black_list_user,

@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import Chat, DeletedMessage, Message, User, BlackList
+from live_chat.db.models.chat import BlackList, Chat, DeletedMessage, Message, User
 from tests.factories import MessageFactory
 
 payload = {
