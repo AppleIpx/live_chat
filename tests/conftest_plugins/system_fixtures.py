@@ -190,11 +190,22 @@ def override_get_async_session(
 
 
 @pytest.fixture
-def upload_mock(group_chat_with_users: ChatFactory) -> AsyncMock:
+def upload_group_image_mock(group_chat_with_users: ChatFactory) -> AsyncMock:
     """Mock upload file in S3."""
     with patch.object(
         S3Client,
         "upload_file",
         return_value=f"{settings.minio_url}group_images/{group_chat_with_users.id}.png",
+    ) as mock_upload:
+        yield mock_upload
+
+
+@pytest.fixture
+def upload_chat_attachments_mock(direct_chat_with_users: ChatFactory) -> AsyncMock:
+    """Mock upload file in S3."""
+    with patch.object(
+        S3Client,
+        "upload_file",
+        return_value=f"{settings.minio_url}chat_attachments/{direct_chat_with_users.id}/{uuid.uuid4()}.png",
     ) as mock_upload:
         yield mock_upload

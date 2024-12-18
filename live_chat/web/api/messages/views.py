@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_pagination import set_page
@@ -50,8 +50,6 @@ from live_chat.web.api.read_status.utils.increase_in_unread_messages import (
 )
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils import current_active_user, get_user_manager
-from live_chat.web.enums import UploadFileDirectoryEnum
-from live_chat.web.utils import FileSaver
 
 message_router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -91,28 +89,6 @@ async def get_deleted_messages(
         .order_by(DeletedMessage.created_at.desc())
     )
     return await paginate(db_session, query, params=params)
-
-
-@message_router.post("/chats/{chat_id}/upload-attachments")
-async def upload_message_file(
-    uploaded_file: UploadFile,
-    chat: Chat = Depends(validate_user_access_to_chat),
-) -> dict[str, str]:
-    """Upload a file to use as an attachment in a message."""
-    file_saver = FileSaver()
-    file_url = await file_saver.save_file(
-        uploaded_file,
-        f"{UploadFileDirectoryEnum.chat_attachments}/{chat.id}",
-    )
-    if not file_url:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid file upload",
-        )
-    return {
-        "file_name": file_url.split("/")[-1],
-        "file_path": file_url,
-    }
 
 
 @message_router.post("/chats/{chat_id}/messages")
