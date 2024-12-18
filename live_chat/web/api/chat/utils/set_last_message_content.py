@@ -8,7 +8,11 @@ async def set_previous_message_content(chat: Chat, db_session: AsyncSession) -> 
     """Set previous message content at last_message content in chat."""
     query = (
         select(Message)
-        .where(Message.chat_id == chat.id, Message.is_deleted == False)  # noqa: E712
+        .where(
+            Message.chat_id == chat.id,
+            Message.is_deleted == False,  # noqa: E712
+            Message.content != None,  # noqa: E711
+        )
         .order_by(Message.created_at.desc())
         .limit(1)
     )

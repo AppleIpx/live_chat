@@ -45,12 +45,16 @@ async def save_deleted_message_to_db(
     """Save the message to the database."""
     deleted_message = DeletedMessage(
         content=message.content,
+        file_name=message.file_name,
+        file_path=message.file_path,
+        message_type=message.message_type,
         chat_id=message.chat_id,
         user_id=message.user_id,
         original_message_id=message.id,
         is_deleted=True,
     )
-    await set_previous_message_content(chat, db_session)
+    if message.content != "":
+        await set_previous_message_content(chat, db_session)
     db_session.add_all([deleted_message, chat])
     await db_session.commit()
     await db_session.refresh(deleted_message)

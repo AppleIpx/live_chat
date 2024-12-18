@@ -99,19 +99,16 @@ async def upload_message_file(
     chat: Chat = Depends(validate_user_access_to_chat),
 ) -> dict[str, str]:
     """Upload a file to use as an attachment in a message."""
-
     file_saver = FileSaver()
     file_url = await file_saver.save_file(
         uploaded_file,
         f"{UploadFileDirectoryEnum.chat_attachments}/{chat.id}",
     )
-
     if not file_url:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid file upload",
         )
-
     return {
         "file_name": file_url.split("/")[-1],
         "file_path": file_url,
@@ -157,22 +154,19 @@ async def update_message(
     chat: Chat = Depends(validate_user_access_to_chat),
     message: Message = Depends(validate_user_access_to_message),
     db_session: AsyncSession = Depends(get_async_session),
-    _: None = Depends(validate_message_schema),
 ) -> GetMessageSchema:
     """Update message."""
     if message_schema.message_type == MessageType.TEXT:
         message.content = message_schema.content
         chat.last_message_content = message_schema.content[:100]  # type: ignore[index]
-    elif message_schema.message_type == MessageType.FILE:
-        message.file_path = message_schema.file_path
-        message.file_name = message_schema.file_name
-    db_session.add_all([message, chat])
-    await db_session.commit()
-    await db_session.refresh(message)
-    message_data: GetMessageSchema = transformation_message([message])[0]
-    event_data = jsonable_encoder(message_data.model_dump())
-    await publish_faststream("update_message", chat.users, event_data, chat.id)
-    return message_data
+        db_session.add_all([message, chat])
+        await db_session.commit()
+        await db_session.refresh(message)
+        message_data: GetMessageSchema = transformation_message([message])[0]
+        event_data = jsonable_encoder(message_data.model_dump())
+        await publish_faststream("update_message", chat.users, event_data, chat.id)
+        return message_data
+    raise HTTPException(status_code=404, detail="File message cannot updated")
 
 
 @message_router.post("/chats/{chat_id}/messages/{message_id}/recover")
@@ -185,8 +179,9 @@ async def recover_deleted_message(
     if not isinstance(deleted_message, DeletedMessage):
         raise HTTPException(status_code=404, detail="Instance is not deleted message")
     if message := await restore_message(db_session, deleted_message):
-        chat.last_message_content = message.content[:100]
-        await db_session.commit()
+        if message.content:
+            chat.last_message_content = message.content[:100]
+            await db_session.commit()
         message_data: GetMessageSchema = transformation_message([message])[0]
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("recover_message", chat.users, event_data, chat.id)
