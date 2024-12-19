@@ -13,13 +13,7 @@ async def get_user_from_token(
     """Extract user from JWT token."""
     try:
         jwt_strategy = get_jwt_strategy()
-        user = await jwt_strategy.read_token(token, user_manager)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found.",
-            )
-        return user
+        return await jwt_strategy.read_token(token, user_manager)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

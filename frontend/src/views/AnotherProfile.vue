@@ -7,19 +7,26 @@
           <!-- Avatar Display -->
           <div class="avatar-container">
             <div class="avatar-wrapper">
-              <img
-                  v-if="user.user_image"
-                  :src="user.user_image"
-                  alt="Аватар"
-                  class="avatar-image"
-              />
-              <img
-                  v-else
-                  src="/default_avatar.png"
-                  alt="Аватар по умолчанию"
-                  class="avatar-image"
-              />
+              <div class="profile-avatar-wrapper">
+                <img
+                    v-if="user.user_image"
+                    :src="user.user_image"
+                    alt="Аватар"
+                    class="avatar-image"
+                />
+                <img
+                    v-else
+                    src="/default_avatar.png"
+                    alt="Аватар по умолчанию"
+                    class="avatar-image"
+                />
+                <div v-if="isOnline" class="online-indicator"></div>
+              </div>
             </div>
+          </div>
+
+          <div v-if="!isOnline && lastOnlineTime" class="last-online">
+            Был(а) онлайн в {{ lastOnlineTime }}
           </div>
 
           <!-- Profile Information -->
@@ -103,6 +110,21 @@ export default {
   },
   mounted() {
     this.fetchUserProfile();
+  },
+  computed: {
+    isOnline() {
+      const lastOnlineDate = new Date(this.user.last_online);
+      const now = new Date();
+      return (now - lastOnlineDate) <= 5 * 60 * 1000;
+    },
+    lastOnlineTime() {
+      if (!this.user || !this.user.last_online) return null;
+      const lastOnlineDate = new Date(this.user.last_online);
+      return lastOnlineDate.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    },
   },
   methods: {
     async toggleBlackList() {
@@ -220,8 +242,31 @@ export default {
   height: 150px;
 }
 
-.avatar-image,
-.avatar-placeholder {
+.last-online {
+  font-size: 16px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 150px;
+  height: 150px;
+}
+
+.online-indicator {
+  position: absolute;
+  bottom: 4px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  background-color: #007bff;
+  border-radius: 50%;
+  border: 4px solid white;
+}
+
+.avatar-image {
   width: 100%;
   height: 100%;
   border-radius: 50%;

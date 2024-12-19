@@ -17,6 +17,7 @@ def transformation_users(users: List[User]) -> list[UserRead]:
             last_name=user.last_name,  # type: ignore[call-arg]
             username=user.username,  # type: ignore[call-arg]
             user_image=user.user_image,  # type: ignore[call-arg]
+            last_online=user.last_online,  # type: ignore[call-arg]
         )
         for user in users
     ]
@@ -31,6 +32,7 @@ def transformation_short_users(users: List[User]) -> list[UserShortRead]:
             last_name=user.last_name,  # type: ignore[call-arg]
             username=user.username,  # type: ignore[call-arg]
             user_image=user.user_image,  # type: ignore[call-arg]
+            last_online=user.last_online,  # type: ignore[call-arg]
         )
         for user in users
     ]

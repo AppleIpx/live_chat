@@ -26,6 +26,11 @@ async def test_get_all_users(
             "id": str(user.id),
             "first_name": user.first_name,
             "last_name": user.last_name,
+            "last_online": (
+                user.last_online.isoformat().replace("+00:00", "Z")
+                if user.last_online
+                else None
+            ),
             "username": user.username,
             "user_image": user.user_image,
         }

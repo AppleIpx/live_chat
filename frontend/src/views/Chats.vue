@@ -111,12 +111,18 @@
               </span>
               <strong>
                 <div class="user-info">
-                  <div v-if="getChatPhoto(chat)" class="user-avatar">
-                    <img :src="getChatPhoto(chat)" alt="Avatar"/>
+                  <div class="profile-avatar-wrapper">
+                    <div v-if="getChatPhoto(chat)" class="user-avatar">
+                      <img :src="getChatPhoto(chat)" alt="Avatar"/>
+                      <img :src="getChatPhoto(chat)" alt="Avatar"/>
+                      <div v-if="chat.chat_type==='direct' && isOnline(chat)"
+                           class="online-indicator"></div>
+                    </div>
                   </div>
                   <span class="chat-name">{{ getChatName(chat) }}</span>
-                  <span v-if="chat.read_statuses[0] && chat.read_statuses[0].count_unread_msg > 0"
-                        class="unread-badge">
+                  <span
+                      v-if="chat.read_statuses[0] && chat.read_statuses[0].count_unread_msg > 0"
+                      class="unread-badge">
                     {{
                       chat.read_statuses[0].count_unread_msg > 99 ? '99+' : chat.read_statuses[0].count_unread_msg
                     }}
@@ -125,7 +131,9 @@
               </strong>
               <span class="timestamp">{{ formatDate(chat.updated_at) }}</span>
             </div>
-            <p class="last-message">{{ chat.last_message_content || "Нет сообщений" }}</p>
+            <p class="last-message">{{
+                chat.last_message_content || "Нет сообщений"
+              }}</p>
           </a>
         </div>
       </div>
@@ -164,10 +172,17 @@ export default {
       lastMessages: {},
       currentCursor: null,
       nextCursor: null,
-      previousCursor: null
+      previousCursor: null,
+      instanceUser: null,
     };
   },
   async mounted() {
+    this.instanceUser = JSON.parse(localStorage.getItem("user"));
+    if (!this.instanceUser) {
+      this.$router.push('/login');
+      alert("Пожалуйста, перезайдите в аккаунт");
+      return;
+    }
     await this.fetchChats();
     this.$store.state.chats.forEach((chat) => {
       SSEManager.connect(chat.id, false);
@@ -218,6 +233,18 @@ export default {
       }
     },
 
+    isOnline(chat) {
+      if (chat.chat_type === 'direct') {
+        const user = chat.users.find(user =>
+            user.username !== this.instanceUser.email.split("@")[0] &&
+            user.username !== this.instanceUser.username
+        );
+        const lastOnlineDate = new Date(user.last_online);
+        const now = new Date();
+        return (now - lastOnlineDate) <= 5 * 60 * 1000;
+      }
+    },
+
     async loadNextPage() {
       if (this.nextCursor) {
         await this.fetchChats(this.nextCursor);
@@ -233,14 +260,8 @@ export default {
     async fetchUsers() {
       try {
         const response = await userService.fetchUsers(10)
-        const instanceUser = JSON.parse(localStorage.getItem("user"));
-        if (!instanceUser) {
-            this.$router.push('/login');
-            alert("Пожалуйста, перезайдите в аккаунт");
-            return;
-        }
         this.users = response.data.items;
-        this.filteredUsers = this.users.filter(user => user.id !== instanceUser.id)
+        this.filteredUsers = this.users.filter(user => user.id !== this.instanceUser.id)
       } catch (error) {
         console.error('Ошибка получения пользователей:', error);
         this.error = 'Не удалось загрузить пользователей.';
@@ -251,15 +272,9 @@ export default {
       const defaultUserImage = '/default_avatar.png';
       const defaultGroupImage = '/default_group_image.png';
       if (chat.chat_type === 'direct') {
-        const instanceUser = JSON.parse(localStorage.getItem("user"));
-        if (!instanceUser) {
-          this.$router.push('/login');
-          alert("Пожалуйста, перезайдите в аккаунт");
-          return defaultUserImage;
-        }
         const user = chat.users.find(user =>
-            user.username !== instanceUser.email.split("@")[0] &&
-            user.username !== instanceUser.username
+            user.username !== this.instanceUser.email.split("@")[0] &&
+            user.username !== this.instanceUser.username
         );
         return user?.user_image || defaultUserImage;
       }
@@ -278,16 +293,8 @@ export default {
     },
 
     getFirstLastNames(users) {
-      const instanceUser = JSON.parse(localStorage.getItem("user"));
-
-      if (!instanceUser) {
-        this.$router.push('/login');
-        alert("Пожалуйста, перезайдите в аккаунт");
-        return;
-      }
-
       return users
-          .filter(user => user.username !== instanceUser.email.split("@")[0] && user.username !== instanceUser.username)
+          .filter(user => user.username !== this.instanceUser.email.split("@")[0] && user.username !== this.instanceUser.username)
           .map(user => `${user.first_name} ${user.last_name}`)
           .join(', ');
     },
@@ -472,6 +479,22 @@ h2 {
   overflow: hidden;
   display: inline-block;
   margin-right: 10px;
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.online-indicator {
+  position: absolute;
+  bottom: 5px;
+  right: 8px;
+  width: 12px;
+  height: 12px;
+  background-color: #007bff;
+  border-radius: 50%;
+  border: 2px solid white;
 }
 
 .user-avatar img {

@@ -28,10 +28,12 @@
                 <li v-for="user in chatData.users" :key="user.id" class="tooltip-user">
                   <a v-if="user && user.id"
                      :href="user.username === this.user.username ? '/profile/me' : '/profile/' + user.id">
-                    <img v-if="user.user_image" :src="user.user_image"
-                         alt="User Avatar" class="user-avatar">
-                    <img v-else src="/default_avatar.png" alt="Default Avatar"
-                         class="user-avatar">
+                    <div class="profile-avatar-wrapper">
+                      <img v-if="user.user_image" :src="user.user_image" alt="User Avatar"
+                           class="user-avatar">
+                      <img v-else src="/default_avatar.png" alt="Default Avatar" class="user-avatar">
+                      <div v-if="isOnline(user)" class="online-mini-indicator"></div>
+                    </div>
                     {{ user.first_name }} {{ user.last_name }}
                   </a>
                 </li>
@@ -47,6 +49,10 @@
             </div>
             </div>
             <span v-if="chatData.chat_type==='direct'">{{ chatName }}</span>
+            <div v-if="chatData.chat_type==='direct' && !isOnline && lastOnlineTime"
+                 class="last-online">
+              Был(а) онлайн в {{ lastOnlineTime }}
+            </div>
             <div v-if="typingMessage" class="typing-indicator">
           {{ typingMessage }}
     </div>
@@ -59,9 +65,12 @@
             <img v-else src="/default_group_image.png" alt="Group default image"/>
           </template>
           <template v-else-if="chatData && otherUser">
-            <a :href="`/profile/${otherUser.id}`">
-              <img v-if=chatImage :src=chatImage alt="Profile"/>
-              <img v-else src="/default_avatar.png" alt="Default profile"/>
+            <a :href="`/profile/${otherUser.id}`" class="profile-link">
+              <div class="profile-avatar-wrapper">
+                <img v-if="chatImage" :src="chatImage" alt="Profile"/>
+                <img v-else src="/default_avatar.png" alt="Default profile"/>
+                <div v-if="isOnline(otherUser)" class="online-indicator"></div>
+              </div>
             </a>
           </template>
         </div>
@@ -404,6 +413,14 @@ export default {
     };
   },
   computed: {
+    lastOnlineTime() {
+      if (!this.otherUser || !this.otherUser.last_online) return null;
+      const lastOnlineDate = new Date(this.otherUser.last_online);
+      return lastOnlineDate.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    },
     isMouseOverTooltip() {
       return this.showGroupTooltip;
     },
@@ -462,6 +479,13 @@ export default {
           count_unread_msg: unreadCount,
         });
       }
+    },
+
+    isOnline(user) {
+      if (!user || !user.last_online) return false;
+      const lastOnlineDate = new Date(user.last_online);
+      const now = new Date();
+      return (now - lastOnlineDate) <= 5 * 60 * 1000;
     },
 
     formatDate(date) {
@@ -1094,6 +1118,39 @@ export default {
   height: 50px;
   border-radius: 50%;
   object-fit: cover;
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.online-indicator {
+  position: absolute;
+  bottom: 5px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background-color: #007bff;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.online-mini-indicator {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 5px;
+  height: 5px;
+  background-color: #007bff;
+  border-radius: 50%;
+  border: 1px solid white;
+}
+
+.last-online {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
 }
 
 .messages-container {

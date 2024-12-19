@@ -48,6 +48,11 @@ async def test_get_detail_chat(
                 "id": str(sender.id),
                 "first_name": sender.first_name,
                 "last_name": sender.last_name,
+                "last_online": (
+                    sender.last_online.isoformat().replace("+00:00", "Z")
+                    if sender.last_online
+                    else None
+                ),
                 "username": sender.username,
                 "user_image": sender.user_image,
             },
@@ -55,6 +60,7 @@ async def test_get_detail_chat(
                 "id": str(recipient.id),
                 "first_name": recipient.first_name,
                 "last_name": recipient.last_name,
+                "last_online": recipient.last_online.isoformat().replace("+00:00", "Z"),
                 "username": recipient.username,
                 "user_image": recipient.user_image,
             },

@@ -30,6 +30,7 @@ async def test_get_user_by_id(
         "is_verified": user.is_verified,
         "first_name": user.first_name,
         "last_name": user.last_name,
+        "last_online": user.last_online.isoformat().replace("+00:00", "Z"),
         "username": user.username,
         "user_image": user.user_image,
         "is_blocked": False,

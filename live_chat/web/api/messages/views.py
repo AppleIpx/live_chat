@@ -222,12 +222,24 @@ async def sse_events(
     chat = await get_chat_by_id(db_session, chat_id=chat_id)
 
     if chat is None:
-        raise HTTPException(status_code=404, detail="Chat not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Chat not found",
+        )
+
+    if current_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
 
     user_chats = await get_user_chats(db_session, current_user=current_user)
 
     if chat not in user_chats:
-        raise HTTPException(status_code=403, detail="User is not part of the chat")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is not part of the chat",
+        )
 
     redis_key = f"{REDIS_SSE_KEY_PREFIX}{chat.id}_{current_user.id}"
     return EventSourceResponse(message_generator(redis_key), ping=60)

@@ -11,6 +11,7 @@ from live_chat.services.faststream import fast_stream_router
 from live_chat.settings import settings
 from live_chat.web.api.router import api_router
 from live_chat.web.lifespan import lifespan_setup
+from live_chat.web.middlewares import UpdateLastOnlineMiddleware
 
 
 def get_app() -> FastAPI:
@@ -43,6 +44,7 @@ def get_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(UpdateLastOnlineMiddleware)
     # Main router for the API.
     app.include_router(router=api_router, prefix="/api")
     app.include_router(router=fast_stream_router)

@@ -78,10 +78,8 @@ async def test_get_message_event_bad_token(
             "GET",
             f"/api/chats/{direct_chat_with_users.id}/events?token=invalid token",
         ) as response:
-            assert response.status_code == status.HTTP_401_UNAUTHORIZED
-            assert (
-                await response.aread() == b"""{"detail":"Invalid or expired token."}"""
-            )
+            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert await response.aread() == b"""{"detail":"User not found."}"""
 
 
 @pytest.mark.anyio

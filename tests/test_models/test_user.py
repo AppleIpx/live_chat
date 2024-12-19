@@ -23,7 +23,7 @@ async def test_check_fields_user(
     assert user.last_name == user_db.last_name
     assert user.created_at == user_db.created_at
     assert user.updated_at == user_db.updated_at
-    assert user.last_login == user_db.last_login
+    assert user.last_online == user_db.last_online
     assert user.user_image == user_db.user_image
     assert user.is_active == user_db.is_active
     assert user.is_verified == user_db.is_verified

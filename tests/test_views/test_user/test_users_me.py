@@ -25,6 +25,11 @@ async def test_get_users_me(
         "is_verified": user.is_verified,
         "first_name": user.first_name,
         "last_name": user.last_name,
+        "last_online": (
+            user.last_online.isoformat().replace("+00:00", "Z")
+            if user.last_online
+            else None
+        ),
         "username": user.username,
         "user_image": user.user_image,
     }
@@ -47,6 +52,11 @@ async def test_patch_users_me_correct(
         "is_verified": user.is_verified,
         "first_name": user.first_name,
         "last_name": user.last_name,
+        "last_online": (
+            user.last_online.isoformat().replace("+00:00", "Z")
+            if user.last_online
+            else None
+        ),
         "username": user.username,
         "user_image": user.user_image,
     }
