@@ -11,7 +11,7 @@ from starlette import status
 
 from live_chat.db.models.chat import Message
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
-from tests.factories import ChatFactory, ReadStatusFactory
+from tests.factories import BlackListFactory, ChatFactory, ReadStatusFactory
 from tests.utils import transformation_message_data
 
 
@@ -58,6 +58,46 @@ async def test_post_message(
         "is_deleted": False,
         "updated_at": message.updated_at.isoformat().replace("+00:00", "Z"),
         "user_id": f"{direct_chat_with_users.users[0].id}",
+    }
+
+
+@pytest.mark.anyio
+async def test_post_message_to_blocked_user(
+    authorized_client: AsyncClient,
+    direct_chat_with_users: ChatFactory,
+    black_list_with_user: BlackListFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing post message to blocked user."""
+    chat_id = direct_chat_with_users.id
+    response = await authorized_client.post(
+        f"/api/chats/{chat_id}/messages",
+        json={"content": "test"},
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {
+        "detail": "You can't send a message to this user, because he's blocked",
+    }
+
+
+@pytest.mark.anyio
+async def test_post_message_from_blocked_user(
+    authorized_client: AsyncClient,
+    direct_chat_with_users: ChatFactory,
+    black_list_with_auth_user: BlackListFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing sending a message if the sender is on the recipient’s black list."""
+    chat_id = direct_chat_with_users.id
+    response = await authorized_client.post(
+        f"/api/chats/{chat_id}/messages",
+        json={"content": "test"},
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {
+        "detail": "You can't send a message to this user, you are on the black list",
     }
 
 

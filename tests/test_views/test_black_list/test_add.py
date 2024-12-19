@@ -3,11 +3,10 @@ from typing import AsyncGenerator
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.db.models.chat import BlockedUsers, User
+from live_chat.web.api.black_list.utils.blocked_users import get_blocked_users
 from live_chat.web.api.users.utils import get_user_by_id
 from tests.factories import BlackListFactory, BlockedUsersFactory, UserFactory
 from tests.utils import get_first_black_list_from_db, get_first_user_from_db
@@ -56,14 +55,10 @@ async def test_add_user_to_existing_black_list(
         json={"user_id": f"{user.id}"},
     )
     black_list_with_users = await get_first_black_list_from_db(db_session=dbsession)
-    blocked_users_query = (
-        select(User)
-        .join(BlockedUsers, BlockedUsers.user_id == User.id)
-        .where(BlockedUsers.blacklist_id == black_list_with_users.id)
-        .order_by(User.id)
+    blocked_users = await get_blocked_users(
+        black_list=black_list_with_users,
+        db_session=dbsession,
     )
-    result = await dbsession.execute(blocked_users_query)
-    blocked_users = result.scalars().all()
     assert response.status_code == status.HTTP_201_CREATED
     assert len(blocked_users) == 6
 
