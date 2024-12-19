@@ -22,13 +22,13 @@ async def test_upload_img_group(
     fake_image: UploadFile,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     mocked_publish_message: AsyncMock,
-    upload_mock: AsyncMock,
+    upload_group_image_mock: AsyncMock,
 ) -> None:
     """Testing upload image group."""
     chat_id = group_chat_with_users.id
     recipient = group_chat_with_users.users[-1]
     target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat_id!s}:{recipient.id!s}"
-    event_data = jsonable_encoder({"image_url": upload_mock.return_value})
+    event_data = jsonable_encoder({"image_url": upload_group_image_mock.return_value})
     response = await authorized_client.patch(
         f"/api/chats/{chat_id}/upload-image",
         files={
@@ -44,9 +44,9 @@ async def test_upload_img_group(
         json.dumps({"event": "update_image_group", "data": json.dumps(event_data)}),
         channel=target_channel,
     )
-    upload_mock.assert_called_once()
+    upload_group_image_mock.assert_called_once()
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == {"image_url": upload_mock.return_value}
+    assert response.json() == {"image_url": upload_group_image_mock.return_value}
 
 
 @pytest.mark.anyio
@@ -84,7 +84,7 @@ async def test_upload_img_in_invalid_group(
     mocked_publish_message: AsyncMock,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
-    upload_mock: AsyncMock,
+    upload_group_image_mock: AsyncMock,
 ) -> None:
     """Testing upload image group with invalid group."""
     response = await authorized_client.patch(
@@ -98,7 +98,7 @@ async def test_upload_img_in_invalid_group(
     )
 
     mocked_publish_message.assert_not_called()
-    upload_mock.assert_not_called()
+    upload_group_image_mock.assert_not_called()
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Chat not found"}
 

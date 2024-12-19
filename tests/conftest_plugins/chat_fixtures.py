@@ -5,7 +5,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import User
-from live_chat.db.models.enums import ChatType
+from live_chat.db.models.enums import ChatType, MessageType
 from tests.factories import (
     ChatFactory,
     DeletedMessageFactory,
@@ -113,6 +113,9 @@ async def message_in_chat(
         chat=any_chat_with_users,
         chat_id=any_chat_with_users.id,
         is_deleted=False,
+        message_type=MessageType.TEXT,
+        file_name=None,
+        file_path=None,
     )
 
 

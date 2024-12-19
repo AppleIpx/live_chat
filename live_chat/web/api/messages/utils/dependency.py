@@ -8,7 +8,9 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Message,
     User,
 )
+from live_chat.db.models.enums import MessageType
 from live_chat.db.utils import get_async_session
+from live_chat.web.api.messages.schemas import PostMessageSchema, UpdateMessageSchema
 from live_chat.web.api.messages.utils.get_message import (
     get_deleted_message_by_id,
     get_message_by_id,
@@ -38,3 +40,20 @@ async def validate_user_access_to_message(
         )
 
     return message if message else deleted_message
+
+
+async def validate_message_schema(
+    message_schema: PostMessageSchema | UpdateMessageSchema,
+) -> None:
+    """Validate message content or file path."""
+    if message_schema.message_type == MessageType.TEXT:
+        if not message_schema.content:
+            raise HTTPException(
+                status_code=400,
+                detail="Content is required for text messages.",
+            )
+    elif not message_schema.file_path or not message_schema.file_name:
+        raise HTTPException(
+            status_code=400,
+            detail="File path and name is required for file messages.",
+        )

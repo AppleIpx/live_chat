@@ -45,7 +45,8 @@ from live_chat.web.api.users.utils import (
     get_user_by_id,
 )
 from live_chat.web.api.users.utils.transformations import transformation_short_users
-from live_chat.web.utils import ImageSaver
+from live_chat.web.enums import UploadFileDirectoryEnum
+from live_chat.web.utils import FileSaver
 
 chat_router = APIRouter()
 
@@ -238,8 +239,11 @@ async def upload_group_image(
 ) -> dict[str, str]:
     """Update group image."""
 
-    image_saver = ImageSaver(chat.id)
-    image_url = await image_saver.save_image(uploaded_image, "group_images")
+    image_saver = FileSaver(chat.id)
+    image_url = await image_saver.save_file(
+        uploaded_image,
+        UploadFileDirectoryEnum.group_images,
+    )
 
     if not image_url:
         raise HTTPException(
@@ -259,6 +263,28 @@ async def upload_group_image(
     event_data = jsonable_encoder({"image_url": image_url})
     await publish_faststream("update_image_group", chat.users, event_data, chat.id)
     return {"image_url": image_url}
+
+
+@chat_router.post("/{chat_id}/upload-attachments")
+async def upload_message_file(
+    uploaded_file: UploadFile,
+    chat: Chat = Depends(validate_user_access_to_chat),
+) -> dict[str, str]:
+    """Upload a file to use as an attachment in a message."""
+    file_saver = FileSaver()
+    file_url = await file_saver.save_file(
+        uploaded_file,
+        f"{UploadFileDirectoryEnum.chat_attachments}/{chat.id}",
+    )
+    if not file_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file upload",
+        )
+    return {
+        "file_name": file_url.split("/")[-1],
+        "file_path": file_url,
+    }
 
 
 @chat_router.post("/{chat_id}/typing-status")

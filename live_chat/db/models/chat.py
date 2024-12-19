@@ -39,7 +39,7 @@ class BaseMessage(Base):
         Enum(MessageType, inherit_schema=True),
         default=MessageType.TEXT,
     )
-    content: Mapped[str] = mapped_column(String(5000))
+    content: Mapped[str] = mapped_column(String(5000), nullable=True)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
     chat_id: Mapped[UUID] = mapped_column(ForeignKey("chat.id"))
     file_name: Mapped[str] = mapped_column(String(50), nullable=True)
