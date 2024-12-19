@@ -29,7 +29,10 @@ async def save_message_to_db(
         user_id=current_user.id,
     )
     chat.updated_at = datetime.now()
-    chat.last_message_content = message_content[:100] if message_content else None
+    if message_content is None:
+        await set_previous_message_content(chat, db_session)
+    else:
+        chat.last_message_content = message_content[:100]
     db_session.add_all([message, chat])
     await db_session.commit()
     await db_session.refresh(message)
@@ -53,8 +56,7 @@ async def save_deleted_message_to_db(
         original_message_id=message.id,
         is_deleted=True,
     )
-    if message.content is not None:
-        await set_previous_message_content(chat, db_session)
+    await set_previous_message_content(chat, db_session)
     db_session.add_all([deleted_message, chat])
     await db_session.commit()
     await db_session.refresh(deleted_message)
