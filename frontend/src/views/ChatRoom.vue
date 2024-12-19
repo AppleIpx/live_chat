@@ -29,9 +29,11 @@
                   <a v-if="user && user.id"
                      :href="user.username === this.user.username ? '/profile/me' : '/profile/' + user.id">
                     <div class="profile-avatar-wrapper">
-                      <img v-if="user.user_image" :src="user.user_image" alt="User Avatar"
+                      <img v-if="user.user_image" :src="user.user_image"
+                           alt="User Avatar"
                            class="user-avatar">
-                      <img v-else src="/default_avatar.png" alt="Default Avatar" class="user-avatar">
+                      <img v-else src="/default_avatar.png" alt="Default Avatar"
+                           class="user-avatar">
                       <div v-if="isOnline(user)" class="online-mini-indicator"></div>
                     </div>
                     {{ user.first_name }} {{ user.last_name }}
@@ -49,8 +51,9 @@
             </div>
             </div>
             <span v-if="chatData.chat_type==='direct'">{{ chatName }}</span>
-            <div v-if="chatData.chat_type==='direct' && !isOnline && lastOnlineTime"
-                 class="last-online">
+            <div
+                v-if="chatData.chat_type==='direct' && !isOnline(otherUser) && lastOnlineTime"
+                class="last-online">
               Был(а) онлайн в {{ lastOnlineTime }}
             </div>
             <div v-if="typingMessage" class="typing-indicator">
