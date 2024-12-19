@@ -11,11 +11,11 @@ from starlette import status
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
+from live_chat.web.api.black_list.utils import validate_user_in_black_list
 from live_chat.web.api.black_list.utils.get import (
     get_black_list_by_owner,
     get_user_in_black_list,
 )
-from live_chat.web.api.black_list.utils.validate import validate_user_in_black_list
 from live_chat.web.api.users.schemas import (
     OtherUserRead,
     UserCreate,

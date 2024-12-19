@@ -5,8 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
-from live_chat.web.api.black_list.utils import get_black_list_by_owner
-from live_chat.web.api.black_list.utils.blocked_users import get_blocked_users
+from live_chat.web.api.black_list.utils import (
+    get_black_list_by_owner,
+    get_blocked_users,
+)
 
 
 async def validate_user_in_black_list(

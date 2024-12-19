@@ -20,7 +20,7 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
 )
 from live_chat.db.models.enums import MessageType
 from live_chat.db.utils import get_async_session
-from live_chat.web.api.black_list.utils.validate import validate_user_in_black_list
+from live_chat.web.api.black_list.utils import validate_user_in_black_list
 from live_chat.web.api.chat.utils import (
     get_chat_by_id,
     get_user_chats,

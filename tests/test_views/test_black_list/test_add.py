@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.web.api.black_list.utils.blocked_users import get_blocked_users
+from live_chat.web.api.black_list.utils import get_blocked_users
 from live_chat.web.api.users.utils import get_user_by_id
 from tests.factories import BlackListFactory, BlockedUsersFactory, UserFactory
 from tests.utils import get_first_black_list_from_db, get_first_user_from_db
