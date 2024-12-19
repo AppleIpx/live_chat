@@ -8,7 +8,6 @@
                 v-if="previousCursor">
           <i class="fas fa-arrow-left"></i>
         </button>
-        <h2 class="chats-header">Чаты с удалёнными сообщениями</h2>
         <button class="btn-main" @click="loadNextPage" :disabled="!nextCursor"
                 v-if="nextCursor">
           <i class="fas fa-arrow-right"></i>

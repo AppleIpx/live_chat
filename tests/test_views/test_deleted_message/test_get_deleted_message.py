@@ -29,6 +29,9 @@ async def test_get_deleted_message_in_chat(
                 "user_id": str(deleted_message_in_chat.user_id),
                 "chat_id": str(deleted_message_in_chat.chat_id),
                 "content": deleted_message_in_chat.content,
+                "message_type": deleted_message_in_chat.message_type.value,
+                "file_name": deleted_message_in_chat.file_name,
+                "file_path": deleted_message_in_chat.file_path,
                 "created_at": deleted_message_in_chat.created_at.isoformat().replace(
                     "+00:00",
                     "Z",

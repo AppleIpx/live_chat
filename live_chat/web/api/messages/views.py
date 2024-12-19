@@ -18,6 +18,7 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Message,
     User,
 )
+from live_chat.db.models.enums import MessageType
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.black_list.utils.validate import validate_user_in_black_list
 from live_chat.web.api.chat.utils import (
@@ -39,6 +40,7 @@ from live_chat.web.api.messages.utils import (
     publish_faststream,
     save_message_to_db,
     transformation_message,
+    validate_message_schema,
     validate_user_access_to_message,
 )
 from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
@@ -92,10 +94,11 @@ async def get_deleted_messages(
 
 @message_router.post("/chats/{chat_id}/messages")
 async def post_message(
-    message: PostMessageSchema,
+    message_schema: PostMessageSchema,
     chat: Chat = Depends(validate_user_access_to_chat),
     current_user: User = Depends(current_active_user),
     db_session: AsyncSession = Depends(get_async_session),
+    _: None = Depends(validate_message_schema),
 ) -> GetMessageSchema:
     """Post message in FastStream."""
     if chat.chat_type.value == "direct":
@@ -109,7 +112,7 @@ async def post_message(
         )
     if created_message := await save_message_to_db(
         db_session,
-        message.content,
+        message_schema,
         chat,
         current_user,
     ):
@@ -139,15 +142,17 @@ async def update_message(
     db_session: AsyncSession = Depends(get_async_session),
 ) -> GetMessageSchema:
     """Update message."""
-    message.content = message_schema.content
-    chat.last_message_content = message_schema.content[:100]
-    db_session.add_all([message, chat])
-    await db_session.commit()
-    await db_session.refresh(message)
-    message_data: GetMessageSchema = transformation_message([message])[0]
-    event_data = jsonable_encoder(message_data.model_dump())
-    await publish_faststream("update_message", chat.users, event_data, chat.id)
-    return message_data
+    if message_schema.message_type == MessageType.TEXT:
+        message.content = message_schema.content
+        chat.last_message_content = message_schema.content[:100]  # type: ignore[index]
+        db_session.add_all([message, chat])
+        await db_session.commit()
+        await db_session.refresh(message)
+        message_data: GetMessageSchema = transformation_message([message])[0]
+        event_data = jsonable_encoder(message_data.model_dump())
+        await publish_faststream("update_message", chat.users, event_data, chat.id)
+        return message_data
+    raise HTTPException(status_code=404, detail="File message cannot updated")
 
 
 @message_router.post("/chats/{chat_id}/messages/{message_id}/recover")
@@ -160,8 +165,9 @@ async def recover_deleted_message(
     if not isinstance(deleted_message, DeletedMessage):
         raise HTTPException(status_code=404, detail="Instance is not deleted message")
     if message := await restore_message(db_session, deleted_message):
-        chat.last_message_content = message.content[:100]
-        await db_session.commit()
+        if message.content:
+            chat.last_message_content = message.content[:100]
+            await db_session.commit()
         message_data: GetMessageSchema = transformation_message([message])[0]
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("recover_message", chat.users, event_data, chat.id)

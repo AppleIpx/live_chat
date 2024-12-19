@@ -83,7 +83,29 @@
              title="Сообщение было изменено"></i>
         </span>
             </div>
-            <div class="message-content">{{ message.content }}</div>
+            <div class="message-content">
+                <span v-if="message.content">{{ message.content }}</span>
+                <img
+                    v-if="message.file_path && isImage(message.file_path)"
+                    :src="message.file_path"
+                    class="message-image"
+                    alt="Message attachment"
+                />
+                <video
+                    v-if="message.file_path && isVideo(message.file_path)"
+                    :src="message.file_path"
+                    controls
+                    class="message-video"
+                ></video>
+                <a
+                    v-if="message.file_path && !isImage(message.file_path) && !isVideo(message.file_path)"
+                    :href="message.file_path"
+                    target="_blank"
+                    class="message-other-file"
+                >
+                  <i class="fa fa-file"></i> {{ message.file_name }}
+                </a>
+              </div>
             <div class="message-options">
               <button @click="toggleMenu(message.id)" class="menu-button">...</button>
               <div v-if="message.showMenu" class="menu-dropdown">
@@ -180,6 +202,13 @@ export default {
       this.$router.push('/chats/deleted');
     },
 
+    isImage(filePath) {
+      return /\.(jpg|jpeg|png|gif|webp)$/i.test(filePath);
+    },
+    isVideo(filePath) {
+      return /\.(mp4|webm|avi|mkv)$/i.test(filePath);
+    },
+
     openDeleteModal(message) {
       this.messageToDelete = message;
       this.isDeleteModalVisible = true;
@@ -198,6 +227,9 @@ export default {
         await messageService.recoverMessage(this.chatId, this.messageToDelete.id);
         this.messages = this.messages.filter(msg => msg.id !== this.messageToDelete.id);
         this.closeDeleteModal();
+        if (this.messages.length === 0) {
+          this.goBack();
+        }
       } catch (error) {
         console.error("Ошибка при восстановлении сообщения", error);
         this.closeDeleteModal();
@@ -211,6 +243,9 @@ export default {
         await messageService.deleteMessage(this.chatId, this.messageToDelete.id);
         this.messages = this.messages.filter(msg => msg.id !== this.messageToDelete.id);
         this.closeDeleteModal();
+        if (this.messages.length === 0) {
+          this.goBack();
+        }
       } catch (error) {
         console.error("Ошибка при удалении сообщения", error);
         this.closeDeleteModal();
@@ -271,6 +306,9 @@ export default {
               id: message.id,
               user: this.chatData.users.find(user => user.id === message.user_id) || {},
               content: message.content,
+              file_path: message.file_path,
+              file_name: message.file_name,
+              message_type: message.message_type,
               created_at: new Date(message.created_at).toLocaleString(),
               updated_at: new Date(message.updated_at).toLocaleString(),
               showMenu: false,
@@ -390,6 +428,35 @@ export default {
   position: relative;
   align-self: flex-end;
   background-color: #e1e1e1;
+}
+
+.message-image {
+  max-width: 25%;
+  max-height: 25%;
+  height: auto;
+  margin-top: 4px;
+  display: flex;
+  justify-content: center;
+  margin-left: 35%;
+}
+
+.message-video {
+  max-width: 25%;
+  max-height: 25%;
+  margin-top: 4px;
+  display: flex;
+  justify-content: center;
+  margin-left: 35%;
+}
+
+.message-other-file {
+  max-width: 50%;
+  max-height: 50%;
+  height: auto;
+  margin-top: 4px;
+  display: flex;
+  justify-content: center;
+  margin-left: 35%;
 }
 
 .message-header {

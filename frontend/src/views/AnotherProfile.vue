@@ -56,10 +56,29 @@
           </div>
         </div>
 
-        <!-- Navigation Button -->
-        <router-link :to="{ path: '/chats', query: { user_id_exists: user.id } }">
-          <button class="button">Перейти к совместным чатам</button>
-        </router-link>
+        <!-- Usage Buttons -->
+        <div>
+          <router-link :to="{ path: '/chats', query: { user_id_exists: user.id } }">
+            <button class="button">Перейти к совместным чатам</button>
+          </router-link>
+
+          <button
+              v-if="user"
+              class="button"
+              @click="toggleBlackList"
+          >
+            {{
+              user.is_blocked ? "Удалить из чёрного списка" : "Добавить в чёрный список"
+            }}
+          </button>
+
+          <div v-else>
+            <div class="loading-container">
+              <div class="loading-spinner"></div>
+              <p class="loading-text">Загрузка...</p>
+            </div>
+          </div>
+        </div>
       </div>
       <div v-else>
         <div class="loading-container">
@@ -72,7 +91,7 @@
 </template>
 
 <script>
-import {userService} from "@/services/apiService";
+import {blackListService, userService} from "@/services/apiService";
 import router from "@/router";
 
 export default {
@@ -86,29 +105,48 @@ export default {
     this.fetchUserProfile();
   },
   methods: {
+    async toggleBlackList() {
+      const user_id = this.$route.params.user_id;
+      try {
+        if (this.user.is_blocked) {
+          await blackListService.removeFromBlackList(user_id);
+          this.user.is_blocked = false;
+        } else {
+          await blackListService.addToBlackList(user_id);
+          this.user.is_blocked = true;
+        }
+      } catch (error) {
+        await this.handleError(error);
+      }
+    },
+
     async fetchUserProfile() {
       try {
         const user_id = this.$route.params.user_id;
-        const response = await userService.fetchUserDetails(user_id)
+        const response = await userService.fetchUserDetails(user_id);
         this.user = response.data;
       } catch (error) {
-        if (error.response) {
-          const status = error.response.status;
-          switch (status) {
-            case 403:
-              await router.push("/403");
-              break;
-            case 404:
-              await router.push("/404");
-              break;
-            case 500:
-              await router.push("/500");
-              break;
-          }
-        }
-        console.error('Ошибка получения профиля:', error);
-        this.error = 'Не удалось загрузить профиль. Пожалуйста, попробуйте позже.';
+        await this.handleError(error);
       }
+    },
+
+    async handleError(error) {
+      if (error.response) {
+        const status = error.response.status;
+        switch (status) {
+          case 403:
+            await router.push("/403");
+            break;
+          case 404:
+            await router.push("/404");
+            break;
+          case 500:
+            await router.push("/500");
+            break;
+        }
+      }
+      console.error("Ошибка:", error);
+      this.error = "Произошла ошибка. Пожалуйста, попробуйте позже.";
     },
   },
 };
