@@ -241,7 +241,7 @@ export default {
         );
         const lastOnlineDate = new Date(user.last_online);
         const now = new Date();
-        return (now - lastOnlineDate) <= 5 * 60 * 1000;
+        return (now - lastOnlineDate) <= 3 * 60 * 1000;
       }
     },
 

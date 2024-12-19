@@ -38,7 +38,7 @@ class UpdateLastOnlineMiddleware(BaseHTTPMiddleware):
                         now = datetime.now(timezone.utc)
                         if (
                             not user.last_online
-                            or (now - user.last_online).total_seconds() > 300
+                            or (now - user.last_online).total_seconds() >= 180
                         ):
                             user.last_online = now
                             await session.commit()

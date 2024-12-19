@@ -115,7 +115,7 @@ export default {
     isOnline() {
       const lastOnlineDate = new Date(this.user.last_online);
       const now = new Date();
-      return (now - lastOnlineDate) <= 5 * 60 * 1000;
+      return (now - lastOnlineDate) <= 3 * 60 * 1000;
     },
     lastOnlineTime() {
       if (!this.user || !this.user.last_online) return null;

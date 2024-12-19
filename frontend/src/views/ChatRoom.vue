@@ -488,7 +488,7 @@ export default {
       if (!user || !user.last_online) return false;
       const lastOnlineDate = new Date(user.last_online);
       const now = new Date();
-      return (now - lastOnlineDate) <= 5 * 60 * 1000;
+      return (now - lastOnlineDate) <= 3 * 60 * 1000;
     },
 
     formatDate(date) {
@@ -825,6 +825,7 @@ export default {
       if (this.chatData.chat_type === 'group') {
         this.typingMessage = `${typing_data.username} печатает...`;
       } else {
+        this.otherUser.last_online = new Date()
         this.typingMessage = "печатает...";
       }
     },
@@ -863,6 +864,7 @@ export default {
     },
 
     handleNewMessage(newMessage, action) {
+      this.otherUser.last_online = new Date()
       const existingMessageIndex = this.messages.findIndex(message => message.id === newMessage.id);
       if (action === "new" || action === "recover") {
         const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
