@@ -78,6 +78,4 @@ async def test_get_not_existing_user(
     """Test get not existing user by id."""
     response = await authorized_client.get(f"/api/users/read/{uuid.uuid4()}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
-    assert response.json() == {
-        "detail": "User not found",
-    }
+    assert response.json() == {"detail": "User not found"}

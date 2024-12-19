@@ -6,6 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from live_chat.web.api.black_list.utils import get_blocked_users
 from tests.factories import BlackListFactory, UserFactory
 
 
@@ -23,6 +24,12 @@ async def test_delete_user_from_black_list(
         url="/api/black-list",
         json={"user_id": str(user.id)},
     )
+    blocked_users = await get_blocked_users(
+        black_list=black_list_with_user,
+        db_session=dbsession,
+    )
+    for blocked_user in blocked_users:
+        assert blocked_user != user.id
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
 

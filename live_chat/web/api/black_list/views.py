@@ -4,6 +4,7 @@ from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
+from starlette.responses import JSONResponse
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     BlockedUsers,
@@ -128,7 +129,7 @@ async def get_black_list_users(
     current_user: User = Depends(current_active_user),
     db_session: AsyncSession = Depends(get_async_session),
     params: CursorParams = Depends(),
-) -> CursorPage[UserShortRead]:
+) -> CursorPage[UserShortRead] | JSONResponse:
     """Getting all users from the black list."""
     if black_list := await get_black_list_by_owner(
         owner=current_user,
@@ -141,11 +142,4 @@ async def get_black_list_users(
             .order_by(User.id)
         )
         return await paginate(db_session, blocked_users_query, params=params)
-    return CursorPage(
-        items=[],
-        total=0,
-        current_page=None,
-        current_page_backwards=None,
-        previous_page=None,
-        next_page=None,
-    )
+    return JSONResponse(content=[], status_code=status.HTTP_200_OK)
