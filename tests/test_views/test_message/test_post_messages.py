@@ -135,7 +135,7 @@ async def test_post_message_to_blocked_user(
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {
-        "detail": "You can't send a message to this user, because he's blocked",
+        "detail": "You can't perform this action, because he's blocked",
     }
 
 
@@ -155,7 +155,7 @@ async def test_post_message_from_blocked_user(
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {
-        "detail": "You can't send a message to this user, you are on the black list",
+        "detail": "You can't perform this action, you are on the black list",
     }
 
 

@@ -43,11 +43,11 @@ async def validate_user_in_black_list(
     if any(user.id == recipient.id for user in blocked_users_sender):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You can't send a message to this user, because he's blocked",
+            detail="You can't perform this action, because he's blocked",
         )
 
     if any(user.id == sender.id for user in blocked_users_recipient):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="You can't send a message to this user, you are on the black list",
+            detail="You can't perform this action, you are on the black list",
         )

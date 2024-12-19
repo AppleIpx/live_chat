@@ -15,6 +15,7 @@ from live_chat.web.api.black_list.utils.get import (
     get_black_list_by_owner,
     get_user_in_black_list,
 )
+from live_chat.web.api.black_list.utils.validate import validate_user_in_black_list
 from live_chat.web.api.users.schemas import (
     OtherUserRead,
     UserCreate,
@@ -70,6 +71,11 @@ async def get_user(
 ) -> User:
     """Gets a user by id without authentication."""
     if user := await get_user_by_id(db_session, user_id=user_id):
+        await validate_user_in_black_list(
+            recipient=user,
+            sender=current_user,
+            db_session=db_session,
+        )
         if black_list := await get_black_list_by_owner(
             owner=current_user,
             db_session=db_session,
