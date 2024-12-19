@@ -19,6 +19,7 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     User,
 )
 from live_chat.db.utils import get_async_session
+from live_chat.web.api.black_list.utils.validate import validate_user_in_black_list
 from live_chat.web.api.chat.utils import (
     get_chat_by_id,
     get_user_chats,
@@ -97,6 +98,15 @@ async def post_message(
     db_session: AsyncSession = Depends(get_async_session),
 ) -> GetMessageSchema:
     """Post message in FastStream."""
+    if chat.chat_type.value == "direct":
+        recipient = next(
+            (user for user in chat.users if user.id != current_user.id), None,
+        )
+        await validate_user_in_black_list(
+            recipient=recipient,
+            sender=current_user,
+            db_session=db_session,
+        )
     if created_message := await save_message_to_db(
         db_session,
         message.content,

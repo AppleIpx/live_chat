@@ -43,7 +43,7 @@ async def add_user_to_black_list_view(
     """Add user to black list."""
     if not (
         black_list := await get_black_list_by_owner(
-            current_user=current_user,
+            owner=current_user,
             db_session=db_session,
         )
     ):
@@ -93,7 +93,7 @@ async def delete_user_from_black_list_view(
     """Delete user from black list."""
     if not (
         black_list := await get_black_list_by_owner(
-            current_user=current_user,
+            owner=current_user,
             db_session=db_session,
         )
     ):
@@ -131,15 +131,15 @@ async def get_black_list_users(
     params: CursorParams = Depends(),
 ) -> CursorPage[UserShortRead]:
     """Getting all users from the black list."""
-    blacklist_query = select(BlackList.id).where(BlackList.owner_id == current_user.id)
-    result = await db_session.execute(blacklist_query)
-    blacklist_id = result.scalar()
-
-    blocked_users_query = (
-        select(User)
-        .join(BlockedUsers, BlockedUsers.user_id == User.id)
-        .where(BlockedUsers.blacklist_id == blacklist_id)
-        .order_by(User.id)
-    )
-
-    return await paginate(db_session, blocked_users_query, params=params)
+    if black_list := await get_black_list_by_owner(
+        owner=current_user,
+        db_session=db_session,
+    ):
+        blocked_users_query = (
+            select(User)
+            .join(BlockedUsers, BlockedUsers.user_id == User.id)
+            .where(BlockedUsers.blacklist_id == black_list.id)
+            .order_by(User.id)
+        )
+        return await paginate(db_session, blocked_users_query, params=params)
+    return CursorPage(items=[], total=0)
