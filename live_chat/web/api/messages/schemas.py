@@ -4,7 +4,6 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from live_chat.db.models.enums import MessageType
-from live_chat.web.api.chat.schemas import ChatSchema
 
 
 class GetMessageSchema(BaseModel):
@@ -20,12 +19,6 @@ class GetMessageSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
     is_deleted: bool
-
-
-class GetListMessagesSchema(ChatSchema):
-    """Represents a get command for a messages."""
-
-    messages: list[GetMessageSchema]
 
 
 class PostMessageSchema(BaseModel):

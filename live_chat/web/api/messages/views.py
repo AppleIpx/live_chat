@@ -116,7 +116,7 @@ async def post_message(
         await publish_faststream("new_message", chat.users, event_data, chat.id)
         return message_data
     raise HTTPException(
-        status_code=404,
+        status_code=status.HTTP_400_BAD_REQUEST,
         detail="Error with saving message. Please try again",
     )
 
@@ -142,7 +142,10 @@ async def update_message(
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("update_message", chat.users, event_data, chat.id)
         return message_data
-    raise HTTPException(status_code=404, detail="File message cannot updated")
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="File message cannot updated",
+    )
 
 
 @message_router.post("/chats/{chat_id}/messages/{message_id}/recover")
@@ -153,7 +156,10 @@ async def recover_deleted_message(
 ) -> JSONResponse:
     """Recover deleted message."""
     if not isinstance(deleted_message, DeletedMessage):
-        raise HTTPException(status_code=404, detail="Instance is not deleted message")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Instance is not deleted message",
+        )
     if message := await restore_message(db_session, deleted_message):
         if message.content:
             chat.last_message_content = message.content[:100]
@@ -165,7 +171,10 @@ async def recover_deleted_message(
             content={"detail": "Message restored"},
             status_code=status.HTTP_200_OK,
         )
-    raise HTTPException(status_code=404, detail="Message not restored")
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Message not restored",
+    )
 
 
 @message_router.delete(
@@ -205,8 +214,8 @@ async def delete_message(
             status_code=status.HTTP_202_ACCEPTED,
         )
     raise HTTPException(
-        status_code=404,
-        detail="Error with saving deleted message. Please try again",
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Error with saving deleted message.",
     )
 
 

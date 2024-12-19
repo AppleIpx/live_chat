@@ -70,7 +70,7 @@ async def test_invalid_deleted_message(
     )
 
     mocked_publish_message.assert_not_called()
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {"detail": "Instance is not deleted message"}
 
 
