@@ -147,7 +147,7 @@ async def test_post_message_from_blocked_user(
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
-    """Testing sending a message if the sender is on the recipient’s black list."""
+    """Testing sending a message if the sender is on the recipient black list."""
     chat_id = direct_chat_with_users.id
     response = await authorized_client.post(
         f"/api/chats/{chat_id}/messages",

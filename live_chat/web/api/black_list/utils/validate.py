@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.db.models.chat import User
+from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.web.api.black_list.utils import get_black_list_by_owner
 from live_chat.web.api.black_list.utils.blocked_users import get_blocked_users
 
@@ -32,11 +32,13 @@ async def validate_user_in_black_list(
 
     blocked_users_recipient: List[User] = (
         await get_blocked_users(black_list=black_list_recipient, db_session=db_session)
-        if black_list_recipient else []
+        if black_list_recipient
+        else []
     )
     blocked_users_sender: List[User] = (
         await get_blocked_users(black_list=black_list_sender, db_session=db_session)
-        if black_list_sender else []
+        if black_list_sender
+        else []
     )
     if any(user.id == recipient.id for user in blocked_users_sender):
         raise HTTPException(

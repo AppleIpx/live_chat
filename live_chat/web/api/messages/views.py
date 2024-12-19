@@ -103,7 +103,8 @@ async def post_message(
     """Post message in FastStream."""
     if chat.chat_type.value == "direct":
         recipient = next(
-            (user for user in chat.users if user.id != current_user.id), None,
+            (user for user in chat.users if user.id != current_user.id),
+            None,
         )
         await validate_user_in_black_list(
             recipient=recipient,

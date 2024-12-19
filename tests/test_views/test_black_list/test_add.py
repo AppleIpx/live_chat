@@ -59,7 +59,20 @@ async def test_add_user_to_existing_black_list(
         black_list=black_list_with_users,
         db_session=dbsession,
     )
+    auth_user = await get_first_user_from_db(db_session=dbsession)
+    black_list_user = await get_user_by_id(db_session=dbsession, user_id=user.id)
     assert response.status_code == status.HTTP_201_CREATED
+    assert response.json() == {
+        "id": str(black_list_with_users.id),
+        "owner_id": str(auth_user.id),
+        "blocked_user": {
+            "first_name": black_list_user.first_name,
+            "last_name": black_list_user.last_name,
+            "username": black_list_user.username,
+            "user_image": black_list_user.user_image,
+            "id": str(black_list_user.id),
+        },
+    }
     assert len(blocked_users) == 6
 
 

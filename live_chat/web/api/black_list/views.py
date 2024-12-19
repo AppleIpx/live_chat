@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    BlackList,
     BlockedUsers,
     User,
 )
@@ -142,4 +141,11 @@ async def get_black_list_users(
             .order_by(User.id)
         )
         return await paginate(db_session, blocked_users_query, params=params)
-    return CursorPage(items=[], total=0)
+    return CursorPage(
+        items=[],
+        total=0,
+        current_page=None,
+        current_page_backwards=None,
+        previous_page=None,
+        next_page=None,
+    )

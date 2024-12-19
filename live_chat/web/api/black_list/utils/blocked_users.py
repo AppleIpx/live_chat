@@ -3,13 +3,17 @@ from typing import List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import BlackList, BlockedUsers, User
+from live_chat.db.models.chat import (  # type: ignore[attr-defined]
+    BlackList,
+    BlockedUsers,
+    User,
+)
 
 
 async def get_blocked_users(
     black_list: BlackList,
     db_session: AsyncSession,
-) -> List[User] | []:
+) -> List[User]:
     """Help function gets a list of blocked users."""
     blocked_users_query = (
         select(User)
@@ -18,4 +22,4 @@ async def get_blocked_users(
         .order_by(User.id)
     )
     result = await db_session.execute(blocked_users_query)
-    return result.scalars().all()
+    return list(result.scalars().all())

@@ -71,7 +71,7 @@ async def get_user(
     """Gets a user by id without authentication."""
     if user := await get_user_by_id(db_session, user_id=user_id):
         if black_list := await get_black_list_by_owner(
-            current_user=current_user,
+            owner=current_user,
             db_session=db_session,
         ):
             blocked_user = await get_user_in_black_list(black_list, user.id, db_session)
