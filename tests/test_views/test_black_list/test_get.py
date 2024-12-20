@@ -38,6 +38,11 @@ async def test_get_black_list(
             "last_name": block_user_db.last_name,
             "username": block_user_db.username,
             "user_image": block_user_db.user_image,
+            "last_online": (
+                block_user_db.last_online.isoformat().replace("+00:00", "Z")
+                if block_user_db.last_online
+                else None
+            ),
             "id": str(block_user_db.id),
         }
     assert len(response.json()["items"]) == len(blocked_users)

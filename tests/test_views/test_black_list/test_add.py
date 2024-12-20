@@ -36,6 +36,11 @@ async def test_add_user_to_new_black_list(
             "last_name": black_list_user.last_name,
             "username": black_list_user.username,
             "user_image": black_list_user.user_image,
+            "last_online": (
+                black_list_user.last_online.isoformat().replace("+00:00", "Z")
+                if black_list_user.last_online
+                else None
+            ),
             "id": str(black_list_user.id),
         },
     }
@@ -70,6 +75,11 @@ async def test_add_user_to_existing_black_list(
             "last_name": black_list_user.last_name,
             "username": black_list_user.username,
             "user_image": black_list_user.user_image,
+            "last_online": (
+                black_list_user.last_online.isoformat().replace("+00:00", "Z")
+                if black_list_user.last_online
+                else None
+            ),
             "id": str(black_list_user.id),
         },
     }
