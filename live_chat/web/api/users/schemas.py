@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -13,6 +14,7 @@ class BaseUserSchema:
     last_name: str
     username: str
     user_image: HttpUrl | None
+    last_online: datetime | None = None
 
 
 class BaseUserUpdateSchema:

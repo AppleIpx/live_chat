@@ -171,7 +171,10 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     username: Mapped[str] = mapped_column(String(150), unique=True)
     first_name: Mapped[str] = mapped_column(String(150), default="")
     last_name: Mapped[str] = mapped_column(String(150), default="")
-    last_login: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_online: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     user_image: Mapped[str] = mapped_column(String(1048), nullable=True)
 
     chats: Mapped[List["Chat"]] = relationship(

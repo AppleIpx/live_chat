@@ -49,6 +49,11 @@ async def test_create_direct_chat(
                 "id": str(sender.id),
                 "first_name": sender.first_name,
                 "last_name": sender.last_name,
+                "last_online": (
+                    sender.last_online.isoformat().replace("+00:00", "Z")
+                    if sender.last_online
+                    else None
+                ),
                 "username": sender.username,
                 "user_image": sender.user_image,
             },
@@ -56,6 +61,7 @@ async def test_create_direct_chat(
                 "id": str(user.id),
                 "first_name": user.first_name,
                 "last_name": user.last_name,
+                "last_online": user.last_online.isoformat().replace("+00:00", "Z"),
                 "username": user.username,
                 "user_image": user.user_image,
             },

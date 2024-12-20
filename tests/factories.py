@@ -29,7 +29,7 @@ class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
     first_name = factory.Faker("first_name")
     hashed_password = factory.Faker("password")
     last_name = factory.Faker("last_name")
-    last_login = factory.LazyFunction(datetime.now)
+    last_online = factory.LazyFunction(datetime.now)
     user_image = factory.Faker("image_url")
     is_active = factory.Faker("boolean")
     is_superuser = factory.Faker("boolean")
