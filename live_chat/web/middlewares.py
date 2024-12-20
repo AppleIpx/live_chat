@@ -22,29 +22,32 @@ class UpdateLastOnlineMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         """Dispatch last online for authenticated user."""
         if user_token := request.headers.get("Authorization"):
-            jwt_strategy = get_jwt_strategy()
-            data = decode_jwt(
-                user_token.split(" ")[1],
-                jwt_strategy.decode_key,
-                jwt_strategy.token_audience,
-                algorithms=[jwt_strategy.algorithm],
-            )
-            if user_id := data.get("sub"):
-                async with async_session_maker() as session:
-                    result = await session.execute(
-                        select(User).where(User.id == user_id),
-                    )
-                    if user := result.scalars().first():
-                        now = datetime.now(timezone.utc)
-                        if (
-                            not user.last_online
-                            or (now - user.last_online).total_seconds() >= 180
-                        ):
-                            user.last_online = now
-                            await session.commit()
-                    else:
-                        logging.warning("User not found in database")
+            if user_token.split(" ")[0] == "Bearer":
+                jwt_strategy = get_jwt_strategy()
+                data = decode_jwt(
+                    user_token.split(" ")[1],
+                    jwt_strategy.decode_key,
+                    jwt_strategy.token_audience,
+                    algorithms=[jwt_strategy.algorithm],
+                )
+                if user_id := data.get("sub"):
+                    async with async_session_maker() as session:
+                        result = await session.execute(
+                            select(User).where(User.id == user_id),
+                        )
+                        if user := result.scalars().first():
+                            now = datetime.now(timezone.utc)
+                            if (
+                                not user.last_online
+                                or (now - user.last_online).total_seconds() >= 180
+                            ):
+                                user.last_online = now
+                                await session.commit()
+                        else:
+                            logging.warning("User not found in database")
+                else:
+                    logging.warning("User's id not found in jwt token")
             else:
-                logging.warning("User's id not found in jwt token")
+                logging.warning("Authorization is not Bearer token")
 
         return await call_next(request)
