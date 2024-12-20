@@ -4,9 +4,9 @@ from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
+from starlette.responses import JSONResponse
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    BlackList,
     BlockedUsers,
     User,
 )
@@ -43,7 +43,7 @@ async def add_user_to_black_list_view(
     """Add user to black list."""
     if not (
         black_list := await get_black_list_by_owner(
-            current_user=current_user,
+            owner=current_user,
             db_session=db_session,
         )
     ):
@@ -60,6 +60,11 @@ async def add_user_to_black_list_view(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No user with this id found",
+        )
+    if add_user_in_black_list_schema.user_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="It is impossible to add yourself to the blacklist",
         )
     await add_user_to_black_list(
         black_list=black_list,
@@ -88,7 +93,7 @@ async def delete_user_from_black_list_view(
     """Delete user from black list."""
     if not (
         black_list := await get_black_list_by_owner(
-            current_user=current_user,
+            owner=current_user,
             db_session=db_session,
         )
     ):
@@ -124,17 +129,17 @@ async def get_black_list_users(
     current_user: User = Depends(current_active_user),
     db_session: AsyncSession = Depends(get_async_session),
     params: CursorParams = Depends(),
-) -> CursorPage[UserShortRead]:
+) -> CursorPage[UserShortRead] | JSONResponse:
     """Getting all users from the black list."""
-    blacklist_query = select(BlackList.id).where(BlackList.owner_id == current_user.id)
-    result = await db_session.execute(blacklist_query)
-    blacklist_id = result.scalar()
-
-    blocked_users_query = (
-        select(User)
-        .join(BlockedUsers, BlockedUsers.user_id == User.id)
-        .where(BlockedUsers.blacklist_id == blacklist_id)
-        .order_by(User.id)
-    )
-
-    return await paginate(db_session, blocked_users_query, params=params)
+    if black_list := await get_black_list_by_owner(
+        owner=current_user,
+        db_session=db_session,
+    ):
+        blocked_users_query = (
+            select(User)
+            .join(BlockedUsers, BlockedUsers.user_id == User.id)
+            .where(BlockedUsers.blacklist_id == black_list.id)
+            .order_by(User.id)
+        )
+        return await paginate(db_session, blocked_users_query, params=params)
+    return JSONResponse(content=[], status_code=status.HTTP_200_OK)

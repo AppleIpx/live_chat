@@ -11,6 +11,7 @@ from starlette import status
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.db.utils import get_async_session
+from live_chat.web.api.black_list.utils import validate_user_in_black_list
 from live_chat.web.api.black_list.utils.get import (
     get_black_list_by_owner,
     get_user_in_black_list,
@@ -70,8 +71,13 @@ async def get_user(
 ) -> User:
     """Gets a user by id without authentication."""
     if user := await get_user_by_id(db_session, user_id=user_id):
+        await validate_user_in_black_list(
+            recipient=user,
+            sender=current_user,
+            db_session=db_session,
+        )
         if black_list := await get_black_list_by_owner(
-            current_user=current_user,
+            owner=current_user,
             db_session=db_session,
         ):
             blocked_user = await get_user_in_black_list(black_list, user.id, db_session)

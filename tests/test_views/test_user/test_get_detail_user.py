@@ -1,4 +1,5 @@
 import secrets
+import uuid
 from typing import AsyncGenerator, List
 
 import pytest
@@ -7,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.web.api.users.utils import get_user_by_id
-from tests.factories import UserFactory
+from tests.factories import BlackListFactory, UserFactory
 
 
 @pytest.mark.anyio
@@ -34,3 +35,47 @@ async def test_get_user_by_id(
         "user_image": user.user_image,
         "is_blocked": False,
     }
+
+
+@pytest.mark.anyio
+async def test_get_user_blocked_by_sender(
+    authorized_client: AsyncClient,
+    user: UserFactory,
+    black_list_with_user: BlackListFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to get a user who is blocked by a sender."""
+    response = await authorized_client.get(f"/api/users/read/{user.id}")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {
+        "detail": "You can't perform this action, because he's blocked",
+    }
+
+
+@pytest.mark.anyio
+async def test_get_user_blocked_by_recipient(
+    authorized_client: AsyncClient,
+    user: UserFactory,
+    black_list_with_auth_user: BlackListFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to get a user who is blocked by a recipient."""
+    response = await authorized_client.get(f"/api/users/read/{user.id}")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {
+        "detail": "You can't perform this action, you are on the black list",
+    }
+
+
+@pytest.mark.anyio
+async def test_get_not_existing_user(
+    authorized_client: AsyncClient,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Test get not existing user by id."""
+    response = await authorized_client.get(f"/api/users/read/{uuid.uuid4()}")
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "User not found"}

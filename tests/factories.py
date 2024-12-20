@@ -4,7 +4,15 @@ from datetime import datetime
 import factory
 from factory.fuzzy import FuzzyChoice
 
-from live_chat.db.models.chat import Chat, DeletedMessage, Message, ReadStatus, User
+from live_chat.db.models.chat import (
+    BlackList,
+    BlockedUsers,
+    Chat,
+    DeletedMessage,
+    Message,
+    ReadStatus,
+    User,
+)
 from live_chat.db.models.enums import ChatType, MessageType
 
 
@@ -90,3 +98,26 @@ class ReadStatusFactory(factory.alchemy.SQLAlchemyModelFactory):
     created_at = factory.LazyFunction(datetime.now)
     updated_at = factory.LazyFunction(datetime.now)
     is_deleted = factory.Faker("boolean")
+
+
+class BlackListFactory(factory.alchemy.SQLAlchemyModelFactory):
+    """A factory for creating instances of the BlackList model for testing purposes."""
+
+    class Meta:
+        model = BlackList
+        sqlalchemy_session = None
+
+    id = factory.LazyFunction(uuid.uuid4)
+    owner = factory.SubFactory(UserFactory)
+    owner_id = factory.SelfAttribute("owner.id")
+
+
+class BlockedUsersFactory(factory.alchemy.SQLAlchemyModelFactory):
+    """A factory for creating BlockedUsers association table entries."""
+
+    class Meta:
+        model = BlockedUsers
+        sqlalchemy_session = None
+
+    blacklist_id = factory.LazyFunction(uuid.uuid4)
+    user_id = factory.LazyFunction(uuid.uuid4)
