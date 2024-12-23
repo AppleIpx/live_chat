@@ -46,6 +46,7 @@ async def test_update_message(
         "created_at": message_in_chat.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": message_in_chat.updated_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": message_in_chat.is_deleted,
+        "reactions": [],
     }
 
 

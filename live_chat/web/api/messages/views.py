@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
@@ -16,6 +17,7 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Chat,
     DeletedMessage,
     Message,
+    Reaction,
     User,
 )
 from live_chat.db.models.enums import MessageType
@@ -30,16 +32,22 @@ from live_chat.web.api.messages.constants import (
     REDIS_SSE_KEY_PREFIX,
 )
 from live_chat.web.api.messages.schemas import (
+    GetDeletedMessageSchema,
     GetMessageSchema,
+    GetReactionSchema,
     PostMessageSchema,
+    PostReactionSchema,
     UpdateMessageSchema,
 )
 from live_chat.web.api.messages.utils import (
+    delete_reaction_by_id,
+    get_reaction_by_message_id_and_user_id,
     get_user_from_token,
     message_generator,
     publish_faststream,
     save_message_to_db,
     transformation_message,
+    validate_message_exists,
     validate_message_schema,
     validate_user_access_to_message,
 )
@@ -69,7 +77,19 @@ async def get_messages(
         .where(Message.chat_id == chat.id, Message.is_deleted != True)  # noqa: E712
         .order_by(Message.created_at.desc())
     )
-    return await paginate(db_session, query, params=params)
+    messages = await paginate(db_session, query, params=params)
+    for message in messages.items:
+        message.reactions = [
+            GetReactionSchema(
+                id=reaction.id,
+                reaction_type=reaction.reaction_type,
+                user_id=reaction.user_id,
+                message_id=reaction.message_id,
+                updated_at=reaction.updated_at,
+            )
+            for reaction in message.reactions
+        ]
+    return messages
 
 
 @message_router.get("/chats/{chat_id}/deleted-messages")
@@ -78,9 +98,9 @@ async def get_deleted_messages(
     current_user: User = Depends(current_active_user),
     params: CursorParams = Depends(),
     db_session: AsyncSession = Depends(get_async_session),
-) -> CursorPage[GetMessageSchema]:
+) -> CursorPage[GetDeletedMessageSchema]:
     """Get messages in chat by pagination."""
-    set_page(CursorPage[GetMessageSchema])
+    set_page(CursorPage[GetDeletedMessageSchema])
     query = (
         select(DeletedMessage)
         .where(
@@ -90,6 +110,70 @@ async def get_deleted_messages(
         .order_by(DeletedMessage.created_at.desc())
     )
     return await paginate(db_session, query, params=params)
+
+
+@message_router.post("/chats/{chat_id}/messages/{message_id}/reaction")
+async def post_message_reaction(
+    reaction_schema: PostReactionSchema,
+    message: Message = Depends(validate_message_exists),
+    chat: Chat = Depends(validate_user_access_to_chat),
+    current_user: User = Depends(current_active_user),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> GetReactionSchema:
+    """Post reaction to message."""
+    if reaction := await get_reaction_by_message_id_and_user_id(
+        db_session,
+        user_id=current_user.id,
+        message_id=message.id,
+    ):
+        await delete_reaction_by_id(db_session, reaction=reaction)
+    reaction = Reaction(
+        reaction_type=reaction_schema.reaction_type,
+        user_id=current_user.id,
+        message_id=message.id,
+    )
+    db_session.add(reaction)
+    await db_session.commit()
+    reaction_data = GetReactionSchema(
+        id=reaction.id,
+        reaction_type=reaction.reaction_type,
+        user_id=reaction.user_id,
+        message_id=reaction.message_id,
+        updated_at=reaction.updated_at,
+    )
+    event_data = jsonable_encoder(reaction_data.model_dump())
+    await publish_faststream("new_reaction", chat.users, event_data, chat.id)
+    return reaction_data
+
+
+@message_router.delete("/chats/{chat_id}/messages/{message_id}/reaction")
+async def delete_message_reaction(
+    message: Message = Depends(validate_message_exists),
+    chat: Chat = Depends(validate_user_access_to_chat),
+    current_user: User = Depends(current_active_user),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> JSONResponse:
+    """Delete reaction to message."""
+    if reaction := await get_reaction_by_message_id_and_user_id(
+        db_session,
+        user_id=current_user.id,
+        message_id=message.id,
+    ):
+        reaction_data = GetReactionSchema(
+            id=reaction.id,
+            reaction_type=reaction.reaction_type,
+            user_id=reaction.user_id,
+            message_id=reaction.message_id,
+            updated_at=reaction.updated_at,
+        )
+        event_data = jsonable_encoder(reaction_data.model_dump())
+        await delete_reaction_by_id(db_session, reaction=reaction)
+        await publish_faststream("delete_reaction", chat.users, event_data, chat.id)
+        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Reaction not found",
+    )
 
 
 @message_router.post("/chats/{chat_id}/messages")
@@ -117,7 +201,7 @@ async def post_message(
         chat,
         current_user,
     ):
-        message_data: GetMessageSchema = transformation_message([created_message])[0]
+        message_data = await transformation_message(created_message)
         event_data = jsonable_encoder(message_data.model_dump())
         await increase_in_unread_messages(
             chat=chat,
@@ -145,11 +229,11 @@ async def update_message(
     """Update message."""
     if message_schema.message_type == MessageType.TEXT:
         message.content = message_schema.content
+        message.updated_at = datetime.now(timezone.utc)
         chat.last_message_content = message_schema.content[:100]  # type: ignore[index]
         db_session.add_all([message, chat])
         await db_session.commit()
-        await db_session.refresh(message)
-        message_data: GetMessageSchema = transformation_message([message])[0]
+        message_data = await transformation_message(message)
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("update_message", chat.users, event_data, chat.id)
         return message_data
@@ -175,7 +259,7 @@ async def recover_deleted_message(
         if message.content:
             chat.last_message_content = message.content[:100]
             await db_session.commit()
-        message_data: GetMessageSchema = transformation_message([message])[0]
+        message_data = await transformation_message(message)
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("recover_message", chat.users, event_data, chat.id)
         return JSONResponse(

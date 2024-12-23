@@ -194,6 +194,34 @@ export const messageService = {
             throw error;
         }
     },
+
+    async postReaction(chatId, messageId, reactionType) {
+        try {
+            return apiClient.post(
+                `/api/chats/${chatId}/messages/${messageId}/reaction`,
+                {"reaction_type": reactionType}
+            );
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+
+    async deleteReaction(chatId, messageId) {
+        try {
+            return apiClient.delete(
+                `/api/chats/${chatId}/messages/${messageId}/reaction`,
+            );
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+
     async recoverMessage(chatId, messageId) {
         try {
             return await apiClient.post(`/api/chats/${chatId}/messages/${messageId}/recover`);

@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     Table,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -56,6 +57,11 @@ class Message(BaseMessage):
         overlaps="deleted_messages",
     )
     user = relationship("User", back_populates="messages")
+    reactions: Mapped[List["Reaction"]] = relationship(
+        "Reaction",
+        back_populates="message",
+        cascade="all, delete-orphan",
+    )
 
     def __str__(self) -> str:
         return f"Message from {self.user_id} - {self.chat_id} - {self.created_at}"
@@ -135,6 +141,27 @@ class ReadStatus(RemoveBaseFieldsMixin, Base):  # type: ignore[misc]
         return f"User: {self.user_id}, Message: {self.last_read_message_id}"
 
 
+class Reaction(Base):
+    """Represents a reaction to a message."""
+
+    __tablename__ = "reaction"
+
+    id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    reaction_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
+    message_id: Mapped[UUID] = mapped_column(ForeignKey("message.id"), nullable=False)
+
+    user: Mapped["User"] = relationship("User", back_populates="reactions")
+    message: Mapped["Message"] = relationship("Message", back_populates="reactions")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "message_id", name="unique_reaction_per_message"),
+    )
+
+    def __str__(self) -> str:
+        return f"Reaction {self.reaction_type} by {self.user_id} on {self.message_id}"
+
+
 class BlackList(Base):
     """Represents a blacklist for a user."""
 
@@ -193,6 +220,11 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     )
     read_statuses: Mapped[List["ReadStatus"]] = relationship(
         back_populates="user",
+    )
+    reactions: Mapped[List["Reaction"]] = relationship(
+        "Reaction",
+        back_populates="user",
+        cascade="all, delete-orphan",
     )
     black_list: Mapped["BlackList"] = relationship(back_populates="owner")
 

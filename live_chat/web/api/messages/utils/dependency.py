@@ -42,6 +42,16 @@ async def validate_user_access_to_message(
     return message if message else deleted_message
 
 
+async def validate_message_exists(
+    message_id: UUID,
+    db_session: AsyncSession = Depends(get_async_session),
+) -> Message:
+    """Validate that the message exists."""
+    if message := await get_message_by_id(db_session, message_id=message_id):
+        return message
+    raise HTTPException(status_code=404, detail="Message not found")
+
+
 async def validate_message_schema(
     message_schema: PostMessageSchema | UpdateMessageSchema,
 ) -> None:

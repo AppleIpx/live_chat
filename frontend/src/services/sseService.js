@@ -10,6 +10,7 @@ const SSEManager = {
         typingCallback,
         groupCallback,
         readStatusCallback,
+        reactionCallback,
     ) {
         const token = localStorage.getItem("accessToken");
         if (!token) {
@@ -96,6 +97,20 @@ const SSEManager = {
             const readStatusData = JSON.parse(event.data);
             if (isChatOpenCallback) {
                 readStatusCallback(readStatusData);
+            }
+        });
+
+        eventSource.addEventListener("new_reaction", async (event) => {
+            const reaction_data = JSON.parse(event.data);
+            if (isChatOpenCallback) {
+                reactionCallback(reaction_data, "new");
+            }
+        });
+
+        eventSource.addEventListener("delete_reaction", async (event) => {
+            const reaction_data = JSON.parse(event.data);
+            if (isChatOpenCallback) {
+                reactionCallback(reaction_data, "delete");
             }
         });
 

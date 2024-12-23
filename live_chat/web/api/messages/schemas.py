@@ -6,8 +6,24 @@ from pydantic import BaseModel
 from live_chat.db.models.enums import MessageType
 
 
-class GetMessageSchema(BaseModel):
-    """Represents a get command for a message."""
+class GetReactionSchema(BaseModel):
+    """Represents a get message reaction."""
+
+    id: UUID
+    reaction_type: str
+    user_id: UUID
+    message_id: UUID
+    updated_at: datetime
+
+
+class PostReactionSchema(BaseModel):
+    """Represents a post message reaction."""
+
+    reaction_type: str
+
+
+class GetBaseMessageSchema(BaseModel):
+    """Represents a base get command for a message."""
 
     id: UUID
     user_id: UUID
@@ -19,6 +35,16 @@ class GetMessageSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
     is_deleted: bool
+
+
+class GetMessageSchema(GetBaseMessageSchema):
+    """Represents a get command for a message."""
+
+    reactions: list[GetReactionSchema]
+
+
+class GetDeletedMessageSchema(GetBaseMessageSchema):
+    """Represents a get command for a message."""
 
 
 class PostMessageSchema(BaseModel):
