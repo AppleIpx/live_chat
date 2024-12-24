@@ -96,7 +96,7 @@ async def reaction(
     dbsession: AsyncSession,
     message_in_chat: MessageFactory,
 ) -> ReactionFactory:
-    """Fixture for creating a message."""
+    """Fixture for creating a reaction."""
     ReactionFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
     sender = message_in_chat.chat.users[0]
 
