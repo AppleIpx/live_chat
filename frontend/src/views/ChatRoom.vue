@@ -156,6 +156,28 @@
                 >
                   <i class="fa fa-file"></i> {{ message.file_name }}
                 </a>
+                <div class="message-reactions">
+                  <div class="reaction-icons">
+                    <span
+                        class="reaction-icon"
+                        v-for="reaction in groupedReactions.find(m => m.id === message.id).reactions"
+                        :key="reaction.reaction_type"
+                        @click="openReactionDetailsModal(message)"
+                    >
+                          {{ reaction.reaction_type }} <small v-if="reaction.count > 1">
+                          {{reaction.count }}</small>
+                        </span>
+                    <button class="add-reaction-button"
+                            @click="toggleReactionPicker(message)">
+                      <i class="fa fa-smile"></i>
+                      <EmojiPicker
+                          v-if="reactionPickersVisible[message.id]"
+                          class="reaction-picker"
+                          @select="addReaction(message, $event)"
+                      ></EmojiPicker>
+                    </button>
+                  </div>
+                </div>
               </div>
               <div v-if="message.isMine" class="message-options">
                 <button @click="toggleMenu(message.id)" class="menu-button">...</button>
@@ -204,6 +226,45 @@
         <button @click="sendMessage" class="send-button">
           <i class="fa fa-paper-plane"></i>
         </button>
+      </div>
+
+      <!-- Reactions Modal -->
+      <div v-if="isReactionDetailsModalVisible" class="modal-overlay"
+           @click.self="closeReactionDetailsModal">
+        <div class="modal">
+          <h3 class="modal-title">Реакции</h3>
+          <ul class="reaction-details-list">
+            <li
+                v-for="reaction in currentMessageReactions"
+                :key="reaction.id"
+                class="reaction-details-item"
+            >
+              <span>
+                <a v-if="reaction.user_id"
+                   :href="reaction.user_id === this.user.id ? '/profile/me' : '/profile/' + reaction.user_id">
+                    {{
+                    reaction.user_id === this.user.id ? 'Вы' : getUserFullName(reaction.user_id)
+                  }}
+                  </a>
+              </span>
+              <span>{{ reaction.reaction_type }}</span>
+              <span>{{ formatDateTime(reaction.updated_at) }}</span>
+              <button
+                  v-if="reaction.user_id === this.user.id"
+                  @click="removeReaction(reaction.message_id)"
+                  class="remove-reaction-button"
+                  title="Удалить реакцию"
+              >
+                <i class="fa fa-trash"></i>
+              </button>
+            </li>
+          </ul>
+          <div class="modal-actions">
+            <button @click="closeReactionDetailsModal" class="close-button">
+              Закрыть
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Group Usage Modals -->
@@ -413,6 +474,9 @@ export default {
       messageFilePreview: null,
       isUploadModalOpen: false,
       fileToUpload: null,
+      isReactionDetailsModalVisible: false,
+      currentMessageReactions: [],
+      reactionPickersVisible: {},
     };
   },
   computed: {
@@ -438,6 +502,26 @@ export default {
       });
       return grouped;
     },
+    groupedReactions() {
+      return this.messages.map(message => {
+        const grouped = {};
+
+        message.reactions.forEach(reaction => {
+          if (!grouped[reaction.reaction_type]) {
+            grouped[reaction.reaction_type] = {
+              count: 0,
+              reaction_type: reaction.reaction_type
+            };
+          }
+          grouped[reaction.reaction_type].count += 1;
+        });
+
+        return {
+          ...message,
+          reactions: Object.values(grouped)
+        };
+      });
+    }
   },
   watch: {
     chatId: {
@@ -453,11 +537,18 @@ export default {
             this.typingCallback,
             this.groupCallback,
             this.readStatusCallback,
+            this.reactionCallback
         );
       },
     },
   },
   mounted() {
+    this.user = JSON.parse(localStorage.getItem("user"));
+    if (!this.user) {
+      this.$router.push('/login');
+      alert("Пожалуйста, перезайдите в аккаунт");
+      return;
+    }
     this.isChatOpen = true;
     this.chatId = this.$route.params.chat_id;
     this.fetchChatDetails(this.chatId).then(() => {
@@ -484,6 +575,58 @@ export default {
       }
     },
 
+    openReactionDetailsModal(message) {
+      this.currentMessage = message;
+      this.currentMessageReactions = message.reactions;
+      this.isReactionDetailsModalVisible = true;
+    },
+
+    closeReactionDetailsModal() {
+      this.isReactionDetailsModalVisible = false;
+    },
+
+    toggleReactionPicker(message) {
+      this.reactionPickersVisible[message.id] = !this.reactionPickersVisible[message.id];
+      this.currentMessageForReaction = message;
+    },
+
+    getUserFullName(userId) {
+      const user = this.chatData.users.find(user => user.id === userId);
+      return user ? `${user.first_name} ${user.last_name}` : 'Неизвестный пользователь';
+    },
+
+    async addReaction(message, reactionType) {
+      if (!message) return;
+      try {
+        const response = await messageService.postReaction(
+            this.chatId,
+            message.id,
+            reactionType.i
+        );
+        message.reactions = message.reactions.filter(
+            (reaction) => reaction.user_id !== this.user.id
+        );
+        message.reactions.push(response.data);
+      } catch (error) {
+        console.error('Ошибка при добавлении реакции:', error);
+      }
+      this.reactionPickersVisible[this.currentMessageForReaction.id] = false;
+    },
+
+    async removeReaction(messageId) {
+      try {
+        await messageService.deleteReaction(this.chatId, messageId);
+        const message = this.messages.find(msg => msg.id === messageId);
+        message.reactions = message.reactions.filter(
+            (reaction) => reaction.user_id !== this.user.id
+        );
+        this.currentMessageReactions = message.reactions;
+        this.closeReactionDetailsModal();
+      } catch (error) {
+        console.error('Ошибка при удалении реакции:', error);
+      }
+    },
+
     isOnline(user) {
       if (!user || !user.last_online) return false;
       const lastOnlineDate = new Date(user.last_online);
@@ -493,6 +636,17 @@ export default {
 
     formatDate(date) {
       const options = {day: 'numeric', month: 'long', year: 'numeric',};
+      return new Date(date).toLocaleDateString("ru-RU", options);
+    },
+
+    formatDateTime(date) {
+      const options = {
+        day: 'numeric',
+        month: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      };
       return new Date(date).toLocaleDateString("ru-RU", options);
     },
 
@@ -572,7 +726,6 @@ export default {
     async fetchChatDetails(chatId) {
       try {
         const chatResponse = await this.$store.dispatch("StoreFetchChatDetail", chatId);
-        this.user = JSON.parse(localStorage.getItem("user"));
         this.chatData = chatResponse.data;
         this.chatType = chatResponse.data.chat_type
 
@@ -701,6 +854,7 @@ export default {
               updated_at: new Date(message.updated_at).toLocaleString(),
               showMenu: false,
               isMine: message.user_id === this.user.id,
+              reactions: message.reactions,
               readStatus: [],
               readUsers: [],
             }));
@@ -861,6 +1015,17 @@ export default {
           }
         }
       });
+    },
+
+    reactionCallback(reaction_data, action_type) {
+      console.log(reaction_data)
+      const message = this.messages.find(msg => msg.id === reaction_data.message_id);
+      message.reactions = message.reactions.filter(
+          (reaction) => reaction.user_id !== reaction_data.user_id
+      );
+      if (action_type === "new") {
+        message.reactions.push(reaction_data);
+      }
     },
 
     handleNewMessage(newMessage, action) {
@@ -1407,6 +1572,111 @@ export default {
   background: #f9f9f9;
 }
 
+.message-reactions {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.reaction-icons {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  padding: 2px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.reaction-icon {
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.4);
+  padding: 4px 6px;
+  margin-left: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.reaction-icon:hover {
+  transform: scale(1.1);
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.reaction-icon small {
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.add-reaction-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease-in-out;
+  margin-left: auto;
+}
+
+.add-reaction-button i {
+  font-size: 14px;
+  color: #666;
+}
+
+.add-reaction-button:hover {
+  transform: scale(1.05);
+}
+
+.add-reaction-button:focus {
+  outline: none;
+}
+
+.reaction-details-list {
+  list-style: none;
+  padding: 0;
+}
+
+.reaction-details-item {
+  padding: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ccc;
+}
+
+.remove-reaction-button {
+  background-color: transparent;
+  border: none;
+  color: #ff4d4d;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: transform 0.2s, color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+}
+
+.remove-reaction-button:hover {
+  color: #ff1a1a;
+  transform: scale(1.1);
+}
+
+.remove-reaction-button:active {
+  transform: scale(0.95);
+}
+
+.remove-reaction-button i {
+  margin: 0;
+}
+
+
 .emoji-button {
   background: #f9f9f9;
   color: #007bff;
@@ -1439,6 +1709,19 @@ export default {
 
 .send-button:active {
   color: #004fa6;
+}
+
+.reaction-picker {
+  position: absolute;
+  bottom: 40px;
+  right: 30%;
+  background-color: white;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  width: 250px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 10;
 }
 
 .emoji-picker {
