@@ -9,6 +9,7 @@ from tests.factories import (
     ChatFactory,
     DeletedMessageFactory,
     MessageFactory,
+    ReactionFactory,
     UserFactory,
 )
 from tests.utils import get_first_user_from_db
@@ -88,3 +89,20 @@ def message_data(
         "content": "Test message",
         "created_at": message.created_at.isoformat(),
     }
+
+
+@pytest.fixture
+async def reaction(
+    dbsession: AsyncSession,
+    message_in_chat: MessageFactory,
+) -> ReactionFactory:
+    """Fixture for creating a reaction."""
+    ReactionFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    sender = message_in_chat.chat.users[0]
+
+    return ReactionFactory(
+        user=sender,
+        user_id=sender.id,
+        message=message_in_chat,
+        message_id=message_in_chat.id,
+    )

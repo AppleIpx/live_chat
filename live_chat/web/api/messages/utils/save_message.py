@@ -27,6 +27,7 @@ async def save_message_to_db(
         file_name=message_schema.file_name,
         chat_id=chat.id,
         user_id=current_user.id,
+        reactions=[],
     )
     chat.updated_at = datetime.now()
     if message_content is None:
@@ -35,8 +36,6 @@ async def save_message_to_db(
         chat.last_message_content = message_content[:100]
     db_session.add_all([message, chat])
     await db_session.commit()
-    await db_session.refresh(message)
-
     return message
 
 

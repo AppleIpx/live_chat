@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,8 +24,8 @@ async def restore_message(
         )
         await db_session.execute(delete_statement)
         message.is_deleted = False
+        message.updated_at = datetime.now(timezone.utc)
         db_session.add(message)
         await db_session.commit()
-        await db_session.refresh(message)
         return message
     return None

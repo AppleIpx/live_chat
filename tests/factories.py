@@ -10,6 +10,7 @@ from live_chat.db.models.chat import (
     Chat,
     DeletedMessage,
     Message,
+    Reaction,
     ReadStatus,
     User,
 )
@@ -121,3 +122,18 @@ class BlockedUsersFactory(factory.alchemy.SQLAlchemyModelFactory):
 
     blacklist_id = factory.LazyFunction(uuid.uuid4)
     user_id = factory.LazyFunction(uuid.uuid4)
+
+
+class ReactionFactory(factory.alchemy.SQLAlchemyModelFactory):
+    """A factory for creating instances of the Reaction model."""
+
+    class Meta:
+        model = Reaction
+        sqlalchemy_session = None
+
+    id = factory.LazyFunction(uuid.uuid4)
+    reaction_type = factory.Faker("emoji")
+    user_id = factory.LazyFunction(uuid.uuid4)
+    message_id = factory.LazyFunction(uuid.uuid4)
+    user = factory.SubFactory(UserFactory)
+    message = factory.SubFactory(MessageFactory)

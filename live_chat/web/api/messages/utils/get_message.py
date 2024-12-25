@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     DeletedMessage,
@@ -15,7 +16,11 @@ async def get_message_by_id(
     message_id: UUID,
 ) -> Message | None:
     """Function to get a message by his id from db."""
-    query = select(Message).where(Message.id == message_id)
+    query = (
+        select(Message)
+        .options(selectinload(Message.reactions))
+        .where(Message.id == message_id)
+    )
     result = await db_session.execute(query)
     return result.scalar_one_or_none()
 

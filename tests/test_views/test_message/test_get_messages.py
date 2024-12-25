@@ -38,6 +38,7 @@ async def test_get_messages(
             "created_at": message.created_at.isoformat(),
             "updated_at": message.updated_at.isoformat(),
             "is_deleted": message.is_deleted,
+            "reactions": [],
         }
         for message in sorted(
             non_deleted_messages,
