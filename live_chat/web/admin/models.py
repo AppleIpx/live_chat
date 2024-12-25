@@ -1,9 +1,6 @@
-from fastapi import FastAPI
 from sqladmin import ModelView
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
-
-app = FastAPI()
 
 
 class UserAdmin(ModelView, model=User):
