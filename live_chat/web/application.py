@@ -11,7 +11,7 @@ from live_chat.db.utils import async_session_maker, engine
 from live_chat.services.faststream import fast_stream_router
 from live_chat.settings import settings
 from live_chat.web.admin.auth import AdminAuth
-from live_chat.web.admin.models import UserAdmin
+from live_chat.web.admin.models.users_admin import UserAdmin
 from live_chat.web.api.router import api_router
 from live_chat.web.lifespan import lifespan_setup
 from live_chat.web.middlewares import UpdateLastOnlineMiddleware

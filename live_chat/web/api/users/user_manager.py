@@ -4,7 +4,6 @@ from typing import Any, Union
 from fastapi import HTTPException
 from fastapi_users import (
     BaseUserManager,
-    InvalidPasswordException,
     UUIDIDMixin,
     exceptions,
     models,
@@ -15,6 +14,7 @@ from starlette import status
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.settings import settings
 from live_chat.web.api.users.utils.custom_user_db import CustomSQLAlchemyUserDatabase
+from live_chat.web.api.users.utils.validators.password import validate_password
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
@@ -61,32 +61,8 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         user: Union[schemas.UC, models.UP],
     ) -> None:
         """Validate password."""
-        if len(password) < 8:
-            raise InvalidPasswordException(
-                reason="Password must be at least 8 characters long.",
-            )
-
-        if not any(char.isdigit() for char in password):
-            raise InvalidPasswordException(
-                reason="Password must include at least one digit.",
-            )
-
-        if not any(char.isalpha() for char in password):
-            raise InvalidPasswordException(
-                reason="Password must include at least one letter.",
-            )
-
-        if not any(char in "!@#$%^&*()_+-=[]{}|;':\",.<>?/`~" for char in password):
-            raise InvalidPasswordException(
-                reason="Password must include at least one special character.",
-            )
-
-        if password == user.email:
-            raise InvalidPasswordException(
-                reason="Password should not be similar to email.",
-            )
-
-        if password == user.username:  # type: ignore[union-attr]
-            raise InvalidPasswordException(
-                reason="Password should not be similar to username.",
-            )
+        await validate_password(
+            email=user.email,
+            username=user.username,  # type: ignore[union-attr]
+            password=password,
+        )

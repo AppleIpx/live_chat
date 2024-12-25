@@ -1,6 +1,5 @@
 import uuid
 
-from fastapi import FastAPI
 from fastapi.security import OAuth2PasswordRequestForm
 from sqladmin.authentication import AuthenticationBackend
 from sqlalchemy import select
@@ -10,8 +9,6 @@ from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.db.utils import async_session_maker
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils.custom_user_db import CustomSQLAlchemyUserDatabase
-
-app = FastAPI()
 
 
 class AdminAuth(AuthenticationBackend):
@@ -25,7 +22,8 @@ class AdminAuth(AuthenticationBackend):
             query = select(User).where(User.email == username)
             result = await session.execute(query)
             user_db: User = result.scalar_one_or_none()
-            if user_db and user_db.is_superuser:
+            # TODO добавить проверку на админа (if user_db and user_db.is_superuser)
+            if user_db:
                 user_manager = UserManager(
                     user_db=CustomSQLAlchemyUserDatabase(session, User),
                 )

@@ -2942,6 +2942,7 @@ files = [
 ]
 
 [package.dependencies]
+itsdangerous = {version = "*", optional = true, markers = "extra == \"full\""}
 jinja2 = "*"
 python-multipart = "*"
 sqlalchemy = ">=1.4"
@@ -3691,4 +3692,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "0ac9587119f40b6f184ad7c29d26620f457ffa5d6a048c1bcea336e3e1f3382c"
+content-hash = "0cd2aa940f56389afe9e73c4cddbc32a301e01b0842f9cb9fd58537a7b0c973b"
