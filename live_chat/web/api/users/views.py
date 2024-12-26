@@ -76,6 +76,11 @@ async def get_user(
             sender=current_user,
             db_session=db_session,
         )
+        if user.is_deleted:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This user has been deleted.",
+            )
         if black_list := await get_black_list_by_owner(
             owner=current_user,
             db_session=db_session,

@@ -138,3 +138,28 @@ async def test_create_group_chat_without_auth(
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Unauthorized"}
+
+
+@pytest.mark.anyio
+async def test_create_group_chat_with_deleted_user(
+    authorized_client: AsyncClient,
+    some_users: List[UserFactory],
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to create a group chat with deleted user."""
+    deleted_user = secrets.choice(some_users)
+    deleted_user.is_deleted = True
+    recipient_user_ids = [str(user.id) for user in some_users]
+    response = await authorized_client.post(
+        "/api/chats/create/group",
+        json={
+            "recipient_user_ids": recipient_user_ids,
+            "name_group": "string",
+            "image_group": None,
+        },
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {
+        "detail": f"This user {deleted_user.id} has been deleted.",
+    }

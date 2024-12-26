@@ -80,3 +80,19 @@ async def test_get_not_existing_user(
     response = await authorized_client.get(f"/api/users/read/{uuid.uuid4()}")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "User not found"}
+
+
+@pytest.mark.anyio
+async def test_get_deleted_user(
+    authorized_client: AsyncClient,
+    user: UserFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Test get deleted user by id."""
+    user.is_deleted = True
+    response = await authorized_client.get(f"/api/users/read/{user.id}")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {
+        "detail": "This user has been deleted.",
+    }

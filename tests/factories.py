@@ -35,6 +35,7 @@ class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
     is_active = factory.Faker("boolean")
     is_superuser = factory.Faker("boolean")
     is_verified = factory.Faker("boolean")
+    is_deleted = False
     created_at = factory.LazyFunction(datetime.now)
     updated_at = factory.LazyFunction(datetime.now)
 
