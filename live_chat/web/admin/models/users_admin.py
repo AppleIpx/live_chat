@@ -2,12 +2,17 @@ from typing import Any, Dict
 
 from sqladmin import ModelView
 from sqladmin.forms import Form
+from sqladmin.helpers import (
+    get_primary_keys,
+)
+from sqlalchemy import Select, select
 from starlette.requests import Request
 from wtforms import BooleanField, FileField
 from wtforms.fields.simple import PasswordField, StringField
 from wtforms.validators import DataRequired, Email
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
+from live_chat.web.admin.utils import custom_object_identifier_values
 from live_chat.web.admin.utils.transformation import transformation_new_user_admin
 
 
@@ -64,3 +69,10 @@ class UserAdmin(ModelView, model=User):
         """Function to add a new user through the admin panel."""
         data = await transformation_new_user_admin(data=data)
         return await super().insert_model(request, data)
+
+    def _stmt_by_identifier(self, identifier: str) -> Select[Any]:
+        stmt: Select[Any] = select(self.model)
+        pks = get_primary_keys(self.model)
+        values = custom_object_identifier_values(identifier, self.model)
+        conditions = [pk == value for (pk, value) in zip(pks, values)]
+        return stmt.where(*conditions)
