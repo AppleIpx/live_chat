@@ -5,10 +5,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import UJSONResponse
 from fastapi_pagination import add_pagination
+from sqladmin import Admin
 
-from live_chat.db.utils import engine
+from live_chat.db.utils import async_session_maker, engine
 from live_chat.services.faststream import fast_stream_router
 from live_chat.settings import settings
+from live_chat.web.admin.auth import AdminAuth
+from live_chat.web.admin.models.users_admin import UserAdmin
 from live_chat.web.api.router import api_router
 from live_chat.web.lifespan import lifespan_setup
 from live_chat.web.middlewares import UpdateLastOnlineMiddleware
@@ -48,6 +51,17 @@ def get_app() -> FastAPI:
     # Main router for the API.
     app.include_router(router=api_router, prefix="/api")
     app.include_router(router=fast_stream_router)
+
+    # SQLAdmin
+    authentication_backend = AdminAuth(secret_key="")
+    admin = Admin(
+        app=app,
+        engine=engine,
+        session_maker=async_session_maker,
+        authentication_backend=authentication_backend,
+    )
+    admin.add_view(UserAdmin)
+
     add_pagination(app)
     if settings.use_logfire:
         logfire.configure()

@@ -43,6 +43,8 @@ factory-boy = "^3.3.1"
 pytest-factoryboy = "^2.7.0"
 pytest-asyncio = "^0.24.0"
 pytest-mock = "^3.14.0"
+sqladmin = {extras = ["full"], version = "^0.20.1"}
+itsdangerous = "^2.2.0"
 
 
 [tool.poetry.group.dev.dependencies]
