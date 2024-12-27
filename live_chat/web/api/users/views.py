@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 from fastapi.security import HTTPBearer
 from fastapi_pagination import set_page
 from fastapi_pagination.cursor import CursorPage, CursorParams
@@ -26,9 +26,11 @@ from live_chat.web.api.users.schemas import (
 from live_chat.web.api.users.utils import (
     api_users,
     auth_jwt,
-    current_active_user,
+    custom_current_user,
     get_user_by_id,
+    recover_me,
 )
+from live_chat.web.api.users.utils.authentication import current_active_user
 from live_chat.web.enums import UploadFileDirectoryEnum
 from live_chat.web.utils.image_saver import FileSaver
 
@@ -66,7 +68,7 @@ async def get_users(
 @router.get("/users/read/{user_id}", response_model=OtherUserRead, tags=["users"])
 async def get_user(
     user_id: UUID,
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> User:
     """Gets a user by id without authentication."""
@@ -97,7 +99,7 @@ async def get_user(
 @router.patch("/users/me/upload-image", tags=["users"])
 async def upload_user_image(
     uploaded_image: UploadFile,
-    user: User = Depends(current_active_user),
+    user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> dict[str, str]:
     """Update a user avatar."""
@@ -117,3 +119,44 @@ async def upload_user_image(
     db_session.add(existing_user)
     await db_session.commit()
     return {"image_url": image_url}
+
+
+@router.delete(
+    "/delete-me",
+    tags=["users"],
+    summary="Delete a user",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_me_view(
+    user: User = Depends(custom_current_user),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> Response:
+    """Delete a user."""
+    user.is_deleted = True
+    await db_session.merge(user)
+    await db_session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put(
+    "/recover-me",
+    tags=["users"],
+    summary="Recover a user",
+    status_code=status.HTTP_200_OK,
+    response_model=UserShortRead,
+)
+async def recover_me_view(
+    user: User = Depends(current_active_user),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> UserShortRead:
+    """Recover a user."""
+    await recover_me(user=user, db_session=db_session)
+    return UserShortRead(
+        id=user.id,
+        first_name=user.first_name,  # type: ignore[call-arg]
+        last_name=user.last_name,  # type: ignore[call-arg]
+        username=user.username,  # type: ignore[call-arg]
+        user_image=user.user_image,  # type: ignore[call-arg]
+        last_online=user.last_online,  # type: ignore[call-arg]
+        is_deleted=user.is_deleted,  # type: ignore[call-arg]
+    )

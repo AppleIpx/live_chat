@@ -95,3 +95,17 @@ async def test_get_detail_chat_without_auth(
     response = await client.get(f"api/chats/{any_chat_with_users.id}")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Unauthorized"}
+
+
+@pytest.mark.anyio
+async def test_get_detail_chat_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to get detail_chat by a deleted user."""
+    chat_id = message_in_chat.chat.id
+    response = await authorized_deleted_client.get(f"api/chats/{chat_id}")
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

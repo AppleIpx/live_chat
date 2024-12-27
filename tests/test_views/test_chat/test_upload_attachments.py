@@ -113,3 +113,28 @@ async def test_upload_attachments_nonexistent_user(
     upload_chat_attachments_mock.assert_not_called()
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "User is not part of the chat"}
+
+
+@pytest.mark.anyio
+async def test_upload_attachments_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    fake_image: UploadFile,
+    chat: ChatFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+    upload_chat_attachments_mock: AsyncMock,
+) -> None:
+    """Testing upload attachments by a deleted user."""
+    response = await authorized_deleted_client.post(
+        f"/api/chats/{chat.id}/upload-attachments",
+        files={
+            "uploaded_file": (
+                fake_image.filename,
+                fake_image.file,
+                fake_image.content_type,
+            ),
+        },
+    )
+    upload_chat_attachments_mock.assert_not_called()
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

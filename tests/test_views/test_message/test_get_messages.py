@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from tests.factories import ChatFactory, MessageFactory
+from tests.factories import ChatFactory, MessageFactory, ReactionFactory
 
 
 @pytest.mark.anyio
@@ -89,3 +89,20 @@ async def test_get_messages_nonexistent_chat(
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Chat not found"}
+
+
+@pytest.mark.anyio
+async def test_recover_message_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    reaction: ReactionFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing recover message by a deleted user."""
+    message_id = reaction.message.id
+    chat = reaction.message.chat
+    response = await authorized_deleted_client.delete(
+        f"/api/chats/{chat.id}/messages/{message_id}/reaction",
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

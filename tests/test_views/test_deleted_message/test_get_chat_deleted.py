@@ -70,3 +70,15 @@ async def test_get_chats_deleted(
                 },
             ],
         }
+
+
+@pytest.mark.anyio
+async def test_get_deleted_chats_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing get deleted chats by a deleted user."""
+    response = await authorized_deleted_client.get("/api/chats/deleted")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

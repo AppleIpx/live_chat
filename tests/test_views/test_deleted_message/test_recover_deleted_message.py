@@ -149,3 +149,19 @@ async def test_recover_message_with_non_author(
     mocked_publish_message.assert_not_called()
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "User is not the author of this message"}
+
+
+@pytest.mark.anyio
+async def test_recover_message_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    deleted_message_in_chat: DeletedMessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing recover deleted message by a deleted user."""
+    chat = deleted_message_in_chat.chat
+    response = await authorized_deleted_client.post(
+        f"/api/chats/{chat.id}/messages/{deleted_message_in_chat.id}/recover",
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

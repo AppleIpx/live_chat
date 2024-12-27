@@ -12,7 +12,7 @@ from live_chat.web.api.chat.schemas import ReadStatusSchema, UpdateReadStatusSch
 from live_chat.web.api.chat.utils import validate_user_access_to_chat
 from live_chat.web.api.messages.utils import get_message_by_id, publish_faststream
 from live_chat.web.api.read_status.utils import get_read_status_by_user_chat_ids
-from live_chat.web.api.users.utils import current_active_user
+from live_chat.web.api.users.utils import custom_current_user
 
 read_status_router = APIRouter()
 
@@ -27,7 +27,7 @@ async def update_read_status(
     update_read_status: UpdateReadStatusSchema,
     chat: Chat = Depends(validate_user_access_to_chat),
     db_session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
 ) -> ReadStatusSchema:
     """Update read status."""
     if read_status := await get_read_status_by_user_chat_ids(

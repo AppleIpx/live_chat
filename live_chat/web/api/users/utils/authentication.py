@@ -1,5 +1,6 @@
 import uuid
 
+from fastapi import Depends, HTTPException, status
 from fastapi_users import FastAPIUsers
 from fastapi_users.authentication import AuthenticationBackend, BearerTransport
 
@@ -17,3 +18,15 @@ backends = [
 ]
 api_users = FastAPIUsers[User, uuid.UUID](get_user_manager, backends)
 current_active_user = api_users.current_user(active=True)
+
+
+async def custom_current_user(
+    user: User = Depends(current_active_user),
+) -> User:
+    """Checks that the user is not marked as deleted."""
+    if user.is_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are deleted.",
+        )
+    return user

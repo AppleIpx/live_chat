@@ -97,3 +97,16 @@ async def test_get_deleted_user(
     assert response.json() == {
         "detail": "This user has been deleted.",
     }
+
+
+@pytest.mark.anyio
+async def test_get_detail_user_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    user: UserFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to get detail_user by a deleted user."""
+    response = await authorized_deleted_client.get(f"/api/users/read/{user.id}")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

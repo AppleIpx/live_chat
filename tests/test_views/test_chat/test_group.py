@@ -164,3 +164,25 @@ async def test_create_group_chat_with_deleted_user(
     assert response.json() == {
         "detail": f"This user {deleted_user.id} has been deleted.",
     }
+
+
+@pytest.mark.anyio
+async def test_create_group_chat_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    some_users: List[UserFactory],
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to create_group_chat by a deleted user."""
+    recipient_user_ids = [str(user.id) for user in some_users]
+    response = await authorized_deleted_client.post(
+        "/api/chats/create/group",
+        json={
+            "recipient_user_ids": recipient_user_ids,
+            "name_group": "string",
+            "image_group": None,
+        },
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

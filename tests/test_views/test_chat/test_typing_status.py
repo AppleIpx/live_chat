@@ -96,3 +96,23 @@ async def test_post_typing_status_nonexistent_chat(
     mocked_publish_message.assert_not_called()
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Chat not found"}
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("is_typing", [True, False])
+async def test_post_typing_status_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    direct_chat_with_users: ChatFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+    mocked_publish_message: AsyncMock,
+    is_typing: bool,
+) -> None:
+    """Testing to post typing status by a deleted user."""
+    chat_id = direct_chat_with_users.id
+    response = await authorized_deleted_client.post(
+        f"/api/chats/{chat_id}/typing-status?is_typing={is_typing}",
+    )
+    mocked_publish_message.assert_not_called()
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

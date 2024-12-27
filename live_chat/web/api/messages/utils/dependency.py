@@ -15,12 +15,12 @@ from live_chat.web.api.messages.utils.get_message import (
     get_deleted_message_by_id,
     get_message_by_id,
 )
-from live_chat.web.api.users.utils import current_active_user
+from live_chat.web.api.users.utils import custom_current_user
 
 
 async def validate_user_access_to_message(
     message_id: UUID,
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> Message | DeletedMessage:
     """Validate that the current user has access to the message."""
