@@ -48,6 +48,7 @@ async def test_get_list_chats(
             "users": [
                 {
                     "id": str(sender.id),
+                    "is_deleted": sender.is_deleted,
                     "first_name": sender.first_name,
                     "last_name": sender.last_name,
                     "last_online": (
@@ -60,6 +61,7 @@ async def test_get_list_chats(
                 },
                 {
                     "id": str(recipient.id),
+                    "is_deleted": recipient.is_deleted,
                     "first_name": recipient.first_name,
                     "last_name": recipient.last_name,
                     "last_online": recipient.last_online.isoformat().replace(
@@ -120,6 +122,7 @@ async def test_get_list_chats_with_user(
             "users": [
                 {
                     "id": str(sender.id),
+                    "is_deleted": sender.is_deleted,
                     "first_name": sender.first_name,
                     "last_name": sender.last_name,
                     "last_online": (
@@ -132,6 +135,7 @@ async def test_get_list_chats_with_user(
                 },
                 {
                     "id": str(recipient.id),
+                    "is_deleted": recipient.is_deleted,
                     "first_name": recipient.first_name,
                     "last_name": recipient.last_name,
                     "last_online": recipient.last_online.isoformat().replace(

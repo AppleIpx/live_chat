@@ -18,6 +18,7 @@ async def transformation_black_list(
         username=blocked_user.username,  # type: ignore[call-arg]
         user_image=blocked_user.user_image,  # type: ignore[call-arg]
         last_online=blocked_user.last_online,  # type: ignore[call-arg]
+        is_deleted=blocked_user.is_deleted,  # type: ignore[call-arg]
     )
     return BlackListSchema(
         id=black_list.id,

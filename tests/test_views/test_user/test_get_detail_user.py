@@ -25,6 +25,7 @@ async def test_get_user_by_id(
     user = await get_user_by_id(user_id=selected_user.id, db_session=dbsession)
     assert response.json() == {
         "id": str(user.id),
+        "is_deleted": user.is_deleted,
         "email": user.email,
         "is_active": user.is_active,
         "is_superuser": user.is_superuser,

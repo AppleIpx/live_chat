@@ -47,6 +47,7 @@ async def test_create_direct_chat(
         "users": [
             {
                 "id": str(sender.id),
+                "is_deleted": sender.is_deleted,
                 "first_name": sender.first_name,
                 "last_name": sender.last_name,
                 "last_online": (
@@ -59,6 +60,7 @@ async def test_create_direct_chat(
             },
             {
                 "id": str(user.id),
+                "is_deleted": user.is_deleted,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "last_online": user.last_online.isoformat().replace("+00:00", "Z"),

@@ -40,6 +40,7 @@ async def test_create_group_chat(
     expected_users = [
         {
             "id": str(user.id),
+            "is_deleted": user.is_deleted,
             "first_name": user.first_name,
             "last_name": user.last_name,
             "last_online": (

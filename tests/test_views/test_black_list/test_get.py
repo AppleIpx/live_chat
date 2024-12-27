@@ -44,6 +44,7 @@ async def test_get_black_list(
                 else None
             ),
             "id": str(block_user_db.id),
+            "is_deleted": block_user_db.is_deleted,
         }
     assert len(response.json()["items"]) == len(blocked_users)
 

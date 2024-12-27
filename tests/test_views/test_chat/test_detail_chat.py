@@ -46,6 +46,7 @@ async def test_get_detail_chat(
         "users": [
             {
                 "id": str(sender.id),
+                "is_deleted": sender.is_deleted,
                 "first_name": sender.first_name,
                 "last_name": sender.last_name,
                 "last_online": (
@@ -58,6 +59,7 @@ async def test_get_detail_chat(
             },
             {
                 "id": str(recipient.id),
+                "is_deleted": recipient.is_deleted,
                 "first_name": recipient.first_name,
                 "last_name": recipient.last_name,
                 "last_online": recipient.last_online.isoformat().replace("+00:00", "Z"),

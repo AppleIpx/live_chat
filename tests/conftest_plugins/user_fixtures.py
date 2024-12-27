@@ -33,5 +33,6 @@ async def registered_user(client: AsyncClient) -> Response:
             "last_name": "string",
             "username": "username123!",
             "user_image": None,
+            "is_deleted": False,
         },
     )

@@ -42,6 +42,7 @@ async def test_add_user_to_new_black_list(
                 else None
             ),
             "id": str(black_list_user.id),
+            "is_deleted": black_list_user.is_deleted,
         },
     }
 
@@ -81,6 +82,7 @@ async def test_add_user_to_existing_black_list(
                 else None
             ),
             "id": str(black_list_user.id),
+            "is_deleted": black_list_user.is_deleted,
         },
     }
     assert len(blocked_users) == 6
