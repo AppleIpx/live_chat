@@ -151,7 +151,7 @@
 <script>
 import SSEManager from "@/services/sseService";
 import {chatService, userService} from "@/services/apiService";
-import router from "@/router";
+import {handleError} from "@/utils/errorHandler";
 
 export default {
   data() {
@@ -213,22 +213,7 @@ export default {
         clearTimeout(timeout);
         this.isLoading = false;
       } catch (error) {
-        if (error.response) {
-          const status = error.response.status;
-          switch (status) {
-            case 403:
-              await router.push("/403");
-              break;
-            case 404:
-              await router.push("/404");
-              break;
-            case 500:
-              await router.push("/500");
-              break;
-          }
-        }
-        console.log(error);
-        this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
+        this.error = await handleError(error);
         this.isLoading = false;
       }
     },
@@ -239,6 +224,7 @@ export default {
             user.username !== this.instanceUser.email.split("@")[0] &&
             user.username !== this.instanceUser.username
         );
+        if (user.is_deleted) return false
         const lastOnlineDate = new Date(user.last_online);
         const now = new Date();
         return (now - lastOnlineDate) <= 3 * 60 * 1000;
@@ -263,19 +249,20 @@ export default {
         this.users = response.data.items;
         this.filteredUsers = this.users.filter(user => user.id !== this.instanceUser.id)
       } catch (error) {
-        console.error('Ошибка получения пользователей:', error);
-        this.error = 'Не удалось загрузить пользователей.';
+        this.error = await handleError(error);
       }
     },
 
     getChatPhoto(chat) {
       const defaultUserImage = '/default_avatar.png';
       const defaultGroupImage = '/default_group_image.png';
+      const deletedUserImage = '/deleted_avatar.png'
       if (chat.chat_type === 'direct') {
         const user = chat.users.find(user =>
             user.username !== this.instanceUser.email.split("@")[0] &&
             user.username !== this.instanceUser.username
         );
+        if (user.is_deleted) return deletedUserImage;
         return user?.user_image || defaultUserImage;
       }
       if (chat.chat_type === 'group') {
@@ -295,7 +282,12 @@ export default {
     getFirstLastNames(users) {
       return users
           .filter(user => user.username !== this.instanceUser.email.split("@")[0] && user.username !== this.instanceUser.username)
-          .map(user => `${user.first_name} ${user.last_name}`)
+          .map(user => {
+            if (user.is_deleted) {
+              return 'Удаленный аккаунт';
+            }
+            return `${user.first_name} ${user.last_name}`;
+          })
           .join(', ');
     },
 
@@ -349,8 +341,7 @@ export default {
           alert(`У вас уже есть этот чат.`);
           return
         }
-        console.error('Ошибка при создании чата:', error);
-        alert('Не удалось создать чат. Пожалуйста, попробуйте позже.');
+        this.error = await handleError(error);
       }
     },
 
@@ -373,7 +364,7 @@ export default {
         this.selectedGroupUsers = [];
         location.reload();
       } catch (error) {
-        alert('Не удалось создать группу. Пожалуйста, попробуйте позже.');
+        this.error = await handleError(error);
       }
     },
   },

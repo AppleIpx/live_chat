@@ -56,7 +56,7 @@
 
 <script>
 import {blackListService} from "@/services/apiService";
-import router from "@/router";
+import {handleError} from "@/utils/errorHandler";
 
 export default {
   data() {
@@ -77,21 +77,7 @@ export default {
       this.previousCursor = response.data.previous_page || null;
       this.black_list = response.data.items
     } catch (error) {
-      if (error.response) {
-        const status = error.response.status;
-        switch (status) {
-          case 403:
-            await router.push("/403");
-            break;
-          case 404:
-            await router.push("/404");
-            break;
-          case 500:
-            await router.push("/500");
-            break;
-        }
-      }
-      console.error("Ошибка при получении списка пользователей:", error);
+      await handleError(error);
     }
   },
   methods: {

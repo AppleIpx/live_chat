@@ -53,6 +53,7 @@
 
 <script>
 import {userService} from "@/services/apiService";
+import {handleError} from "@/utils/errorHandler";
 
 export default {
   data() {
@@ -78,16 +79,10 @@ export default {
       );
       this.filteredUsers = this.users;
     } catch (error) {
-      console.error("Ошибка при получении списка пользователей:", error);
+      await handleError(error);
     }
   },
   methods: {
-    filterUsers() {
-      const query = this.searchQuery.toLowerCase();
-      this.filteredUsers = this.users.filter((user) =>
-          user.username.toLowerCase().includes(query)
-      );
-    },
     async loadNextPage() {
       if (this.nextCursor) {
         const response = await userService.fetchUsers(3, this.nextCursor);

@@ -269,6 +269,26 @@ export const userService = {
             throw error;
         }
     },
+    async deleteUserMe() {
+        try {
+            return await apiClient.delete('/api/users/me/delete')
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+    async recoverUserMe() {
+        try {
+            return await apiClient.post('/api/users/me/recover')
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
     async updateUserImage(userImageForm) {
         try {
             return await apiClient.patch(

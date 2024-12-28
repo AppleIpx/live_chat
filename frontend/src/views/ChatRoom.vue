@@ -26,7 +26,7 @@
             >
               <ul>
                 <li v-for="user in chatData.users" :key="user.id" class="tooltip-user">
-                  <a v-if="user && user.id"
+                  <a v-if="user && user.id && !user.is_deleted"
                      :href="user.username === this.user.username ? '/profile/me' : '/profile/' + user.id">
                     <div class="profile-avatar-wrapper">
                       <img v-if="user.user_image" :src="user.user_image"
@@ -38,6 +38,13 @@
                     </div>
                     {{ user.first_name }} {{ user.last_name }}
                   </a>
+                  <div v-else>
+                    <div class="profile-avatar-wrapper">
+                      <img src="/deleted_avatar.png" alt="Deleted Avatar"
+                           class="user-avatar">
+                    </div>
+                    Удаленный аккаунт
+                  </div>
                 </li>
               </ul>
               <div class="tooltip-actions">
@@ -52,7 +59,7 @@
             </div>
             <span v-if="chatData.chat_type==='direct'">{{ chatName }}</span>
             <div
-                v-if="chatData.chat_type==='direct' && !isOnline(otherUser) && lastOnlineTime"
+                v-if="chatData.chat_type==='direct' && !otherUser.is_deleted && !isOnline(otherUser) && lastOnlineTime"
                 class="last-online">
               Был(а) онлайн в {{ lastOnlineTime }}
             </div>
@@ -67,7 +74,7 @@
             <img v-if="chatImage" :src="chatImage" alt="Group image"/>
             <img v-else src="/default_group_image.png" alt="Group default image"/>
           </template>
-          <template v-else-if="chatData && otherUser">
+          <template v-else-if="chatData && otherUser && !otherUser.is_deleted">
             <a :href="`/profile/${otherUser.id}`" class="profile-link">
               <div class="profile-avatar-wrapper">
                 <img v-if="chatImage" :src="chatImage" alt="Profile"/>
@@ -75,6 +82,9 @@
                 <div v-if="isOnline(otherUser)" class="online-indicator"></div>
               </div>
             </a>
+          </template>
+          <template v-else>
+            <img src="/deleted_avatar.png" alt="Deleted profile"/>
           </template>
         </div>
       </div>
@@ -107,10 +117,18 @@
                 :class="{'mine': message.isMine, 'other': !message.isMine}">
               <div class="message-header">
                 <strong>
-                  <a v-if="message.user || message.user_id"
-                     :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
-                    {{ message.user.id === user.id ? 'Вы' : message.user.username }}
-                  </a>
+                  <template v-if="message.user">
+                    <template v-if="message.user.is_deleted">
+                      Удаленный аккаунт
+                    </template>
+                    <template v-else>
+                      <a :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
+                        {{
+                          message.user.id === user.id ? 'Вы' : `${message.user.first_name} ${message.user.last_name}`
+                        }}
+                      </a>
+                    </template>
+                  </template>
                   <span v-else>Загрузка...</span>
                 </strong>
                 <span class="timestamp">
@@ -165,7 +183,7 @@
                         @click="openReactionDetailsModal(message)"
                     >
                           {{ reaction.reaction_type }} <small v-if="reaction.count > 1">
-                          {{reaction.count }}</small>
+                          {{ reaction.count }}</small>
                         </span>
                     <button class="add-reaction-button"
                             @click="toggleReactionPicker(message)">
@@ -239,12 +257,15 @@
                 :key="reaction.id"
                 class="reaction-details-item"
             >
-              <span>
-                <a v-if="reaction.user_id"
-                   :href="reaction.user_id === this.user.id ? '/profile/me' : '/profile/' + reaction.user_id">
+              <span v-if="getUserIsDeleted(reaction.user_id)">
+                Удаленный аккаунт
+              </span>
+              <span v-else>
+                 <a v-if="reaction.user_id"
+                    :href="reaction.user_id === this.user.id ? '/profile/me' : '/profile/' + reaction.user_id">
                     {{
-                    reaction.user_id === this.user.id ? 'Вы' : getUserFullName(reaction.user_id)
-                  }}
+                     reaction.user_id === this.user.id ? 'Вы' : getUserFullName(reaction.user_id)
+                   }}
                   </a>
               </span>
               <span>{{ reaction.reaction_type }}</span>
@@ -333,7 +354,10 @@
                 :key="user.id"
                 class="read-status-item"
             >
-              <span>{{ user.first_name }} {{ user.last_name }}</span>
+              <span v-if="user.is_deleted">Удаленный аккаунт</span>
+              <span v-else>
+                <a :href="user.id === this.user.id ? '/profile/me' : '/profile/' + user.id">
+                    {{ user.first_name }} {{ user.last_name }}</a></span>
               <span>
           <i
               :class="{
@@ -430,7 +454,7 @@ import {chatService, messageService, readStatusService} from "@/services/apiServ
 import SSEManager from "@/services/sseService";
 import EmojiPicker from "vue3-emoji-picker";
 import 'vue3-emoji-picker/css'
-import router from "@/router";
+import {handleError} from "@/utils/errorHandler";
 
 
 export default {
@@ -590,6 +614,11 @@ export default {
       this.currentMessageForReaction = message;
     },
 
+    getUserIsDeleted(userId) {
+      const user = this.chatData.users.find(user => user.id === userId);
+      return user.is_deleted;
+    },
+
     getUserFullName(userId) {
       const user = this.chatData.users.find(user => user.id === userId);
       return user ? `${user.first_name} ${user.last_name}` : 'Неизвестный пользователь';
@@ -608,7 +637,7 @@ export default {
         );
         message.reactions.push(response.data);
       } catch (error) {
-        console.error('Ошибка при добавлении реакции:', error);
+        await handleError(error);
       }
       this.reactionPickersVisible[this.currentMessageForReaction.id] = false;
     },
@@ -623,7 +652,7 @@ export default {
         this.currentMessageReactions = message.reactions;
         this.closeReactionDetailsModal();
       } catch (error) {
-        console.error('Ошибка при удалении реакции:', error);
+        await handleError(error);
       }
     },
 
@@ -732,28 +761,19 @@ export default {
         // Set the other user for direct chats
         if (this.chatData.chat_type === "direct") {
           this.otherUser = this.chatData.users.find(user => user.id !== this.user.id);
-          this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
-          this.chatImage = this.otherUser.user_image
+          if (this.otherUser.is_deleted) {
+            this.chatName = "Удаленный аккаунт";
+          } else {
+            this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
+            this.chatImage = this.otherUser.user_image
+          }
         } else {
           this.chatName = this.chatData.name
           this.chatImage = this.chatData.image
         }
         return Promise.resolve();
       } catch (error) {
-        if (error.response) {
-          const status = error.response.status;
-          switch (status) {
-            case 403:
-              await router.push("/403");
-              break;
-            case 404:
-              await router.push("/404");
-              break;
-            case 500:
-              await router.push("/500");
-              break;
-          }
-        }
+        await handleError(error);
         console.error("Error fetching chat details:", error);
         return Promise.reject(error);
       }
@@ -801,7 +821,7 @@ export default {
         this.messages = this.messages.filter(msg => msg.id !== this.messageToDelete.id);
         this.closeDeleteModal();
       } catch (error) {
-        console.error("Ошибка при удалении сообщения", error);
+        await handleError(error);
         this.closeDeleteModal();
       }
     },
@@ -827,7 +847,7 @@ export default {
         );
         this.closeEditModal();
       } catch (error) {
-        console.error("Ошибка при обновлении сообщения", error);
+        await handleError(error);
       }
     },
 
@@ -858,7 +878,6 @@ export default {
               readStatus: [],
               readUsers: [],
             }));
-
         const currentUserStatus = this.chatData.read_statuses.find(
             status => status.user_id === this.user.id
         );
@@ -924,7 +943,7 @@ export default {
           }
         }
       } catch (error) {
-        console.error("Ошибка загрузки сообщений:", error);
+        await handleError(error);
       } finally {
         this.isLoading = false;
       }
@@ -1018,7 +1037,6 @@ export default {
     },
 
     reactionCallback(reaction_data, action_type) {
-      console.log(reaction_data)
       const message = this.messages.find(msg => msg.id === reaction_data.message_id);
       message.reactions = message.reactions.filter(
           (reaction) => reaction.user_id !== reaction_data.user_id
@@ -1101,8 +1119,7 @@ export default {
         this.chatName = this.newChatName
         this.closeNameUpdateModal();
       } catch (error) {
-        console.error('Ошибка обновления имени:', error);
-        alert('Не удалось обновить имя чата. Попробуйте снова.');
+        await handleError(error);
       }
     },
 
@@ -1116,11 +1133,9 @@ export default {
         const formData = new FormData();
         formData.append("uploaded_image", this.groupImage);
         await chatService.updateGroupImage(this.chatData.id, formData);
-        alert("Изображение успешно обновлено!");
         this.closeImageUploadModal();
       } catch (error) {
-        console.error("Ошибка при загрузке изображения:", error);
-        alert("Не удалось загрузить изображение группы. Пожалуйста, попробуйте позже.");
+        await handleError(error);
       }
     },
 
@@ -1190,7 +1205,7 @@ export default {
           this.messageFilePath = response.data.file_path;
           this.messageFileName = response.data.file_name;
         } catch (error) {
-          console.error("Ошибка при загрузке файла:", error);
+          await handleError(error);
         }
       }
 
@@ -1217,13 +1232,14 @@ export default {
           updated_at: new Date(lastMessageResponse.data.updated_at).toLocaleString(),
           isMine: true,
           readStatus: ['delivered'],
+          reactions: [],
         });
         this.messageText = "";
         this.removeFile()
         this.closeUploadModal()
         this.scrollToBottom();
       } catch (error) {
-        console.error("Error sending message:", error);
+        await handleError(error);
       }
     },
   },

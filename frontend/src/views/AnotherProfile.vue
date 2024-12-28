@@ -99,7 +99,7 @@
 
 <script>
 import {blackListService, userService} from "@/services/apiService";
-import router from "@/router";
+import {handleError} from "@/utils/errorHandler";
 
 export default {
   data() {
@@ -138,7 +138,7 @@ export default {
           this.user.is_blocked = true;
         }
       } catch (error) {
-        await this.handleError(error);
+        await handleError(error);
       }
     },
 
@@ -148,27 +148,8 @@ export default {
         const response = await userService.fetchUserDetails(user_id);
         this.user = response.data;
       } catch (error) {
-        await this.handleError(error);
+        await handleError(error);
       }
-    },
-
-    async handleError(error) {
-      if (error.response) {
-        const status = error.response.status;
-        switch (status) {
-          case 403:
-            await router.push("/403");
-            break;
-          case 404:
-            await router.push("/404");
-            break;
-          case 500:
-            await router.push("/500");
-            break;
-        }
-      }
-      console.error("Ошибка:", error);
-      this.error = "Произошла ошибка. Пожалуйста, попробуйте позже.";
     },
   },
 };

@@ -137,6 +137,7 @@ async def get_black_list_users(
     ):
         blocked_users_query = (
             select(User)
+            .where(User.is_deleted == False)  # noqa: E712
             .join(BlockedUsers, BlockedUsers.user_id == User.id)
             .where(BlockedUsers.blacklist_id == black_list.id)
             .order_by(User.id)
