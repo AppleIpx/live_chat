@@ -58,7 +58,7 @@ from live_chat.web.api.read_status.utils.increase_in_unread_messages import (
     increase_in_unread_messages,
 )
 from live_chat.web.api.users.user_manager import UserManager
-from live_chat.web.api.users.utils import current_active_user, get_user_manager
+from live_chat.web.api.users.utils import custom_current_user, get_user_manager
 
 message_router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -95,7 +95,7 @@ async def get_messages(
 @message_router.get("/chats/{chat_id}/deleted-messages")
 async def get_deleted_messages(
     chat: Chat = Depends(validate_user_access_to_chat),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     params: CursorParams = Depends(),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> CursorPage[GetDeletedMessageSchema]:
@@ -117,7 +117,7 @@ async def post_message_reaction(
     reaction_schema: PostReactionSchema,
     message: Message = Depends(validate_message_exists),
     chat: Chat = Depends(validate_user_access_to_chat),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> GetReactionSchema:
     """Post reaction to message."""
@@ -150,7 +150,7 @@ async def post_message_reaction(
 async def delete_message_reaction(
     message: Message = Depends(validate_message_exists),
     chat: Chat = Depends(validate_user_access_to_chat),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> JSONResponse:
     """Delete reaction to message."""
@@ -180,7 +180,7 @@ async def delete_message_reaction(
 async def post_message(
     message_schema: PostMessageSchema,
     chat: Chat = Depends(validate_user_access_to_chat),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
     _: None = Depends(validate_message_schema),
 ) -> GetMessageSchema:

@@ -28,6 +28,7 @@ def transformation_short_users(users: List[User]) -> list[UserShortRead]:
     return [
         UserShortRead(
             id=user.id,
+            is_deleted=user.is_deleted,  # type: ignore[call-arg]
             first_name=user.first_name,  # type: ignore[call-arg]
             last_name=user.last_name,  # type: ignore[call-arg]
             username=user.username,  # type: ignore[call-arg]

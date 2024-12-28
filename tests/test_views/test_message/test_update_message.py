@@ -112,3 +112,21 @@ async def test_update_message_with_non_author(
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "User is not the author of this message"}
+
+
+@pytest.mark.anyio
+async def test_update_message_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    user: UserFactory,
+    message_in_chat: MessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to update message by a deleted user."""
+    chat = message_in_chat.chat
+    response = await authorized_deleted_client.patch(
+        f"/api/chats/{chat.id}/messages/{message_in_chat.id}",
+        json={"content": "test"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

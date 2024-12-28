@@ -33,5 +33,23 @@ async def registered_user(client: AsyncClient) -> Response:
             "last_name": "string",
             "username": "username123!",
             "user_image": None,
+            "is_deleted": False,
+        },
+    )
+
+
+@pytest.fixture
+async def registered_deleted_user(client: AsyncClient) -> Response:
+    """Fixture for user registration."""
+    return await client.post(
+        "/api/auth/register",
+        json={
+            "email": "user2@example.com",
+            "password": "string_123",
+            "first_name": "string",
+            "last_name": "string",
+            "username": "username2!",
+            "user_image": None,
+            "is_deleted": True,
         },
     )

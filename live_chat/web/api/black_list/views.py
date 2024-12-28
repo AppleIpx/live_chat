@@ -24,7 +24,7 @@ from live_chat.web.api.black_list.utils import (
 )
 from live_chat.web.api.black_list.utils.transformation import transformation_black_list
 from live_chat.web.api.users.schemas import UserShortRead
-from live_chat.web.api.users.utils import current_active_user, get_user_by_id
+from live_chat.web.api.users.utils import custom_current_user, get_user_by_id
 
 black_list_router = APIRouter()
 
@@ -37,7 +37,7 @@ black_list_router = APIRouter()
 )
 async def add_user_to_black_list_view(
     add_user_in_black_list_schema: BlackListCreateSchema,
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> BlackListSchema:
     """Add user to black list."""
@@ -87,7 +87,7 @@ async def add_user_to_black_list_view(
 )
 async def delete_user_from_black_list_view(
     delete_user_from_black_list_schema: BlackListDeleteSchema,
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> Response:
     """Delete user from black list."""
@@ -126,7 +126,7 @@ async def delete_user_from_black_list_view(
     status_code=status.HTTP_200_OK,
 )
 async def get_black_list_users(
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
     params: CursorParams = Depends(),
 ) -> CursorPage[UserShortRead] | JSONResponse:

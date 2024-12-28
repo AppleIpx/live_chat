@@ -41,7 +41,7 @@ from live_chat.web.api.read_status.utils.get_read_status_by_id import (
 from live_chat.web.api.users.schemas import UserShortRead
 from live_chat.web.api.users.utils import (
     collect_users_for_group,
-    current_active_user,
+    custom_current_user,
     get_user_by_id,
 )
 from live_chat.web.api.users.utils.transformations import transformation_short_users
@@ -60,7 +60,7 @@ chat_router = APIRouter()
 async def create_direct_chat_view(
     create_direct_chat_schema: CreateDirectChatSchema,
     db_session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
 ) -> ChatSchema:
     """Create a new direct chat between the current user and a recipient user.
 
@@ -84,6 +84,11 @@ async def create_direct_chat_view(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"There is no recipient user with id [{recipient_user_id}]",
+        )
+    if recipient_user.is_deleted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This user has been deleted.",
         )
 
     if await direct_chat_exists(
@@ -117,7 +122,7 @@ async def create_direct_chat_view(
 async def create_group_chat_view(
     create_group_chat_schema: CreateGroupChatSchema,
     db_session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
 ) -> ChatSchema:
     """Create a new group chat."""
     # check if another user (recipient) exists
@@ -143,7 +148,7 @@ async def create_group_chat_view(
 async def get_list_chats_view(
     user_id_exists: UUID | None = None,
     db_session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     params: CursorParams = Depends(),
 ) -> CursorPage[ChatSchema]:
     """Getting chats to which a user has been added."""
@@ -173,7 +178,7 @@ async def get_list_chats_view(
 @chat_router.get("/deleted", summary="List deleted chats")
 async def get_list_deleted_chats_view(
     db_session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     params: CursorParams = Depends(),
 ) -> CursorPage[DeletedChatSchema]:
     """Getting deleted chats to which a user has been added."""
@@ -199,7 +204,7 @@ async def get_list_deleted_chats_view(
 )
 async def get_detail_chat_view(
     db_session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
     chat: Chat = Depends(validate_user_access_to_chat),
 ) -> ChatSchema:
     """Get detail chat by id."""
@@ -291,7 +296,7 @@ async def upload_message_file(
 async def send_user_typing(
     is_typing: bool,
     chat: Chat = Depends(validate_user_access_to_chat),
-    current_user: User = Depends(current_active_user),
+    current_user: User = Depends(custom_current_user),
 ) -> JSONResponse:
     """Notify that user is typing in chat."""
     event_data = jsonable_encoder(

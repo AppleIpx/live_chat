@@ -83,3 +83,19 @@ async def test_delete_not_existing_user_in_black_list(
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "User not found in black list"}
+
+
+@pytest.mark.anyio
+async def test_delete_user_from_blacklist_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    user: UserFactory,
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to delete a user from blacklist by a deleted user."""
+    response = await authorized_deleted_client.request(
+        method="DELETE",
+        url="/api/black-list",
+        json={"user_id": str(user.id)},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

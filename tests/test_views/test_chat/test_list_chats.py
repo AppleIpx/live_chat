@@ -48,6 +48,7 @@ async def test_get_list_chats(
             "users": [
                 {
                     "id": str(sender.id),
+                    "is_deleted": sender.is_deleted,
                     "first_name": sender.first_name,
                     "last_name": sender.last_name,
                     "last_online": (
@@ -60,6 +61,7 @@ async def test_get_list_chats(
                 },
                 {
                     "id": str(recipient.id),
+                    "is_deleted": recipient.is_deleted,
                     "first_name": recipient.first_name,
                     "last_name": recipient.last_name,
                     "last_online": recipient.last_online.isoformat().replace(
@@ -120,6 +122,7 @@ async def test_get_list_chats_with_user(
             "users": [
                 {
                     "id": str(sender.id),
+                    "is_deleted": sender.is_deleted,
                     "first_name": sender.first_name,
                     "last_name": sender.last_name,
                     "last_online": (
@@ -132,6 +135,7 @@ async def test_get_list_chats_with_user(
                 },
                 {
                     "id": str(recipient.id),
+                    "is_deleted": recipient.is_deleted,
                     "first_name": recipient.first_name,
                     "last_name": recipient.last_name,
                     "last_online": recipient.last_online.isoformat().replace(
@@ -163,3 +167,15 @@ async def test_get_list_chats_without_auth(
     response = await client.get("/api/chats")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Unauthorized"}
+
+
+@pytest.mark.anyio
+async def test_get_lists_chats_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to get list chats by a deleted user."""
+    response = await authorized_deleted_client.get("/api/chats")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

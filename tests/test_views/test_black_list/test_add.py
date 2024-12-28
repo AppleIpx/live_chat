@@ -42,6 +42,7 @@ async def test_add_user_to_new_black_list(
                 else None
             ),
             "id": str(black_list_user.id),
+            "is_deleted": black_list_user.is_deleted,
         },
     }
 
@@ -81,6 +82,7 @@ async def test_add_user_to_existing_black_list(
                 else None
             ),
             "id": str(black_list_user.id),
+            "is_deleted": black_list_user.is_deleted,
         },
     }
     assert len(blocked_users) == 6
@@ -136,3 +138,18 @@ async def test_to_add_an_existing_user_to_the_blacklist(
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {"detail": f"User {user.id} already blocked"}
+
+
+@pytest.mark.anyio
+async def test_add_user_to_blacklist_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    user: UserFactory,
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to add a user to the blacklist by a remote user."""
+    response = await authorized_deleted_client.post(
+        "/api/black-list",
+        json={"user_id": f"{user.id}"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

@@ -21,6 +21,7 @@ payload = {
     "last_name": "string",
     "username": "username123!",
     "user_image": None,
+    "is_deleted": False,
 }
 
 new_payload = {

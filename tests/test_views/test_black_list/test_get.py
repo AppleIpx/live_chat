@@ -44,6 +44,7 @@ async def test_get_black_list(
                 else None
             ),
             "id": str(block_user_db.id),
+            "is_deleted": block_user_db.is_deleted,
         }
     assert len(response.json()["items"]) == len(blocked_users)
 
@@ -58,3 +59,15 @@ async def test_get_empty_black_list(
     response = await authorized_client.get("/api/black-list")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == []
+
+
+@pytest.mark.anyio
+async def test_get_black_list_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to get blacklist by a deleted user."""
+    response = await authorized_deleted_client.get("/api/black-list")
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

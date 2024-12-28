@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.web.api.read_status.utils import get_read_status_by_user_chat_ids
-from tests.factories import ChatFactory, UserFactory
+from tests.factories import ChatFactory, MessageFactory, UserFactory
 from tests.utils import get_first_chat_from_db, get_first_user_from_db
 
 
@@ -47,6 +47,7 @@ async def test_create_direct_chat(
         "users": [
             {
                 "id": str(sender.id),
+                "is_deleted": sender.is_deleted,
                 "first_name": sender.first_name,
                 "last_name": sender.last_name,
                 "last_online": (
@@ -59,6 +60,7 @@ async def test_create_direct_chat(
             },
             {
                 "id": str(user.id),
+                "is_deleted": user.is_deleted,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "last_online": user.last_online.isoformat().replace("+00:00", "Z"),
@@ -133,3 +135,34 @@ async def test_create_direct_chat_without_auth(
     )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Unauthorized"}
+
+
+@pytest.mark.anyio
+async def test_create_direct_chat_with_deleted_user(
+    authorized_client: AsyncClient,
+    user: UserFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Test create direct chat with deleted user."""
+    user.is_deleted = True
+    response = await authorized_client.post(
+        "/api/chats/create/direct",
+        json={"recipient_user_id": f"{user.id}"},
+    )
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"detail": "This user has been deleted."}
+
+
+@pytest.mark.anyio
+async def test_get_detail_chat_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to get detail chat by a deleted user."""
+    chat_id = message_in_chat.chat.id
+    response = await authorized_deleted_client.get(f"api/chats/{chat_id}")
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

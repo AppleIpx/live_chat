@@ -12,7 +12,12 @@ from starlette import status
 
 from live_chat.db.models.chat import Message
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
-from tests.factories import BlackListFactory, ChatFactory, ReadStatusFactory
+from tests.factories import (
+    BlackListFactory,
+    ChatFactory,
+    MessageFactory,
+    ReadStatusFactory,
+)
 from tests.utils import transformation_message_data
 
 
@@ -216,3 +221,20 @@ async def test_post_message_nonexistent_chat(
     mocked_publish_message.assert_not_called()
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Chat not found"}
+
+
+@pytest.mark.anyio
+async def test_post_message_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to post message by a deleted user."""
+    chat = message_in_chat.chat
+    response = await authorized_deleted_client.post(
+        f"/api/chats/{chat.id}/messages/{message_in_chat.id}/reaction",
+        json={"reaction_type": "😀"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

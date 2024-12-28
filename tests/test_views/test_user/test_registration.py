@@ -17,6 +17,7 @@ async def test_registration_user(
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json() == {
         "id": str(user.id),
+        "is_deleted": user.is_deleted,
         "email": user.email,
         "is_active": user.is_active,
         "is_superuser": user.is_superuser,

@@ -111,3 +111,20 @@ async def test_post_message_reaction_nonexistent_message(
     mocked_publish_message.assert_not_called()
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json() == {"detail": "Message not found"}
+
+
+@pytest.mark.anyio
+async def test_post_message_reaction_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to post message reaction by a deleted user."""
+    chat = message_in_chat.chat
+    response = await authorized_deleted_client.post(
+        f"/api/chats/{chat.id}/messages/{message_in_chat.id}/reaction",
+        json={"reaction_type": "😀"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

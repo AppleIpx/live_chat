@@ -25,5 +25,10 @@ async def collect_users_for_group(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"There is no recipient user with id [{recipient_user_id}]",
             )
+        if user.is_deleted:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"This user {user.id} has been deleted.",
+            )
         recipient_users.append(user)
     return recipient_users

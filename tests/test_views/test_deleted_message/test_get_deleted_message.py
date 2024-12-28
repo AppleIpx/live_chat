@@ -80,3 +80,18 @@ async def test_get_deleted_message_for_non_member(
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "User is not part of the chat"}
+
+
+@pytest.mark.anyio
+async def test_get_deleted_message_by_deleted_user(
+    authorized_deleted_client: AsyncClient,
+    deleted_message_in_chat: DeletedMessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing get deleted message by a deleted user."""
+    response = await authorized_deleted_client.get(
+        f"/api/chats/{deleted_message_in_chat.chat_id}/deleted-messages",
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "You are deleted."}

@@ -19,6 +19,7 @@ async def test_get_users_me(
     assert response.status_code == status.HTTP_200_OK
     assert data == {
         "id": str(user.id),
+        "is_deleted": user.is_deleted,
         "email": user.email,
         "is_active": user.is_active,
         "is_superuser": user.is_superuser,
@@ -46,6 +47,7 @@ async def test_patch_users_me_correct(
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "id": str(user.id),
+        "is_deleted": user.is_deleted,
         "email": user.email,
         "is_active": user.is_active,
         "is_superuser": user.is_superuser,
