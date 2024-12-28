@@ -122,9 +122,9 @@ async def upload_user_image(
 
 
 @router.delete(
-    "/delete-me",
+    "/delete/me",
     tags=["users"],
-    summary="Delete a user",
+    summary="Delete me",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_me_view(
@@ -138,10 +138,10 @@ async def delete_me_view(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.put(
-    "/recover-me",
+@router.post(
+    "/recover/me",
     tags=["users"],
-    summary="Recover a user",
+    summary="Recover me",
     status_code=status.HTTP_200_OK,
     response_model=UserShortRead,
 )

@@ -15,7 +15,7 @@ async def test_delete_me(
     dbsession: AsyncSession,
 ) -> None:
     """Testing to delete user."""
-    response = await authorized_client.delete("/api/delete-me")
+    response = await authorized_client.delete("/api/delete/me")
     user = await get_first_user_from_db(db_session=dbsession)
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert user.is_deleted is True
@@ -28,6 +28,6 @@ async def test_delete_deleted_me(
     dbsession: AsyncSession,
 ) -> None:
     """Testing deleting a remote user."""
-    response = await authorized_deleted_client.delete("/api/delete-me")
+    response = await authorized_deleted_client.delete("/api/delete/me")
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
