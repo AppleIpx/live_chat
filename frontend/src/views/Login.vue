@@ -17,6 +17,7 @@
 
 <script>
 import {authService} from "@/services/apiService";
+import {handleError} from "@/utils/errorHandler";
 
 export default {
   data() {
@@ -49,7 +50,7 @@ export default {
             this.errorMessage = 'Произошла ошибка при входе, попробуйте снова';
           }
         } else {
-          this.errorMessage = 'Ошибка при подключении к серверу';
+          this.errorMessage = await handleError(error);
         }
       }
     },

@@ -84,28 +84,28 @@
         </span>
             </div>
             <div class="message-content">
-                <span v-if="message.content">{{ message.content }}</span>
-                <img
-                    v-if="message.file_path && isImage(message.file_path)"
-                    :src="message.file_path"
-                    class="message-image"
-                    alt="Message attachment"
-                />
-                <video
-                    v-if="message.file_path && isVideo(message.file_path)"
-                    :src="message.file_path"
-                    controls
-                    class="message-video"
-                ></video>
-                <a
-                    v-if="message.file_path && !isImage(message.file_path) && !isVideo(message.file_path)"
-                    :href="message.file_path"
-                    target="_blank"
-                    class="message-other-file"
-                >
-                  <i class="fa fa-file"></i> {{ message.file_name }}
-                </a>
-              </div>
+              <span v-if="message.content">{{ message.content }}</span>
+              <img
+                  v-if="message.file_path && isImage(message.file_path)"
+                  :src="message.file_path"
+                  class="message-image"
+                  alt="Message attachment"
+              />
+              <video
+                  v-if="message.file_path && isVideo(message.file_path)"
+                  :src="message.file_path"
+                  controls
+                  class="message-video"
+              ></video>
+              <a
+                  v-if="message.file_path && !isImage(message.file_path) && !isVideo(message.file_path)"
+                  :href="message.file_path"
+                  target="_blank"
+                  class="message-other-file"
+              >
+                <i class="fa fa-file"></i> {{ message.file_name }}
+              </a>
+            </div>
             <div class="message-options">
               <button @click="toggleMenu(message.id)" class="menu-button">...</button>
               <div v-if="message.showMenu" class="menu-dropdown">
@@ -144,6 +144,7 @@
 
 <script>
 import {messageService} from "@/services/apiService";
+import {handleError} from "@/utils/errorHandler";
 
 
 export default {
@@ -231,7 +232,7 @@ export default {
           this.goBack();
         }
       } catch (error) {
-        console.error("Ошибка при восстановлении сообщения", error);
+        this.error = await handleError(error);
         this.closeDeleteModal();
       }
     },
@@ -247,7 +248,7 @@ export default {
           this.goBack();
         }
       } catch (error) {
-        console.error("Ошибка при удалении сообщения", error);
+        this.error = await handleError(error);
         this.closeDeleteModal();
       }
     },
@@ -275,7 +276,7 @@ export default {
         }
         return Promise.resolve();
       } catch (error) {
-        console.error("Error fetching chat details:", error);
+        this.error = await handleError(error);
         return Promise.reject(error);
       }
     },
@@ -336,7 +337,7 @@ export default {
         }
 
       } catch (error) {
-        console.error("Ошибка загрузки сообщений:", error);
+        this.error = await handleError(error);
       } finally {
         this.isLoading = false;
       }

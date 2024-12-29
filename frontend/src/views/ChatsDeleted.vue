@@ -57,6 +57,7 @@
 
 <script>
 import {chatService} from "@/services/apiService";
+import {handleError} from "@/utils/errorHandler";
 
 export default {
   data() {
@@ -87,8 +88,7 @@ export default {
         clearTimeout(timeout);
         this.isLoading = false;
       } catch (error) {
-        console.log(error);
-        this.error = 'Не удалось загрузить чаты. Пожалуйста, попробуйте позже.';
+        this.error = await handleError(error);
         this.isLoading = false;
       }
     },

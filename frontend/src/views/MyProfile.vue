@@ -51,6 +51,15 @@
 
             <div class="button-container">
               <button type="submit" class="btn-main">Сохранить изменения</button>
+              <button
+                  type="submit"
+                  class="btn-main"
+                  @click="toggleUserState"
+              >
+                {{
+                  user.is_deleted ? "Восстановить аккаунт" : "Удалить аккаунт"
+                }}
+              </button>
             </div>
           </form>
         </div>
@@ -67,6 +76,7 @@
 
 <script>
 import {userService} from "@/services/apiService";
+import {handleError} from "@/utils/errorHandler";
 
 export default {
   data() {
@@ -99,7 +109,21 @@ export default {
         localStorage.removeItem('user')
         localStorage.setItem('user', JSON.stringify(this.user));
       } catch (error) {
-        console.error('Ошибка загрузки профиля:', error);
+        await handleError(error);
+      }
+    },
+
+    async toggleUserState() {
+      try {
+        if (this.user.is_deleted) {
+          await userService.recoverUserMe();
+          this.user.is_deleted = false;
+        } else {
+          await userService.deleteUserMe();
+          this.user.is_deleted = true;
+        }
+      } catch (error) {
+        await handleError(error);
       }
     },
 
@@ -133,7 +157,7 @@ export default {
         this.selectedAvatarPreview = null;
         await this.fetchUserProfile();
       } catch (error) {
-        console.error('Ошибка сохранения профиля:', error);
+        await handleError(error);
       }
     },
 

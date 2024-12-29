@@ -62,7 +62,8 @@ async def get_users(
 ) -> CursorPage[UserShortRead]:
     """Gets a list of all users."""
     set_page(CursorPage[UserShortRead])
-    return await paginate(db_session, select(User).order_by(User.id), params=params)
+    query = select(User).where(User.is_deleted == False).order_by(User.id)  # noqa: E712
+    return await paginate(db_session, query, params=params)
 
 
 @router.get("/users/read/{user_id}", response_model=OtherUserRead, tags=["users"])
@@ -122,7 +123,7 @@ async def upload_user_image(
 
 
 @router.delete(
-    "/delete/me",
+    "/users/me/delete",
     tags=["users"],
     summary="Delete me",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -139,7 +140,7 @@ async def delete_me_view(
 
 
 @router.post(
-    "/recover/me",
+    "/users/me/recover",
     tags=["users"],
     summary="Recover me",
     status_code=status.HTTP_200_OK,
