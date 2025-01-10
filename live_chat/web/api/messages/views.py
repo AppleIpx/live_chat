@@ -33,8 +33,10 @@ from live_chat.web.api.messages.constants import (
 )
 from live_chat.web.api.messages.schemas import (
     GetDeletedMessageSchema,
+    GetDraftMessageSchema,
     GetMessageSchema,
     GetReactionSchema,
+    PostDraftMessageSchema,
     PostMessageSchema,
     PostReactionSchema,
     UpdateMessageSchema,
@@ -53,7 +55,13 @@ from live_chat.web.api.messages.utils import (
 )
 from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
 from live_chat.web.api.messages.utils.recover_message import restore_message
-from live_chat.web.api.messages.utils.save_message import save_deleted_message_to_db
+from live_chat.web.api.messages.utils.save_message import (
+    save_deleted_message_to_db,
+    save_draft_message_to_db,
+)
+from live_chat.web.api.messages.utils.transformations import (
+    transformation_draft_message,
+)
 from live_chat.web.api.read_status.utils.increase_in_unread_messages import (
     increase_in_unread_messages,
 )
@@ -347,3 +355,24 @@ async def sse_events(
 
     redis_key = f"{REDIS_SSE_KEY_PREFIX}{chat.id}_{current_user.id}"
     return EventSourceResponse(message_generator(redis_key), ping=60)
+
+
+@message_router.post(
+    "/chats/{chat_id}/draft-message",
+    summary="Create draft message",
+    status_code=status.HTTP_201_CREATED,
+)
+async def post_draft_message_view(
+    draft_message_schema: PostDraftMessageSchema,
+    current_user: User = Depends(custom_current_user),
+    chat: Chat = Depends(validate_user_access_to_chat),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> GetDraftMessageSchema:
+    """Create draft message in chat."""
+    draft_message = await save_draft_message_to_db(
+        db_session=db_session,
+        chat=chat,
+        current_user=current_user,
+        draft_message_schema=draft_message_schema,
+    )
+    return await transformation_draft_message(draft_message=draft_message)

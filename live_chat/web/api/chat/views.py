@@ -15,6 +15,7 @@ from starlette.responses import JSONResponse
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Chat,
     DeletedMessage,
+    DraftMessage,
     ReadStatus,
     User,
 )
@@ -31,10 +32,14 @@ from live_chat.web.api.chat.utils import (
     create_direct_chat,
     create_group_chat,
     direct_chat_exists,
+    get_rs_and_dm,
     transformation_chat,
     validate_user_access_to_chat,
 )
 from live_chat.web.api.messages.utils import publish_faststream
+from live_chat.web.api.messages.utils.get_draft_message import (
+    get_draft_message_by_chat_and_user_ids,
+)
 from live_chat.web.api.read_status.utils.get_read_status_by_id import (
     get_read_statuses_by_chat_id,
 )
@@ -110,7 +115,16 @@ async def create_direct_chat_view(
         db_session=db_session,
         chat_id=chat.id,
     )
-    return await transformation_chat(chat, read_statuses)
+    draft_message: DraftMessage = await get_draft_message_by_chat_and_user_ids(
+        db_session=db_session,
+        chat_id=chat.id,
+        user_id=current_user.id,
+    )
+    return await transformation_chat(
+        chat=chat,
+        read_statuses=read_statuses,
+        draft_message=draft_message,
+    )
 
 
 @chat_router.post(
@@ -141,7 +155,16 @@ async def create_group_chat_view(
         db_session=db_session,
         chat_id=chat.id,
     )
-    return await transformation_chat(chat, read_statuses)
+    draft_message: DraftMessage = await get_draft_message_by_chat_and_user_ids(
+        db_session=db_session,
+        chat_id=chat.id,
+        user_id=current_user.id,
+    )
+    return await transformation_chat(
+        chat=chat,
+        read_statuses=read_statuses,
+        draft_message=draft_message,
+    )
 
 
 @chat_router.get("", summary="List chats")
@@ -156,22 +179,21 @@ async def get_list_chats_view(
     query = (
         select(Chat)
         .options(selectinload(Chat.read_statuses))
+        .options(selectinload(Chat.draft_messages))
         .where(Chat.users.any(id=current_user.id))
         .order_by(Chat.updated_at.desc())
     )
     if user_id_exists and await get_user_by_id(db_session, user_id=user_id_exists):
         query = query.where(Chat.users.any(id=user_id_exists))
     chats = await paginate(db_session, query, params=params)
-    read_status_query = select(ReadStatus).where(
-        ReadStatus.user_id == current_user.id,
-        ReadStatus.chat_id.in_([chat.id for chat in chats.items]),
+    read_status_dict, draft_messages_dict = await get_rs_and_dm(
+        db_session=db_session,
+        current_user=current_user,
+        chats=chats,
     )
-    read_statuses = await db_session.execute(read_status_query)
-    read_status_dict = {
-        status.chat_id: status for status in read_statuses.scalars().all()
-    }
     for chat in chats.items:
         chat.read_statuses = [read_status_dict.get(chat.id)]
+        chat.draft_message = draft_messages_dict.get(chat.id)
     return chats
 
 
@@ -213,6 +235,11 @@ async def get_detail_chat_view(
         db_session=db_session,
         chat_id=chat.id,
     )
+    draft_message = await get_draft_message_by_chat_and_user_ids(
+        db_session=db_session,
+        chat_id=chat.id,
+        user_id=current_user.id,
+    )
     read_statuses_schema = [
         ReadStatusSchema(
             id=read_status.id,
@@ -233,6 +260,7 @@ async def get_detail_chat_view(
         users=users_data,
         read_statuses=read_statuses_schema,
         last_message_content=chat.last_message_content,
+        draft_message=draft_message.content if draft_message else None,
     )
 
 

@@ -85,6 +85,18 @@ class DeletedMessage(BaseMessage):
         )
 
 
+class DraftMessage(BaseMessage):
+    """Draft Message model."""
+
+    __tablename__ = "draft_message"
+
+    chat: Mapped["Chat"] = relationship("Chat", back_populates="draft_messages")
+    user: Mapped["User"] = relationship("User", back_populates="draft_messages")
+
+    def __str__(self) -> str:
+        return f"Draft by {self.user_id} in chat {self.chat_id}"
+
+
 class Chat(Base):
     """Chat model."""
 
@@ -98,6 +110,10 @@ class Chat(Base):
         String(100),
         nullable=True,
         default=None,
+    )
+    draft_messages: Mapped[List["DraftMessage"]] = relationship(
+        back_populates="chat",
+        cascade="all,delete",
     )
 
     users: Mapped[List["User"]] = relationship(
@@ -227,6 +243,10 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         cascade="all, delete-orphan",
     )
     black_list: Mapped["BlackList"] = relationship(back_populates="owner")
+    draft_messages: Mapped[List["DraftMessage"]] = relationship(
+        back_populates="user",
+        cascade="all,delete",
+    )
 
     def __str__(self) -> str:
         return f"{self.username}"

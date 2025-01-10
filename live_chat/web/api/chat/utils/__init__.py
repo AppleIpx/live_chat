@@ -6,6 +6,7 @@ from live_chat.web.api.chat.utils.create_chats import (
 )
 from live_chat.web.api.chat.utils.get_chat import get_chat_by_id
 from live_chat.web.api.chat.utils.get_users_chats import get_user_chats
+from live_chat.web.api.chat.utils.load_rs_dm import get_rs_and_dm
 from live_chat.web.api.chat.utils.set_last_message_content import (
     set_previous_message_content,
 )
@@ -26,4 +27,5 @@ __all__ = (
     "get_deleted_message_by_id",
     "get_message_by_id",
     "set_previous_message_content",
+    "get_rs_and_dm",
 )
