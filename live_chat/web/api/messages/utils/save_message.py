@@ -11,7 +11,10 @@ from live_chat.db.models.chat import (  # type: ignore[attr-defined]
 )
 from live_chat.web.api.chat.utils import set_previous_message_content
 from live_chat.web.api.messages import PostMessageSchema
-from live_chat.web.api.messages.schemas import PostDraftMessageSchema
+from live_chat.web.api.messages.schemas import (
+    PostDraftMessageSchema,
+    UpdateMessageSchema,
+)
 
 
 async def save_message_to_db(
@@ -85,6 +88,27 @@ async def save_draft_message_to_db(
         db_session.add(draft_message)
         await db_session.commit()
 
+    except Exception as exc_info:
+        await db_session.rollback()
+        raise exc_info
+
+    else:
+        return draft_message
+
+
+async def update_draft_message_to_db(
+    db_session: AsyncSession,
+    draft_message_schema: UpdateMessageSchema,
+    draft_message: DraftMessage,
+) -> DraftMessage:
+    """Helper function to update a draft message."""
+    try:
+        draft_message.content = draft_message_schema.content
+        draft_message.message_type = draft_message_schema.message_type
+        draft_message.file_path = draft_message_schema.file_path
+        draft_message.file_name = draft_message_schema.file_name
+        db_session.add(draft_message)
+        await db_session.commit()
     except Exception as exc_info:
         await db_session.rollback()
         raise exc_info
