@@ -26,7 +26,7 @@
             >
               <ul>
                 <li v-for="user in chatData.users" :key="user.id" class="tooltip-user">
-                  <a v-if="user && user.id && !user.is_deleted"
+                  <a v-if="user && user.id && !user.is_deleted && !user.is_banned"
                      :href="user.username === this.user.username ? '/profile/me' : '/profile/' + user.id">
                     <div class="profile-avatar-wrapper">
                       <img v-if="user.user_image" :src="user.user_image"
@@ -38,12 +38,19 @@
                     </div>
                     {{ user.first_name }} {{ user.last_name }}
                   </a>
-                  <div v-else>
+                  <div v-else-if="user && user.id && user.is_deleted">
                     <div class="profile-avatar-wrapper">
                       <img src="/deleted_avatar.png" alt="Deleted Avatar"
                            class="user-avatar">
                     </div>
                     Удаленный аккаунт
+                  </div>
+                  <div v-else>
+                    <div class="profile-avatar-wrapper">
+                      <img src="/banned_avatar.png" alt="Banned Avatar"
+                           class="user-avatar">
+                    </div>
+                    Заблокированный аккаунт
                   </div>
                 </li>
               </ul>
@@ -59,7 +66,7 @@
             </div>
             <span v-if="chatData.chat_type==='direct'">{{ chatName }}</span>
             <div
-                v-if="chatData.chat_type==='direct' && !otherUser.is_deleted && !isOnline(otherUser) && lastOnlineTime"
+                v-if="chatData.chat_type==='direct' && !otherUser.is_deleted && !otherUser.is_banned && !isOnline(otherUser) && lastOnlineTime"
                 class="last-online">
               Был(а) онлайн в {{ lastOnlineTime }}
             </div>
@@ -74,7 +81,8 @@
             <img v-if="chatImage" :src="chatImage" alt="Group image"/>
             <img v-else src="/default_group_image.png" alt="Group default image"/>
           </template>
-          <template v-else-if="chatData && otherUser && !otherUser.is_deleted">
+          <template
+              v-else-if="chatData && otherUser && !otherUser.is_deleted && !otherUser.is_banned">
             <a :href="`/profile/${otherUser.id}`" class="profile-link">
               <div class="profile-avatar-wrapper">
                 <img v-if="chatImage" :src="chatImage" alt="Profile"/>
@@ -83,8 +91,11 @@
               </div>
             </a>
           </template>
-          <template v-else>
+          <template v-else-if="chatData && otherUser && otherUser.is_deleted">
             <img src="/deleted_avatar.png" alt="Deleted profile"/>
+          </template>
+          <template v-else>
+            <img src="/banned_avatar.png" alt="Banned profile"/>
           </template>
         </div>
       </div>
@@ -120,6 +131,9 @@
                   <template v-if="message.user">
                     <template v-if="message.user.is_deleted">
                       Удаленный аккаунт
+                    </template>
+                    <template v-if="message.user.is_banned">
+                      Заблокированный аккаунт
                     </template>
                     <template v-else>
                       <a :href="message.user.username === user.username ? '/profile/me' : '/profile/' + message.user.id">
@@ -763,6 +777,8 @@ export default {
           this.otherUser = this.chatData.users.find(user => user.id !== this.user.id);
           if (this.otherUser.is_deleted) {
             this.chatName = "Удаленный аккаунт";
+          } else if (this.otherUser.is_banned) {
+            this.chatName = "Заблокированный аккаунт";
           } else {
             this.chatName = `${this.otherUser.first_name} ${this.otherUser.last_name}`;
             this.chatImage = this.otherUser.user_image

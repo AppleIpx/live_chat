@@ -232,3 +232,24 @@ async def test_delete_message_by_deleted_user(
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_delete_message_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing delete message by a banned user."""
+    chat = message_in_chat.chat
+    response = await authorized_banned_client.delete(
+        f"/api/chats/{chat.id}/messages/{message_in_chat.id}",
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }

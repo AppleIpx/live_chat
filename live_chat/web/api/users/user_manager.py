@@ -1,5 +1,6 @@
+import logging
 import uuid
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 from fastapi import HTTPException
 from fastapi_users import (
@@ -10,6 +11,7 @@ from fastapi_users import (
     schemas,
 )
 from starlette import status
+from starlette.requests import Request
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.settings import settings
@@ -66,3 +68,17 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             username=user.username,  # type: ignore[union-attr]
             password=password,
         )
+
+    async def on_after_update(
+        self,
+        user: models.UP,
+        update_dict: dict[str, Any],
+        request: Optional[Request] = None,
+    ) -> None:
+        """Publish logs for admin when blocked user update account."""
+        if user.is_banned and user.ban_reason:  # type: ignore[attr-defined]
+            admin_message = (
+                f"User {user.username} who was blocked due to "  # type: ignore[attr-defined]
+                f"{user.ban_reason} updated account: \n{update_dict}"  # type: ignore[attr-defined]
+            )
+            logging.warning(admin_message)

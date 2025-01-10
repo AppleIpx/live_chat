@@ -22,6 +22,7 @@ payload = {
     "username": "username123!",
     "user_image": None,
     "is_deleted": False,
+    "is_banned": False,
 }
 
 new_payload = {

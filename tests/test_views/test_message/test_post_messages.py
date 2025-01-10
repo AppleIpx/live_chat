@@ -15,7 +15,6 @@ from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
 from tests.factories import (
     BlackListFactory,
     ChatFactory,
-    MessageFactory,
     ReadStatusFactory,
 )
 from tests.utils import transformation_message_data
@@ -226,15 +225,75 @@ async def test_post_message_nonexistent_chat(
 @pytest.mark.anyio
 async def test_post_message_by_deleted_user(
     authorized_deleted_client: AsyncClient,
-    message_in_chat: MessageFactory,
+    direct_chat_with_users: ChatFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
     """Testing to post message by a deleted user."""
-    chat = message_in_chat.chat
     response = await authorized_deleted_client.post(
-        f"/api/chats/{chat.id}/messages/{message_in_chat.id}/reaction",
-        json={"reaction_type": "😀"},
+        f"/api/chats/{direct_chat_with_users.id}/messages",
+        json={"content": "test"},
     )
+
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_post_message_to_deleted_user(
+    authorized_client: AsyncClient,
+    direct_chat_with_users: ChatFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to post message to a deleted user."""
+    reciepent = direct_chat_with_users.users[1]
+    reciepent.is_deleted = True
+    response = await authorized_client.post(
+        f"/api/chats/{direct_chat_with_users.id}/messages",
+        json={"content": "test"},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"detail": "This user has been deleted."}
+
+
+@pytest.mark.anyio
+async def test_post_message_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    direct_chat_with_users: ChatFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to post message by a banned user."""
+    response = await authorized_banned_client.post(
+        f"/api/chats/{direct_chat_with_users.id}/messages",
+        json={"content": "test"},
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }
+
+
+@pytest.mark.anyio
+async def test_post_message_to_banned_user(
+    authorized_client: AsyncClient,
+    direct_chat_with_users: ChatFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to post message to a banned user."""
+    reciepent = direct_chat_with_users.users[1]
+    reciepent.is_banned = True
+    response = await authorized_client.post(
+        f"/api/chats/{direct_chat_with_users.id}/messages",
+        json={"content": "test"},
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"detail": "This user has been banned."}

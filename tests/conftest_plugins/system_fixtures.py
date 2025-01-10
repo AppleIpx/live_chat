@@ -179,11 +179,29 @@ async def authorized_deleted_client(
     client: AsyncClient,
     registered_deleted_user: Response,
 ) -> AsyncClient:
-    """Fixture for user registration and authorization."""
+    """Fixture for deleted user registration and authorization."""
     response = await client.post(
         "/api/auth/jwt/login",
         data={
             "username": "user2@example.com",
+            "password": "string_123",
+        },
+    )
+    token = response.json().get("access_token")
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    yield client
+
+
+@pytest.fixture
+async def authorized_banned_client(
+    client: AsyncClient,
+    registered_banned_user: Response,
+) -> AsyncClient:
+    """Fixture for banned user registration and authorization."""
+    response = await client.post(
+        "/api/auth/jwt/login",
+        data={
+            "username": "user3@example.com",
             "password": "string_123",
         },
     )

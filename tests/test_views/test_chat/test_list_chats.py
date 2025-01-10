@@ -49,6 +49,7 @@ async def test_get_list_chats(
                 {
                     "id": str(sender.id),
                     "is_deleted": sender.is_deleted,
+                    "is_banned": sender.is_banned,
                     "first_name": sender.first_name,
                     "last_name": sender.last_name,
                     "last_online": (
@@ -62,6 +63,7 @@ async def test_get_list_chats(
                 {
                     "id": str(recipient.id),
                     "is_deleted": recipient.is_deleted,
+                    "is_banned": recipient.is_banned,
                     "first_name": recipient.first_name,
                     "last_name": recipient.last_name,
                     "last_online": recipient.last_online.isoformat().replace(
@@ -123,6 +125,7 @@ async def test_get_list_chats_with_user(
                 {
                     "id": str(sender.id),
                     "is_deleted": sender.is_deleted,
+                    "is_banned": sender.is_banned,
                     "first_name": sender.first_name,
                     "last_name": sender.last_name,
                     "last_online": (
@@ -136,6 +139,7 @@ async def test_get_list_chats_with_user(
                 {
                     "id": str(recipient.id),
                     "is_deleted": recipient.is_deleted,
+                    "is_banned": recipient.is_banned,
                     "first_name": recipient.first_name,
                     "last_name": recipient.last_name,
                     "last_online": recipient.last_online.isoformat().replace(
@@ -179,3 +183,20 @@ async def test_get_lists_chats_by_deleted_user(
     response = await authorized_deleted_client.get("/api/chats")
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_get_lists_chats_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to get list chats by a banned user."""
+    response = await authorized_banned_client.get("/api/chats")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }

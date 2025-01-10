@@ -29,4 +29,9 @@ async def custom_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are deleted.",
         )
+    if user.is_banned:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"status": "banned", "reason": user.ban_reason},
+        )
     return user

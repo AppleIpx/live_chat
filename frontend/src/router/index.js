@@ -15,6 +15,9 @@ import Deleted from "@/components/Deleted.vue";
 import ServerError from "@/components/ServerError.vue";
 import BlackList from "@/views/BlackList.vue";
 import AnotherDeleted from "@/components/AnotherDeleted.vue";
+import Blocked from "@/components/Blocked.vue";
+import BannedAccount from "@/components/Banned.vue";
+import AnotherBanned from "@/components/AnotherBanned.vue";
 
 const routes = [
     {path: '/', name: 'Home', component: home},
@@ -34,6 +37,9 @@ const routes = [
     {path: '/black-list', name: 'BlackList', component: BlackList},
     {path: '/chats/:chat_id', name: 'ChatRoom', component: chatRoom, props: true},
     {path: '/403', name: 'Forbidden', component: Forbidden},
+    {path: '/blocked', name: 'Blocked', component: Blocked},
+    {path: '/banned', name: 'Banned', component: BannedAccount},
+    {path: '/another-banned', name: 'AnotherBanned', component: AnotherBanned},
     {path: '/deleted', name: 'Deleted', component: Deleted},
     {path: '/another-deleted', name: 'AnotherDeleted', component: AnotherDeleted},
     {path: '/500', name: 'ServerError', component: ServerError},

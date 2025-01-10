@@ -1,30 +1,32 @@
 <template>
-  <div class="deleted-account">
-    <div class="deleted-account-container">
+  <div class="banned-account">
+    <div class="banned-account-container">
       <div class="icon">
-        <i class="fa fa-times-circle"></i>
-        <h1>Аккаунт удален</h1>
+        <i class="fa-solid fa-user-lock"></i>
+        <h1>Аккаунт заблокирован</h1>
       </div>
-      <p>Этот аккаунт больше недоступен.</p>
-      <br>
+      <p>Этот аккаунт был заблокирован</p>
+      <br/>
       <router-link to="/" class="btn">Вернуться на главную</router-link>
     </div>
   </div>
 </template>
 
 <script>
-export default {};
+export default {
+  name: "AnotherBanned",
+};
 </script>
 
 <style scoped>
-.deleted-account {
+.banned-account {
   text-align: center;
   background: linear-gradient(135deg, #73b5e1, #b6d5de);
   height: 100vh;
   overflow: hidden;
 }
 
-.deleted-account-container {
+.banned-account-container {
   background-color: white;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   margin-left: 30%;

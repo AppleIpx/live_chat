@@ -59,6 +59,7 @@ from live_chat.web.api.read_status.utils.increase_in_unread_messages import (
 )
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils import custom_current_user, get_user_manager
+from live_chat.web.api.users.utils.validate import validate_user_active
 
 message_router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -190,6 +191,7 @@ async def post_message(
             (user for user in chat.users if user.id != current_user.id),
             None,
         )
+        await validate_user_active(recipient)
         await validate_user_in_black_list(
             recipient=recipient,
             sender=current_user,
