@@ -8,6 +8,7 @@ from live_chat.db.models.chat import User
 from tests.factories import (
     ChatFactory,
     DeletedMessageFactory,
+    DraftMessageFactory,
     MessageFactory,
     ReactionFactory,
     UserFactory,
@@ -28,6 +29,22 @@ async def message(
         chat=chat,
         chat_id=chat.id,
         user_id=user.id,
+    )
+
+
+@pytest.fixture
+async def draft_message(
+    dbsession: AsyncSession,
+    any_chat_with_users: ChatFactory,
+) -> DraftMessageFactory:
+    """Fixture for creating a draft message."""
+    DraftMessageFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
+    auth_user = await get_first_user_from_db(dbsession)
+    return DraftMessageFactory(
+        user=auth_user,
+        chat=any_chat_with_users,
+        chat_id=any_chat_with_users.id,
+        user_id=auth_user.id,
     )
 
 

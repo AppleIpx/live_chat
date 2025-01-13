@@ -6,6 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.web.api.chat.utils import get_chat_by_id
+from live_chat.web.api.messages.utils import (
+    get_draft_message_by_chat_and_user_ids,
+)
 from live_chat.web.api.read_status.utils import get_read_status_by_user_chat_ids
 from live_chat.web.api.users.utils import get_user_by_id
 from tests.factories import ChatFactory, MessageFactory
@@ -33,6 +36,11 @@ async def test_get_detail_chat(
         chat_id=chat_id,
         user_id=recipient.id,
     )
+    draft_message = await get_draft_message_by_chat_and_user_ids(
+        db_session=dbsession,
+        chat_id=chat_id,
+        user_id=sender.id,
+    )
     response = await authorized_client.get(f"api/chats/{chat_id}")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
@@ -43,6 +51,7 @@ async def test_get_detail_chat(
         "name": chat.name,
         "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),
+        "draft_message": draft_message.content if draft_message else None,
         "users": [
             {
                 "id": str(sender.id),
