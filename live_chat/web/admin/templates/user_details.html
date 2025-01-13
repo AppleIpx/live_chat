@@ -17,7 +17,7 @@
             <div class="modal-header">
                 <h5 class="modal-title">
                     {% if model.is_banned %}
-                    Укажите причину разблокировки
+                    Подтвердите разблокировку
                     {% else %}
                     Укажите причину блокировки
                     {% endif %}
@@ -28,12 +28,13 @@
             </div>
             <form id="banForm">
                 <div class="modal-body">
+                    {% if not model.is_banned %}
                     <div class="form-group">
-                        <label for="banReason"></label><textarea id="banReason"
-                                                                 class="form-control"
-                                                                 rows="3"
-                                                                 required></textarea>
+                        <label for="banReason">Причина блокировки:</label>
+                        <textarea id="banReason" class="form-control" rows="3"
+                                  required></textarea>
                     </div>
+                    {% endif %}
                 </div>
                 <div class="modal-footer">
                     <button id="submitButton" type="submit" class="btn btn-danger">
@@ -64,9 +65,15 @@
     document.getElementById('banForm').addEventListener('submit', async function (event) {
         event.preventDefault();
 
-        const reason = document.getElementById('banReason').value;
-        const userId = "{{ model.id }}"
-        const url = `/admin/user/action/toggle-ban?pk=${userId}&reason=${encodeURIComponent(reason)}`;
+        const userId = "{{ model.id }}";
+        const isBanned = "{{ model.is_banned|lower }}";
+        let reason = null;
+
+        if (isBanned === "false") {
+            reason = document.getElementById('banReason').value;
+        }
+
+        const url = `/admin/user/action/toggle-ban?pk=${userId}&reason=${encodeURIComponent(reason || '')}`;
 
         try {
             const response = await fetch(url, {method: 'GET'});

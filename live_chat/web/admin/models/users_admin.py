@@ -96,24 +96,18 @@ class UserAdmin(ModelView, model=User):
     )
     async def toggle_ban(self, request: Request) -> JSONResponse:
         """Manages the blocking or unblocking of the user."""
-        user_id = request.query_params.get("pk")
-        if not user_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No primary key provided",
-            )
-        reason = request.query_params.get("reason", "").strip()
-        if not reason:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No reason provided",
-            )
-        async with async_session_maker() as session:
-            user: User = await get_user_by_id(db_session=session, user_id=UUID(user_id))
-            user.is_banned = not user.is_banned
-            user.ban_reason = reason if user.is_banned else None
-            await session.commit()
-        return JSONResponse(
-            status_code=status.HTTP_200_OK,
-            content={"ban_reason": reason},
+        if user_id := request.query_params.get("pk"):
+            reason = request.query_params.get("reason")
+            async with async_session_maker() as session:
+                user: User = await get_user_by_id(
+                    db_session=session,
+                    user_id=UUID(user_id),
+                )
+                user.is_banned = not user.is_banned
+                user.ban_reason = reason if user.is_banned else None
+                await session.commit()
+            return JSONResponse(status_code=status.HTTP_200_OK, content=None)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No primary key provided",
         )
