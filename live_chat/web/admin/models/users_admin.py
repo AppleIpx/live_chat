@@ -11,7 +11,7 @@ from sqlalchemy import Select, select
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from wtforms import BooleanField, FileField
+from wtforms import FileField
 from wtforms.fields.simple import PasswordField, StringField
 from wtforms.validators import DataRequired, Email
 
@@ -31,9 +31,6 @@ class UserForm(Form):
     email = StringField("Email", validators=[Email()])
     hashed_password = PasswordField("Password", validators=[DataRequired()])
     user_image = FileField("User Image")
-    is_active = BooleanField("Is Active", default=True)
-    is_deleted = BooleanField("Is Deleted", default=False)
-    is_verified = BooleanField("Is Verified", default=False)
 
 
 class UserAdmin(ModelView, model=User):
@@ -52,7 +49,6 @@ class UserAdmin(ModelView, model=User):
     column_details_list = (
         *column_list,
         User.user_image,
-        User.hashed_password,
         User.created_at,
         User.last_online,
         User.is_active,
