@@ -18,6 +18,8 @@ async def test_registration_user(
     assert response.json() == {
         "id": str(user.id),
         "is_deleted": user.is_deleted,
+        "is_banned": user.is_banned,
+        "ban_reason": None,
         "email": user.email,
         "is_active": user.is_active,
         "is_superuser": user.is_superuser,

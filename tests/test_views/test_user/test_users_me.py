@@ -1,4 +1,5 @@
 import pytest
+from _pytest.logging import LogCaptureFixture
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
@@ -20,6 +21,8 @@ async def test_get_users_me(
     assert data == {
         "id": str(user.id),
         "is_deleted": user.is_deleted,
+        "is_banned": user.is_banned,
+        "ban_reason": None,
         "email": user.email,
         "is_active": user.is_active,
         "is_superuser": user.is_superuser,
@@ -48,6 +51,8 @@ async def test_patch_users_me_correct(
     assert response.json() == {
         "id": str(user.id),
         "is_deleted": user.is_deleted,
+        "is_banned": user.is_banned,
+        "ban_reason": None,
         "email": user.email,
         "is_active": user.is_active,
         "is_superuser": user.is_superuser,
@@ -126,10 +131,49 @@ async def test_patch_users_me_invalid_password(
 
 
 @pytest.mark.anyio
-async def test_patch_users_me_unauthorized_user(
-    client: AsyncClient,
-) -> None:
+async def test_patch_users_me_unauthorized_user(client: AsyncClient) -> None:
     """Test patch users me without authentication."""
     response = await client.patch("/api/users/me", json=new_payload)
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json() == {"detail": "Unauthorized"}
+
+
+@pytest.mark.anyio
+async def test_patch_users_me_banned_user(
+    authorized_client: AsyncClient,
+    dbsession: AsyncSession,
+    caplog: LogCaptureFixture,
+) -> None:
+    """Test patch users me from banned user."""
+    user = await get_first_user_from_db(db_session=dbsession)
+    user.is_banned = True
+    user.ban_reason = "Offensive nickname"
+    response = await authorized_client.patch("/api/users/me", json=new_payload)
+
+    assert (
+        f"User {user.username} who was blocked due to {user.ban_reason} "
+        f"updated account: \n"
+        "{'password': 'new_string_123', 'email': 'new_user@example.com', "
+        "'first_name': 'new_string', 'last_name': 'new_string', "
+        "'username': 'new_string'}" in caplog.messages
+    )
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == {
+        "id": str(user.id),
+        "is_deleted": user.is_deleted,
+        "is_banned": user.is_banned,
+        "ban_reason": user.ban_reason,
+        "email": user.email,
+        "is_active": user.is_active,
+        "is_superuser": user.is_superuser,
+        "is_verified": user.is_verified,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "last_online": (
+            user.last_online.isoformat().replace("+00:00", "Z")
+            if user.last_online
+            else None
+        ),
+        "username": user.username,
+        "user_image": user.user_image,
+    }

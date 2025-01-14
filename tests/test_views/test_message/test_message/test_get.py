@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from tests.factories import ChatFactory, MessageFactory, ReactionFactory
+from tests.factories import ChatFactory, MessageFactory
 
 
 @pytest.mark.anyio
@@ -65,7 +65,6 @@ async def test_get_messages_unauthorized_user(
 @pytest.mark.anyio
 async def test_get_messages_nonexistent_user(
     authorized_client: AsyncClient,
-    many_messages: List[MessageFactory],
     chat: ChatFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
@@ -80,7 +79,6 @@ async def test_get_messages_nonexistent_user(
 @pytest.mark.anyio
 async def test_get_messages_nonexistent_chat(
     authorized_client: AsyncClient,
-    many_messages: List[MessageFactory],
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
@@ -92,17 +90,34 @@ async def test_get_messages_nonexistent_chat(
 
 
 @pytest.mark.anyio
-async def test_recover_message_by_deleted_user(
+async def test_get_messages_by_deleted_user(
     authorized_deleted_client: AsyncClient,
-    reaction: ReactionFactory,
+    many_messages: List[MessageFactory],
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
     """Testing recover message by a deleted user."""
-    message_id = reaction.message.id
-    chat = reaction.message.chat
-    response = await authorized_deleted_client.delete(
-        f"/api/chats/{chat.id}/messages/{message_id}/reaction",
-    )
+    chat_id = many_messages[0].chat.id
+    response = await authorized_deleted_client.get(f"/api/chats/{chat_id}/messages")
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_get_messages_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    many_messages: List[MessageFactory],
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing recover message by a banned user."""
+    chat_id = many_messages[0].chat.id
+    response = await authorized_banned_client.get(f"/api/chats/{chat_id}/messages")
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }

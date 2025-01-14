@@ -22,7 +22,7 @@ async def test_delete_me(
 
 
 @pytest.mark.anyio
-async def test_delete_deleted_me(
+async def test_delete_me_by_deleted_user(
     authorized_deleted_client: AsyncClient,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
@@ -31,3 +31,20 @@ async def test_delete_deleted_me(
     response = await authorized_deleted_client.delete("/api/users/me/delete")
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_delete_me_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing deleting a remote user."""
+    response = await authorized_banned_client.delete("/api/users/me/delete")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }

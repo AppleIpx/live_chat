@@ -43,6 +43,7 @@ async def test_add_user_to_new_black_list(
             ),
             "id": str(black_list_user.id),
             "is_deleted": black_list_user.is_deleted,
+            "is_banned": black_list_user.is_banned,
         },
     }
 
@@ -83,6 +84,7 @@ async def test_add_user_to_existing_black_list(
             ),
             "id": str(black_list_user.id),
             "is_deleted": black_list_user.is_deleted,
+            "is_banned": black_list_user.is_banned,
         },
     }
     assert len(blocked_users) == 6
@@ -153,3 +155,23 @@ async def test_add_user_to_blacklist_by_deleted_user(
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_add_user_to_blacklist_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    user: UserFactory,
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to add a user to the blacklist by a banned user."""
+    response = await authorized_banned_client.post(
+        "/api/black-list",
+        json={"user_id": f"{user.id}"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }

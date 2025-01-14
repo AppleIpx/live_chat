@@ -99,3 +99,24 @@ async def test_delete_user_from_blacklist_by_deleted_user(
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_delete_user_from_blacklist_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    user: UserFactory,
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to delete a user from blacklist by a banned user."""
+    response = await authorized_banned_client.request(
+        method="DELETE",
+        url="/api/black-list",
+        json={"user_id": str(user.id)},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }

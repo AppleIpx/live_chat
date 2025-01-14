@@ -26,6 +26,7 @@ async def test_get_user_by_id(
     assert response.json() == {
         "id": str(user.id),
         "is_deleted": user.is_deleted,
+        "is_banned": user.is_banned,
         "email": user.email,
         "is_active": user.is_active,
         "is_superuser": user.is_superuser,
@@ -49,9 +50,21 @@ async def test_get_user_blocked_by_sender(
 ) -> None:
     """Testing to get a user who is blocked by a sender."""
     response = await authorized_client.get(f"/api/users/read/{user.id}")
-    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
-        "detail": "You can't perform this action, because he's blocked",
+        "id": str(user.id),
+        "is_deleted": user.is_deleted,
+        "is_banned": user.is_banned,
+        "email": user.email,
+        "is_active": user.is_active,
+        "is_superuser": user.is_superuser,
+        "is_verified": user.is_verified,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "last_online": user.last_online.isoformat().replace("+00:00", "Z"),
+        "username": user.username,
+        "user_image": user.user_image,
+        "is_blocked": True,
     }
 
 
@@ -94,9 +107,7 @@ async def test_get_deleted_user(
     user.is_deleted = True
     response = await authorized_client.get(f"/api/users/read/{user.id}")
     assert response.status_code == status.HTTP_400_BAD_REQUEST
-    assert response.json() == {
-        "detail": "This user has been deleted.",
-    }
+    assert response.json() == {"detail": "This user has been deleted."}
 
 
 @pytest.mark.anyio
@@ -110,3 +121,35 @@ async def test_get_detail_user_by_deleted_user(
     response = await authorized_deleted_client.get(f"/api/users/read/{user.id}")
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_get_banned_user(
+    authorized_client: AsyncClient,
+    user: UserFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Test get banned user by id."""
+    user.is_banned = True
+    response = await authorized_client.get(f"/api/users/read/{user.id}")
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.json() == {"detail": "This user has been banned."}
+
+
+@pytest.mark.anyio
+async def test_get_detail_user_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    user: UserFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to get detail_user by a banned user."""
+    response = await authorized_banned_client.get(f"/api/users/read/{user.id}")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }

@@ -56,6 +56,7 @@ async def test_get_detail_chat(
             {
                 "id": str(sender.id),
                 "is_deleted": sender.is_deleted,
+                "is_banned": sender.is_banned,
                 "first_name": sender.first_name,
                 "last_name": sender.last_name,
                 "last_online": (
@@ -69,6 +70,7 @@ async def test_get_detail_chat(
             {
                 "id": str(recipient.id),
                 "is_deleted": recipient.is_deleted,
+                "is_banned": recipient.is_banned,
                 "first_name": recipient.first_name,
                 "last_name": recipient.last_name,
                 "last_online": recipient.last_online.isoformat().replace("+00:00", "Z"),
@@ -118,3 +120,22 @@ async def test_get_detail_chat_by_deleted_user(
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_get_detail_chat_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to get detail_chat by a banned user."""
+    chat_id = message_in_chat.chat.id
+    response = await authorized_banned_client.get(f"api/chats/{chat_id}")
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }

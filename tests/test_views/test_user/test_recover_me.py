@@ -25,6 +25,7 @@ async def test_recover_user(
         "user_image": user.user_image,
         "last_online": user.last_online,
         "is_deleted": False,
+        "is_banned": user.is_banned,
         "id": str(user.id),
     }
 

@@ -1,11 +1,11 @@
 <template>
-  <div class="deleted-account">
-    <div class="deleted-account-container">
+  <div class="blocked-account">
+    <div class="blocked-account-container">
       <div class="icon">
-        <i class="fa fa-times-circle"></i>
-        <h1>Аккаунт удален</h1>
+        <i class="fa-solid fa-lock"></i>
+        <h1>403</h1>
       </div>
-      <p>Этот аккаунт больше недоступен.</p>
+      <p>Вас заблокировал этот пользователь.</p>
       <br>
       <router-link to="/" class="btn">Вернуться на главную</router-link>
     </div>
@@ -17,14 +17,14 @@ export default {};
 </script>
 
 <style scoped>
-.deleted-account {
+.blocked-account {
   text-align: center;
   background: linear-gradient(135deg, #73b5e1, #b6d5de);
   height: 100vh;
   overflow: hidden;
 }
 
-.deleted-account-container {
+.blocked-account-container {
   background-color: white;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   margin-left: 30%;
@@ -38,14 +38,14 @@ export default {};
 }
 
 .icon {
+  color: #d32f2f;
   margin-top: 20%;
   font-size: 6rem;
-  color: #d24221;
 }
 
 h1 {
-  font-size: 6rem;
-  color: #d24221;
+  font-size: 8rem;
+  color: #c62828;
 }
 
 p {
@@ -59,7 +59,7 @@ p {
   font-weight: bold;
   text-transform: uppercase;
   color: #fff;
-  background-color: #d24221;
+  background-color: #d32f2f;
   border: none;
   cursor: pointer;
   text-decoration: none;

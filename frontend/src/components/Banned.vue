@@ -1,30 +1,42 @@
 <template>
-  <div class="deleted-account">
-    <div class="deleted-account-container">
+  <div class="banned-account">
+    <div class="banned-account-container">
       <div class="icon">
-        <i class="fa fa-times-circle"></i>
-        <h1>Аккаунт удален</h1>
+        <i class="fa-regular fa-circle-xmark"></i>
+        <h1>403</h1>
       </div>
-      <p>Этот аккаунт больше недоступен.</p>
-      <br>
+      <p>Ваш аккаунт был заблокирован по следующей причине:</p>
+      <p class="reason">{{ reason }}</p>
+      <br/>
       <router-link to="/" class="btn">Вернуться на главную</router-link>
     </div>
   </div>
 </template>
 
 <script>
-export default {};
+export default {
+  data() {
+    return {
+      reason: "Неизвестная причина",
+    };
+  },
+  created() {
+    if (this.$route?.query?.reason) {
+      this.reason = this.$route.query.reason;
+    }
+  },
+};
 </script>
 
 <style scoped>
-.deleted-account {
+.banned-account {
   text-align: center;
   background: linear-gradient(135deg, #73b5e1, #b6d5de);
   height: 100vh;
   overflow: hidden;
 }
 
-.deleted-account-container {
+.banned-account-container {
   background-color: white;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   margin-left: 30%;
@@ -38,19 +50,25 @@ export default {};
 }
 
 .icon {
+  color: #d32f2f;
   margin-top: 20%;
   font-size: 6rem;
-  color: #d24221;
 }
 
 h1 {
-  font-size: 6rem;
-  color: #d24221;
+  font-size: 8rem;
+  color: #c62828;
 }
 
 p {
   font-size: 1.5rem;
   margin: 20px 0;
+}
+
+.reason {
+  font-size: 1.5rem;
+  font-style: italic;
+  color: #d32f2f;
 }
 
 .btn {
@@ -59,7 +77,7 @@ p {
   font-weight: bold;
   text-transform: uppercase;
   color: #fff;
-  background-color: #d24221;
+  background-color: #d32f2f;
   border: none;
   cursor: pointer;
   text-decoration: none;

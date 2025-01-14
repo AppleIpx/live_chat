@@ -69,6 +69,8 @@ export default {
           first_name: this.first_name,
           last_name: this.last_name,
           user_image: null,
+          is_deleted: false,
+          is_banned: false,
         }
         const response = await authService.registerUser(registerData)
 
