@@ -16,6 +16,7 @@ class BaseUserSchema:
     user_image: HttpUrl | None
     last_online: datetime | None = None
     is_deleted: bool
+    is_banned: bool
 
 
 class BaseUserUpdateSchema:
@@ -35,6 +36,8 @@ class UserShortRead(BaseUserSchema, BaseModel):
 
 class UserRead(BaseUserSchema, schemas.BaseUser[UUID_ID]):
     """Represents a read command for a user."""
+
+    ban_reason: str | None = None
 
 
 class OtherUserRead(BaseUserSchema, schemas.BaseUser[UUID_ID]):

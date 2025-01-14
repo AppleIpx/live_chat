@@ -7,6 +7,7 @@ from starlette import status
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.web.api.users.utils import get_user_by_id
+from live_chat.web.api.users.utils.validate import validate_user_active
 
 
 async def collect_users_for_group(
@@ -25,10 +26,6 @@ async def collect_users_for_group(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"There is no recipient user with id [{recipient_user_id}]",
             )
-        if user.is_deleted:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"This user {user.id} has been deleted.",
-            )
+        await validate_user_active(user)
         recipient_users.append(user)
     return recipient_users

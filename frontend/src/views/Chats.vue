@@ -224,7 +224,7 @@ export default {
             user.username !== this.instanceUser.email.split("@")[0] &&
             user.username !== this.instanceUser.username
         );
-        if (user.is_deleted) return false
+        if (user.is_deleted || user.is_banned) return false;
         const lastOnlineDate = new Date(user.last_online);
         const now = new Date();
         return (now - lastOnlineDate) <= 3 * 60 * 1000;
@@ -254,19 +254,17 @@ export default {
     },
 
     getChatPhoto(chat) {
-      const defaultUserImage = '/default_avatar.png';
-      const defaultGroupImage = '/default_group_image.png';
-      const deletedUserImage = '/deleted_avatar.png'
       if (chat.chat_type === 'direct') {
         const user = chat.users.find(user =>
             user.username !== this.instanceUser.email.split("@")[0] &&
             user.username !== this.instanceUser.username
         );
-        if (user.is_deleted) return deletedUserImage;
-        return user?.user_image || defaultUserImage;
+        if (user.is_deleted) return '/deleted_avatar.png';
+        if (user.is_banned) return '/banned_avatar.png';
+        return user?.user_image || '/default_avatar.png';
       }
-      if (chat.chat_type === 'group') {
-        return chat.image || defaultGroupImage;
+      else if (chat.chat_type === 'group') {
+        return chat.image || '/default_group_image.png';
       }
     },
 
@@ -285,6 +283,9 @@ export default {
           .map(user => {
             if (user.is_deleted) {
               return 'Удаленный аккаунт';
+            }
+            if (user.is_banned) {
+              return 'Заблокированный аккаунт';
             }
             return `${user.first_name} ${user.last_name}`;
           })

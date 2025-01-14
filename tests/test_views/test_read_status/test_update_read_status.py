@@ -199,3 +199,33 @@ async def test_update_read_status_by_deleted_user(
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_update_read_status_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to update read status by a banned user."""
+    chat = message_in_chat.chat
+    await get_read_status_by_user_chat_ids(
+        db_session=dbsession,
+        chat_id=chat.id,
+        user_id=message_in_chat.user.id,
+    )
+    response = await authorized_banned_client.patch(
+        f"/api/read_status/{chat.id}/update",
+        json={
+            "last_read_message_id": str(message_in_chat.id),
+            "count_unread_msg": 0,
+        },
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }

@@ -117,7 +117,6 @@ async def test_update_message_with_non_author(
 @pytest.mark.anyio
 async def test_update_message_by_deleted_user(
     authorized_deleted_client: AsyncClient,
-    user: UserFactory,
     message_in_chat: MessageFactory,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
@@ -130,3 +129,25 @@ async def test_update_message_by_deleted_user(
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_update_message_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing to update message by a banned user."""
+    chat = message_in_chat.chat
+    response = await authorized_banned_client.patch(
+        f"/api/chats/{chat.id}/messages/{message_in_chat.id}",
+        json={"content": "test"},
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": {
+            "reason": None,
+            "status": "banned",
+        },
+    }

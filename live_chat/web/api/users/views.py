@@ -31,6 +31,7 @@ from live_chat.web.api.users.utils import (
     recover_me,
 )
 from live_chat.web.api.users.utils.authentication import current_active_user
+from live_chat.web.api.users.utils.validate import validate_user_active
 from live_chat.web.enums import UploadFileDirectoryEnum
 from live_chat.web.utils.image_saver import FileSaver
 
@@ -62,7 +63,11 @@ async def get_users(
 ) -> CursorPage[UserShortRead]:
     """Gets a list of all users."""
     set_page(CursorPage[UserShortRead])
-    query = select(User).where(User.is_deleted == False).order_by(User.id)  # noqa: E712
+    query = (
+        select(User)
+        .where(User.is_deleted == False, User.is_banned == False)  # noqa: E712
+        .order_by(User.id)
+    )
     return await paginate(db_session, query, params=params)
 
 
@@ -74,22 +79,20 @@ async def get_user(
 ) -> User:
     """Gets a user by id without authentication."""
     if user := await get_user_by_id(db_session, user_id=user_id):
+        await validate_user_active(user)
+        if (
+            black_list := await get_black_list_by_owner(
+                owner=current_user,
+                db_session=db_session,
+            )
+        ) and await get_user_in_black_list(black_list, user.id, db_session):
+            user.is_blocked = True
+            return user
         await validate_user_in_black_list(
             recipient=user,
             sender=current_user,
             db_session=db_session,
         )
-        if user.is_deleted:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="This user has been deleted.",
-            )
-        if black_list := await get_black_list_by_owner(
-            owner=current_user,
-            db_session=db_session,
-        ):
-            blocked_user = await get_user_in_black_list(black_list, user.id, db_session)
-            user.is_blocked = bool(blocked_user)
         return user
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
@@ -160,4 +163,5 @@ async def recover_me_view(
         user_image=user.user_image,  # type: ignore[call-arg]
         last_online=user.last_online,  # type: ignore[call-arg]
         is_deleted=user.is_deleted,  # type: ignore[call-arg]
+        is_banned=user.is_banned,  # type: ignore[call-arg]
     )

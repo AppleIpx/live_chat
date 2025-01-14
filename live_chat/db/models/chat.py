@@ -6,6 +6,7 @@ from typing import List
 from fastapi_users_db_sqlalchemy import GUID, UUID_ID, SQLAlchemyBaseUserTableUUID
 from sqlalchemy import (
     UUID,
+    Boolean,
     Column,
     DateTime,
     Enum,
@@ -227,6 +228,8 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         cascade="all, delete-orphan",
     )
     black_list: Mapped["BlackList"] = relationship(back_populates="owner")
+    is_banned: Mapped[bool] = mapped_column(Boolean, default=False)
+    ban_reason: Mapped[str] = mapped_column(String(1048), nullable=True)
 
     def __str__(self) -> str:
         return f"{self.username}"

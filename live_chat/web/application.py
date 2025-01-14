@@ -59,6 +59,8 @@ def get_app() -> FastAPI:
         engine=engine,
         session_maker=async_session_maker,
         authentication_backend=authentication_backend,
+        debug=True,
+        templates_dir="live_chat/web/admin/templates",
     )
     admin.add_view(UserAdmin)
 

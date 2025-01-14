@@ -119,3 +119,37 @@ async def test_upload_img_by_deleted_user(
         mock_upload.assert_not_called()
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.json() == {"detail": "You are deleted."}
+
+
+@pytest.mark.anyio
+async def test_upload_img_by_banned_user(
+    authorized_banned_client: AsyncClient,
+    fake_image: UploadFile,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing upload img be banned user."""
+    auth_user = await get_first_user_from_db(dbsession)
+    with patch.object(
+        S3Client,
+        "upload_file",
+        return_value=f"{settings.minio_url}avatars/{auth_user.id}.png",
+    ) as mock_upload:
+        response = await authorized_banned_client.patch(
+            "/api/users/me/upload-image",
+            files={
+                "uploaded_image": (
+                    fake_image.filename,
+                    fake_image.file,
+                    fake_image.content_type,
+                ),
+            },
+        )
+        mock_upload.assert_not_called()
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.json() == {
+            "detail": {
+                "reason": None,
+                "status": "banned",
+            },
+        }

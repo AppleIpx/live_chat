@@ -25,6 +25,7 @@ async def test_get_all_users(
         assert user_data == {
             "id": str(user.id),
             "is_deleted": user.is_deleted,
+            "is_banned": user.is_banned,
             "first_name": user.first_name,
             "last_name": user.last_name,
             "last_online": (

@@ -1,0 +1,150 @@
+{% extends "sqladmin/details.html" %}
+
+{% block content %}
+<div class="button-container">
+    <button id="toggleBanButton" class="btn btn-sm btn-warning">
+        {% if model.is_banned %}
+        Разблокировать
+        {% else %}
+        Заблокировать
+        {% endif %}
+    </button>
+</div>
+
+<div id="banModal" class="modal" tabindex="-1" role="dialog" style="display: none;">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    {% if model.is_banned %}
+                    Подтвердите разблокировку
+                    {% else %}
+                    Укажите причину блокировки
+                    {% endif %}
+                </h5>
+                <button type="button" class="close" onclick="closeModal()">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="banForm">
+                <div class="modal-body">
+                    {% if not model.is_banned %}
+                    <div class="form-group">
+                        <label for="banReason">Причина блокировки:</label>
+                        <textarea id="banReason" class="form-control" rows="3"
+                                  required></textarea>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button id="submitButton" type="submit" class="btn btn-danger">
+                        {% if model.is_banned %}
+                        Подтвердить разблокировку
+                        {% else %}
+                        Подтвердить блокировку
+                        {% endif %}
+                    </button>
+                    <button type="button" class="btn btn-secondary"
+                            onclick="closeModal()">Отмена
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('toggleBanButton').addEventListener('click', function () {
+        document.getElementById('banModal').style.display = 'block';
+    });
+
+    function closeModal() {
+        document.getElementById('banModal').style.display = 'none';
+    }
+
+    document.getElementById('banForm').addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const userId = "{{ model.id }}";
+        const isBanned = "{{ model.is_banned|lower }}";
+        let reason = null;
+
+        if (isBanned === "false") {
+            reason = document.getElementById('banReason').value;
+        }
+
+        const url = `/admin/user/action/toggle-ban?pk=${userId}&reason=${encodeURIComponent(reason || '')}`;
+
+        try {
+            const response = await fetch(url, {method: 'GET'});
+            if (response.ok) {
+                alert('Статус обновлен.');
+                window.location.reload();
+            } else {
+                alert('Ошибка: не удалось обновить статус блокировки.');
+            }
+        } catch (error) {
+            alert('Произошла ошибка: ' + error.message);
+        }
+    });
+</script>
+<style>
+    .button-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 5px;
+    }
+
+    #banReason {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        border: 1px solid #ccc;
+        transition: border-color 0.3s ease, background-color 0.3s ease;
+    }
+
+    #banReason:disabled {
+        background-color: #e9ecef;
+        border-color: #6c757d;
+    }
+
+    #banReason:focus {
+        border-color: #007bff;
+        background-color: #ffffff;
+    }
+
+    #toggleBanButton {
+        width: auto;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-style: italic;
+        border-radius: 8px;
+        transition: background-color 0.3s ease;
+    }
+
+    #toggleBanButton:hover {
+        background-color: #bb770a;
+    }
+
+    .modal {
+        position: fixed;
+        top: 80%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1050;
+        display: none;
+    }
+
+    .modal-dialog {
+        max-width: 500px;
+        margin: 0 auto;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{{ super() }}
+
+{% endblock %}
