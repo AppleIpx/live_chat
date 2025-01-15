@@ -27,6 +27,7 @@ from live_chat.web.api.users.utils import (
     custom_current_user,
     get_user_by_id,
 )
+from live_chat.web.api.users.utils.validate import validate_user_active
 
 create_chat_router = APIRouter()
 
@@ -65,11 +66,7 @@ async def create_direct_chat_view(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"There is no recipient user with id [{recipient_user_id}]",
         )
-    if recipient_user.is_deleted:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This user has been deleted.",
-        )
+    await validate_user_active(recipient_user)
 
     if await direct_chat_exists(
         db_session,

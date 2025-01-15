@@ -1,7 +1,7 @@
 """add draft message in chat
 
 Revision ID: db0a6bd98f4a
-Revises: bcdcde196734
+Revises: 360491ed5559
 Create Date: 2025-01-09 15:12:17.660145
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "db0a6bd98f4a"
-down_revision = "bcdcde196734"
+down_revision = "360491ed5559"
 branch_labels = None
 depends_on = None
 

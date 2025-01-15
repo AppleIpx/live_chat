@@ -25,6 +25,7 @@ from live_chat.web.api.messages.utils import (
 )
 from live_chat.web.api.read_status.utils import increase_in_unread_messages
 from live_chat.web.api.users.utils import custom_current_user
+from live_chat.web.api.users.utils.validate import validate_user_active
 
 message_router = APIRouter()
 
@@ -71,6 +72,7 @@ async def post_message(
             (user for user in chat.users if user.id != current_user.id),
             None,
         )
+        await validate_user_active(recipient)
         await validate_user_in_black_list(
             recipient=recipient,
             sender=current_user,
