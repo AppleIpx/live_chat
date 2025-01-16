@@ -25,7 +25,7 @@ from live_chat.web.api.messages.utils import (
 )
 from live_chat.web.api.read_status.utils import increase_in_unread_messages
 from live_chat.web.api.users.utils import custom_current_user
-from live_chat.web.api.users.utils.validate import validate_user_active
+from live_chat.web.api.users.utils.validators import validate_user_active
 
 message_router = APIRouter()
 

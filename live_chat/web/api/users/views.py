@@ -31,7 +31,7 @@ from live_chat.web.api.users.utils import (
     recover_me,
 )
 from live_chat.web.api.users.utils.authentication import current_active_user
-from live_chat.web.api.users.utils.validate import validate_user_active
+from live_chat.web.api.users.utils.validators import validate_user_active
 from live_chat.web.enums import UploadFileDirectoryEnum
 from live_chat.web.utils.image_saver import FileSaver
 

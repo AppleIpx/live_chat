@@ -7,7 +7,7 @@ from starlette import status
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.web.api.users.utils import get_user_by_id
-from live_chat.web.api.users.utils.validate import validate_user_active
+from live_chat.web.api.users.utils.validators import validate_user_active
 
 
 async def collect_users_for_group(
