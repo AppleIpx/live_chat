@@ -41,6 +41,7 @@ async def test_create_direct_chat(
         "chat_type": chat.chat_type.value,
         "image": chat.image,
         "last_message_content": None,
+        "draft_message": None,
         "name": chat.name,
         "created_at": chat.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": chat.updated_at.isoformat().replace("+00:00", "Z"),

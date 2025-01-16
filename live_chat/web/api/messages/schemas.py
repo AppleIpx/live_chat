@@ -58,3 +58,15 @@ class PostMessageSchema(BaseModel):
 
 class UpdateMessageSchema(PostMessageSchema):
     """Represents a message for update."""
+
+
+class PostDraftMessageSchema(PostMessageSchema):
+    """Represents a post command for a draft message."""
+
+
+class UpdateDraftMessageSchema(PostDraftMessageSchema):
+    """Represents a put command for a draft message."""
+
+
+class GetDraftMessageSchema(GetBaseMessageSchema):
+    """Represents a get command for a draft message."""

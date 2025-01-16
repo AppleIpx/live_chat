@@ -1,6 +1,10 @@
 from typing import List
 
-from live_chat.db.models.chat import Chat, ReadStatus  # type: ignore[attr-defined]
+from live_chat.db.models.chat import (  # type: ignore[attr-defined]
+    Chat,
+    DraftMessage,
+    ReadStatus,
+)
 from live_chat.web.api.chat import ChatSchema
 from live_chat.web.api.chat.schemas import ReadStatusSchema
 
@@ -8,8 +12,9 @@ from live_chat.web.api.chat.schemas import ReadStatusSchema
 async def transformation_chat(
     chat: Chat,
     read_statuses: List[ReadStatus],
+    draft_message: DraftMessage | None,
 ) -> ChatSchema:
-    """Transform a  Chat objects into a ChatSchema objects."""
+    """Transform a Chat objects into a ChatSchema objects."""
     read_statuses_schema = [
         ReadStatusSchema(
             id=read_status.id,
@@ -30,5 +35,6 @@ async def transformation_chat(
         updated_at=chat.updated_at,
         users=chat.users,
         read_statuses=read_statuses_schema,
-        last_message_content=None,
+        last_message_content=chat.last_message_content,
+        draft_message=draft_message.content if draft_message else None,
     )

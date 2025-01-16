@@ -1,5 +1,5 @@
 import uuid
-from operator import attrgetter
+from _operator import attrgetter
 from typing import AsyncGenerator, List
 
 import pytest

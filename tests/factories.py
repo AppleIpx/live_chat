@@ -9,6 +9,7 @@ from live_chat.db.models.chat import (
     BlockedUsers,
     Chat,
     DeletedMessage,
+    DraftMessage,
     Message,
     Reaction,
     ReadStatus,
@@ -139,3 +140,11 @@ class ReactionFactory(factory.alchemy.SQLAlchemyModelFactory):
     message_id = factory.LazyFunction(uuid.uuid4)
     user = factory.SubFactory(UserFactory)
     message = factory.SubFactory(MessageFactory)
+
+
+class DraftMessageFactory(MessageFactory):
+    """A factory for creating instances of the Draft Message model for testing."""
+
+    class Meta:
+        model = DraftMessage
+        sqlalchemy_session = None

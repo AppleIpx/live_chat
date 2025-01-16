@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 from unittest.mock import AsyncMock
 
 import pytest
-from faker.proxy import Faker
+from faker import Faker
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

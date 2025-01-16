@@ -42,6 +42,7 @@ class ChatSchema(BaseChatSchema):
 
     read_statuses: List[ReadStatusSchema]
     last_message_content: str | None
+    draft_message: str | None = None
 
     class Config:
         from_attributes = True

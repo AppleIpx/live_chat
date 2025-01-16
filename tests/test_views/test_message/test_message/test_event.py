@@ -26,7 +26,7 @@ async def test_get_message_event(
     event_data = {"event": "new_message", "data": message_data}
 
     with patch(
-        "live_chat.web.api.messages.views.message_generator",
+        "live_chat.web.api.messages.views.sse_events.message_generator",
         return_value=iter([event_data]),
     ):
         async with authorized_client.stream(
@@ -71,7 +71,7 @@ async def test_get_message_event_bad_token(
     event_data = {"event": "new_message", "data": message_data}
 
     with patch(
-        "live_chat.web.api.messages.views.message_generator",
+        "live_chat.web.api.messages.views.sse_events.message_generator",
         return_value=iter([event_data]),
     ):
         async with authorized_client.stream(
@@ -97,7 +97,7 @@ async def test_get_message_event_nonexistent_user_in_chat(
     event_data = {"event": "new_message", "data": message_data}
 
     with patch(
-        "live_chat.web.api.messages.views.message_generator",
+        "live_chat.web.api.messages.views.sse_events.message_generator",
         return_value=iter([event_data]),
     ):
         async with authorized_client.stream(
@@ -123,7 +123,7 @@ async def test_get_message_event_nonexistent_chat(
     event_data = {"event": "new_message", "data": message_data}
 
     with patch(
-        "live_chat.web.api.messages.views.message_generator",
+        "live_chat.web.api.messages.views.sse_events.message_generator",
         return_value=iter([event_data]),
     ):
         async with authorized_client.stream(

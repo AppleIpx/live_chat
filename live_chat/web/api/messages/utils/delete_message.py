@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Chat,
     DeletedMessage,
+    DraftMessage,
     Message,
 )
 from live_chat.web.api.chat.utils import set_previous_message_content
@@ -12,13 +13,20 @@ from live_chat.web.api.chat.utils import set_previous_message_content
 async def delete_message_by_id(
     db_session: AsyncSession,
     *,
-    message: Message | DeletedMessage,
+    message: Message | DeletedMessage | DraftMessage,
     chat: Chat,
 ) -> None:
     """Function to delete a message from the database."""
     statements = []
 
-    if isinstance(message, DeletedMessage):
+    if isinstance(message, DraftMessage):
+        statements.append(
+            delete(DraftMessage).where(
+                DraftMessage.id == message.id,
+                DraftMessage.chat_id == chat.id,
+            ),
+        )
+    elif isinstance(message, DeletedMessage):
         statements.append(delete(DeletedMessage).where(DeletedMessage.id == message.id))
         statements.append(
             delete(Message).where(Message.id == message.original_message_id),

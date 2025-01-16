@@ -7,6 +7,9 @@ from live_chat.web.api.messages.utils.dependency import (
 from live_chat.web.api.messages.utils.get_correct_last_message import (
     get_correct_last_message,
 )
+from live_chat.web.api.messages.utils.get_draft_message import (
+    get_draft_message_by_chat_and_user_ids,
+)
 from live_chat.web.api.messages.utils.get_message import (
     get_deleted_by_orig_message_id,
     get_deleted_message_by_id,
@@ -38,4 +41,5 @@ __all__ = (
     "get_deleted_by_orig_message_id",
     "get_reaction_by_message_id_and_user_id",
     "delete_reaction_by_id",
+    "get_draft_message_by_chat_and_user_ids",
 )
