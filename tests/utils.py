@@ -23,6 +23,7 @@ payload = {
     "user_image": None,
     "is_deleted": False,
     "is_banned": False,
+    "is_warning": False,
 }
 
 new_payload = {

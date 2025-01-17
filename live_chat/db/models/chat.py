@@ -48,6 +48,18 @@ class BaseMessage(Base):
     file_path: Mapped[str] = mapped_column(String(1000), nullable=True)
 
 
+class BaseWarning(Base):
+    """Abstract base class for warnings."""
+
+    __abstract__ = True
+
+    id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    reason = Column(String(255), nullable=False)
+    ai_detection = Column(Boolean, default=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
+    correction_deadline = Column(DateTime, nullable=True)
+
+
 class Message(BaseMessage):
     """Message model."""
 
@@ -96,6 +108,24 @@ class DraftMessage(BaseMessage):
 
     def __str__(self) -> str:
         return f"Draft by {self.user_id} in chat {self.chat_id}"
+
+
+class WarningFirstName(BaseWarning):
+    """Warning name."""
+
+    __tablename__ = "warning_name"
+
+
+class WarningLastName(BaseWarning):
+    """Warning last name."""
+
+    __tablename__ = "warning_lastname"
+
+
+class WarningUsername(BaseWarning):
+    """Warning username."""
+
+    __tablename__ = "warning_username"
 
 
 class Chat(Base):
@@ -250,6 +280,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         back_populates="user",
         cascade="all,delete",
     )
+    is_warning: Mapped[bool] = mapped_column(Boolean, default=False)
 
     def __str__(self) -> str:
         return f"{self.username}"

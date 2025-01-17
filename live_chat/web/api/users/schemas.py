@@ -38,6 +38,7 @@ class UserRead(BaseUserSchema, schemas.BaseUser[UUID_ID]):
     """Represents a read command for a user."""
 
     ban_reason: str | None = None
+    is_warning: bool
 
 
 class OtherUserRead(BaseUserSchema, schemas.BaseUser[UUID_ID]):
@@ -48,6 +49,8 @@ class OtherUserRead(BaseUserSchema, schemas.BaseUser[UUID_ID]):
 
 class UserCreate(BaseUserSchema, schemas.BaseUserCreate):
     """Represents a create command for a user."""
+
+    is_warning: bool
 
 
 class UserUpdate(BaseUserUpdateSchema, schemas.BaseUserUpdate):
