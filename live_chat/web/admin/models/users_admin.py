@@ -3,7 +3,6 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from sqladmin import ModelView, action
-from sqladmin.forms import Form
 from sqladmin.helpers import (
     get_primary_keys,
 )
@@ -11,26 +10,13 @@ from sqlalchemy import Select, select
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from wtforms import FileField
-from wtforms.fields.simple import PasswordField, StringField
-from wtforms.validators import DataRequired, Email
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.db.utils import async_session_maker
+from live_chat.web.admin.forms import UserForm
 from live_chat.web.admin.utils import CustomQuery, custom_object_identifier_values
 from live_chat.web.admin.utils.transformation import transformation_new_user_admin
 from live_chat.web.api.users.utils import get_user_by_id
-
-
-class UserForm(Form):
-    """Custom form for user model with definition specific fields."""
-
-    username = StringField("Username", validators=[DataRequired()])
-    first_name = StringField("First Name", default="")
-    last_name = StringField("Last Name", default="")
-    email = StringField("Email", validators=[Email()])
-    hashed_password = PasswordField("Password", validators=[DataRequired()])
-    user_image = FileField("User Image")
 
 
 class UserAdmin(ModelView, model=User):

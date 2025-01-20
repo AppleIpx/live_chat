@@ -12,6 +12,9 @@ from live_chat.services.faststream import fast_stream_router
 from live_chat.settings import settings
 from live_chat.web.admin.auth import AdminAuth
 from live_chat.web.admin.models.users_admin import UserAdmin
+from live_chat.web.admin.models.warning_first_name import WarningFirstNameAdmin
+from live_chat.web.admin.models.warning_last_name import WarningLastNameAdmin
+from live_chat.web.admin.models.warning_username import WarningUserNameAdmin
 from live_chat.web.api.router import api_router
 from live_chat.web.lifespan import lifespan_setup
 from live_chat.web.middlewares import UpdateLastOnlineMiddleware
@@ -63,6 +66,9 @@ def get_app() -> FastAPI:
         templates_dir="live_chat/web/admin/templates",
     )
     admin.add_view(UserAdmin)
+    admin.add_view(WarningFirstNameAdmin)
+    admin.add_view(WarningLastNameAdmin)
+    admin.add_view(WarningUserNameAdmin)
 
     add_pagination(app)
     if settings.use_logfire:
