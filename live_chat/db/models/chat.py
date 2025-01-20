@@ -54,10 +54,10 @@ class BaseWarning(Base):
     __abstract__ = True
 
     id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
-    reason = Column(String(255), nullable=False)
+    reason = Column(String(500), nullable=False)
     ai_detection = Column(Boolean, default=False)
     user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
-    correction_deadline = Column(DateTime, nullable=True)
+    correction_deadline = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Message(BaseMessage):
@@ -113,7 +113,12 @@ class DraftMessage(BaseMessage):
 class WarningFirstName(BaseWarning):
     """Warning name."""
 
-    __tablename__ = "warning_name"
+    __tablename__ = "warning_firstname"
+
+    user = relationship("User", backref="warning_firstname")
+
+    def __str__(self) -> str:
+        return f"Warning first name: {self.user.first_name}"
 
 
 class WarningLastName(BaseWarning):
@@ -121,11 +126,21 @@ class WarningLastName(BaseWarning):
 
     __tablename__ = "warning_lastname"
 
+    user = relationship("User", backref="warning_lastname")
+
+    def __str__(self) -> str:
+        return f"Warning last name: {self.user.last_name}"
+
 
 class WarningUsername(BaseWarning):
     """Warning username."""
 
     __tablename__ = "warning_username"
+
+    user = relationship("User", backref="warning_username")
+
+    def __str__(self) -> str:
+        return f"Warning username: {self.user.username}"
 
 
 class Chat(Base):

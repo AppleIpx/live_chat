@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from live_chat.web.ai_tools.toxic import ToxicRus
+from live_chat.web.ai_tools.toxic import ToxicEng, ToxicRus
 
 
 def init_rus_toxilization(app: FastAPI) -> None:
@@ -18,4 +18,4 @@ def init_eng_toxilization(app: FastAPI) -> None:
 
     :param app: FastAPI application.
     """
-    app.state.toxic_eng = ToxicRus()
+    app.state.toxic_eng = ToxicEng()
