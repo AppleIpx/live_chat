@@ -25,7 +25,7 @@ from live_chat.web.api.messages.utils import (
 )
 from live_chat.web.api.read_status.utils import increase_in_unread_messages
 from live_chat.web.api.users.utils import custom_current_user
-from live_chat.web.api.users.utils.validate import validate_user_active
+from live_chat.web.api.users.utils.validators import validate_user_active
 
 message_router = APIRouter()
 
@@ -114,7 +114,6 @@ async def update_message(
         message.content = message_schema.content
         message.updated_at = datetime.now(timezone.utc)
         chat.last_message_content = message_schema.content[:100]  # type: ignore[index]
-        db_session.add_all([message, chat])
         await db_session.commit()
         message_data = await transformation_message(message)
         event_data = jsonable_encoder(message_data.model_dump())

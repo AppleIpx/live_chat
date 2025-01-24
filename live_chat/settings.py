@@ -65,6 +65,8 @@ class Settings(BaseSettings):
     minio_url: Optional[str] = None
     # Logfire
     use_logfire: bool = False
+    # AI
+    use_ai: bool = True
 
     @property
     def db_url(self) -> URL:

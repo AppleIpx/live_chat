@@ -31,6 +31,7 @@ async def test_registration_user(
             if user.last_online
             else None
         ),
+        "is_warning": user.is_warning,
         "username": user.username,
         "user_image": user.user_image,
     }

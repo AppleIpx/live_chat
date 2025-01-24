@@ -35,6 +35,7 @@ async def registered_user(client: AsyncClient) -> Response:
             "user_image": None,
             "is_deleted": False,
             "is_banned": False,
+            "is_warning": False,
         },
     )
 
@@ -53,6 +54,7 @@ async def registered_deleted_user(client: AsyncClient) -> Response:
             "user_image": None,
             "is_deleted": True,
             "is_banned": False,
+            "is_warning": False,
         },
     )
 
@@ -71,5 +73,6 @@ async def registered_banned_user(client: AsyncClient) -> Response:
             "user_image": None,
             "is_deleted": False,
             "is_banned": True,
+            "is_warning": False,
         },
     )

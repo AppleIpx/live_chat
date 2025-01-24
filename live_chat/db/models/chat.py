@@ -26,8 +26,8 @@ from live_chat.db.utils import RemoveBaseFieldsMixin
 chat_participant = Table(
     "chat_participant",
     meta,
-    Column("user_id", UUID, ForeignKey("user.id"), primary_key=True),
-    Column("chat_id", UUID, ForeignKey("chat.id"), primary_key=True),
+    Column("user_id", UUID, ForeignKey("user.id"), primary_key=False),
+    Column("chat_id", UUID, ForeignKey("chat.id"), primary_key=False),
 )
 
 
@@ -46,6 +46,18 @@ class BaseMessage(Base):
     chat_id: Mapped[UUID] = mapped_column(ForeignKey("chat.id"))
     file_name: Mapped[str] = mapped_column(String(50), nullable=True)
     file_path: Mapped[str] = mapped_column(String(1000), nullable=True)
+
+
+class BaseWarning(Base):
+    """Abstract base class for warnings."""
+
+    __abstract__ = True
+
+    id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
+    reason = Column(String(500), nullable=False)
+    ai_detection = Column(Boolean, default=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
+    correction_deadline = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class Message(BaseMessage):
@@ -96,6 +108,39 @@ class DraftMessage(BaseMessage):
 
     def __str__(self) -> str:
         return f"Draft by {self.user_id} in chat {self.chat_id}"
+
+
+class WarningFirstName(BaseWarning):
+    """Warning name."""
+
+    __tablename__ = "warning_firstname"
+
+    user = relationship("User", backref="warning_firstname")
+
+    def __str__(self) -> str:
+        return f"Warning first name: {self.user.first_name}"
+
+
+class WarningLastName(BaseWarning):
+    """Warning last name."""
+
+    __tablename__ = "warning_lastname"
+
+    user = relationship("User", backref="warning_lastname")
+
+    def __str__(self) -> str:
+        return f"Warning last name: {self.user.last_name}"
+
+
+class WarningUsername(BaseWarning):
+    """Warning username."""
+
+    __tablename__ = "warning_username"
+
+    user = relationship("User", backref="warning_username")
+
+    def __str__(self) -> str:
+        return f"Warning username: {self.user.username}"
 
 
 class Chat(Base):
@@ -250,6 +295,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         back_populates="user",
         cascade="all,delete",
     )
+    is_warning: Mapped[bool] = mapped_column(Boolean, default=False)
 
     def __str__(self) -> str:
         return f"{self.username}"
