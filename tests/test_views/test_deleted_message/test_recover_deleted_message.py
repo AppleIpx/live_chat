@@ -22,10 +22,10 @@ async def test_recover_deleted_message(
     dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
 ) -> None:
-    """Testing recover_deleted_message."""
-    chat = deleted_message_in_chat.chat
+    """Testing recover deleted message."""
+    created_chat = deleted_message_in_chat.chat
     response = await authorized_client.post(
-        f"/api/chats/{chat.id}/messages/{deleted_message_in_chat.id}/recover",
+        f"/api/chats/{created_chat.id}/messages/{deleted_message_in_chat.id}/recover",
     )
     deleted_mesage_db = await get_deleted_message_by_id(
         db_session=dbsession,
@@ -35,7 +35,9 @@ async def test_recover_deleted_message(
         db_session=dbsession,
         message_id=deleted_message_in_chat.original_message_id,
     )
-    target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{chat.users[1].id!s}"
+    target_channel = (
+        f"{REDIS_CHANNEL_PREFIX}:{created_chat.id!s}:{created_chat.users[1].id!s}"
+    )
     message_data = await transformation_message_data(orig_message)
 
     mocked_publish_message.assert_called_with(
@@ -47,16 +49,16 @@ async def test_recover_deleted_message(
     assert deleted_mesage_db is None
     assert orig_message is not None
     assert orig_message.is_deleted is False
-    assert chat.last_message_content == orig_message.content[:100]
+    assert created_chat.last_message_content == orig_message.content[:100]
 
 
 @pytest.mark.anyio
 async def test_invalid_deleted_message(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """
     Testing the error.
@@ -78,9 +80,9 @@ async def test_invalid_deleted_message(
 async def test_recover_message_with_failed_chat(
     authorized_client: AsyncClient,
     deleted_message_in_chat: DeletedMessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
-    dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
+    dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing recovery of a message indicating the wrong chat."""
     response = await authorized_client.post(
@@ -96,9 +98,9 @@ async def test_recover_message_with_failed_chat(
 async def test_recover_message_with_failed_message(
     authorized_client: AsyncClient,
     deleted_message_in_chat: DeletedMessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing recovery of a message indicating the wrong message."""
     response = await authorized_client.post(
@@ -114,9 +116,9 @@ async def test_recover_message_with_failed_message(
 async def test_recover_message_for_non_member(
     authorized_client: AsyncClient,
     deleted_message_in_chat: DeletedMessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test for recover a message by a user who is not a member of the group."""
     del deleted_message_in_chat.chat.users[0]
@@ -135,9 +137,9 @@ async def test_recover_message_with_non_author(
     authorized_client: AsyncClient,
     deleted_message_in_chat: DeletedMessageFactory,
     user: UserFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test for recover a message by a user who is not a author message."""
     deleted_message_in_chat.user = user
@@ -155,8 +157,8 @@ async def test_recover_message_with_non_author(
 async def test_recover_message_by_deleted_user(
     authorized_deleted_client: AsyncClient,
     deleted_message_in_chat: DeletedMessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing recover deleted message by a deleted user."""
     chat = deleted_message_in_chat.chat
@@ -171,8 +173,8 @@ async def test_recover_message_by_deleted_user(
 async def test_recover_message_by_banned_user(
     authorized_banned_client: AsyncClient,
     deleted_message_in_chat: DeletedMessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing recover deleted message by a banned user."""
     chat = deleted_message_in_chat.chat

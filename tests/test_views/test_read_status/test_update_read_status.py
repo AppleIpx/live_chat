@@ -65,16 +65,15 @@ async def test_update_read_status(
 @pytest.mark.anyio
 async def test_update_read_status_unauthorized_user(
     client: AsyncClient,
-    message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    chat: ChatFactory,
     dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
 ) -> None:
     """Testing update read status from unauthorized user."""
     response = await client.patch(
-        f"/api/read_status/{message_in_chat.chat.id}/update",
+        f"/api/read_status/{chat.id}/update",
         json={
-            "last_read_message_id": str(message_in_chat.id),
+            "last_read_message_id": str(chat.id),
             "count_unread_msg": 0,
         },
     )
@@ -180,8 +179,8 @@ async def test_update_read_status_nonexistent_message(
 async def test_update_read_status_by_deleted_user(
     authorized_deleted_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing to update read status by a deleted user."""
     chat = message_in_chat.chat

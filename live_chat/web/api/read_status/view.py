@@ -25,9 +25,9 @@ read_status_router = APIRouter()
 )
 async def update_read_status(
     update_read_status: UpdateReadStatusSchema,
+    current_user: User = Depends(custom_current_user),
     chat: Chat = Depends(validate_user_access_to_chat),
     db_session: AsyncSession = Depends(get_async_session),
-    current_user: User = Depends(custom_current_user),
 ) -> ReadStatusSchema:
     """Update read status."""
     if read_status := await get_read_status_by_user_chat_ids(

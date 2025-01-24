@@ -114,7 +114,6 @@ async def update_message(
         message.content = message_schema.content
         message.updated_at = datetime.now(timezone.utc)
         chat.last_message_content = message_schema.content[:100]  # type: ignore[index]
-        db_session.add_all([message, chat])
         await db_session.commit()
         message_data = await transformation_message(message)
         event_data = jsonable_encoder(message_data.model_dump())

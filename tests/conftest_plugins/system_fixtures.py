@@ -8,6 +8,7 @@ from fakeredis.aioredis import FakeConnection
 from fastapi import FastAPI
 from httpx import AsyncClient, Response
 from redis.asyncio import ConnectionPool
+from sqlalchemy import NullPool
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -48,7 +49,10 @@ async def _engine() -> AsyncGenerator[AsyncEngine, None]:
 
     await create_database()
 
-    engine = create_async_engine(str(settings.db_url))
+    engine = create_async_engine(
+        str(settings.db_url),
+        poolclass=NullPool,
+    )
     async with engine.begin() as conn:
         await conn.run_sync(meta.create_all)
 
@@ -60,8 +64,19 @@ async def _engine() -> AsyncGenerator[AsyncEngine, None]:
 
 
 @pytest.fixture
+async def clean_database(_engine: AsyncEngine) -> None:
+    """Fixture for cleaning the database before each test."""
+    from live_chat.db.meta import meta
+
+    async with _engine.begin() as conn:
+        for table in reversed(meta.sorted_tables):
+            await conn.execute(table.delete())
+
+
+@pytest.fixture(scope="function")
 async def dbsession(
     _engine: AsyncEngine,
+    clean_database: None,
 ) -> AsyncGenerator[AsyncSession, None]:
     """
     Get session to database.
@@ -76,16 +91,19 @@ async def dbsession(
     trans = await connection.begin()
 
     session_maker = async_sessionmaker(
-        connection,
+        bind=connection,
         expire_on_commit=False,
     )
     session = session_maker()
 
     try:
         yield session
+        if trans.is_active:
+            await trans.rollback()
+            await session.close()
+            await connection.close()
     finally:
         await session.close()
-        await trans.rollback()
         await connection.close()
 
 
@@ -212,9 +230,9 @@ async def authorized_banned_client(
 
 @pytest.fixture
 def override_get_async_session(
-    dbsession: AsyncSession,
     fastapi_app: FastAPI,
-) -> AsyncGenerator[AsyncSession, None]:
+    dbsession: AsyncSession,
+) -> AsyncGenerator[None, None]:
     """Overrides the get_async_session dependency to use the session from dbsession."""
 
     async def _override_get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -222,7 +240,7 @@ def override_get_async_session(
 
     fastapi_app.dependency_overrides[get_async_session] = _override_get_db
     yield
-    fastapi_app.dependency_overrides.pop(get_async_session)
+    fastapi_app.dependency_overrides.pop(get_async_session, None)
 
 
 @pytest.fixture

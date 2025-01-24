@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
-from tests.factories import MessageFactory, UserFactory
+from live_chat.web.api.messages.utils import get_message_by_id
+from tests.factories import ChatFactory, MessageFactory, UserFactory
 from tests.utils import transformation_message_data
 
 
@@ -17,35 +18,43 @@ from tests.utils import transformation_message_data
 async def test_update_message(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test update message."""
-    chat = message_in_chat.chat
+    created_chat = message_in_chat.chat
     response = await authorized_client.patch(
-        f"/api/chats/{chat.id}/messages/{message_in_chat.id}",
+        f"/api/chats/{created_chat.id}/messages/{message_in_chat.id}",
         json={"content": "test"},
     )
-    target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat.id!s}:{chat.users[1].id!s}"
+    target_channel = (
+        f"{REDIS_CHANNEL_PREFIX}:{created_chat.id!s}:{created_chat.users[1].id!s}"
+    )
     message_data = await transformation_message_data(message_in_chat)
 
     mocked_publish_message.assert_called_with(
         json.dumps({"event": "update_message", "data": message_data}),
         channel=target_channel,
     )
-    assert chat.last_message_content == "test"
+    updated_message = await get_message_by_id(
+        db_session=dbsession,
+        message_id=message_in_chat.id,
+    )
+
+    assert created_chat.last_message_content == "test"
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
-        "id": str(message_in_chat.id),
-        "user_id": str(message_in_chat.user.id),
-        "chat_id": str(chat.id),
-        "message_type": message_in_chat.message_type.value,
-        "content": message_in_chat.content,
-        "file_name": message_in_chat.file_name,
-        "file_path": message_in_chat.file_path,
-        "created_at": message_in_chat.created_at.isoformat().replace("+00:00", "Z"),
-        "updated_at": message_in_chat.updated_at.isoformat().replace("+00:00", "Z"),
-        "is_deleted": message_in_chat.is_deleted,
+        "id": str(updated_message.id),
+        "user_id": str(updated_message.user.id),
+        "chat_id": str(created_chat.id),
+        "message_type": updated_message.message_type.value,
+        "content": updated_message.content,
+        "file_name": updated_message.file_name,
+        "file_path": updated_message.file_path,
+        "created_at": updated_message.created_at.isoformat().replace("+00:00", "Z"),
+        "updated_at": updated_message.updated_at.isoformat().replace("+00:00", "Z"),
+        "is_deleted": updated_message.is_deleted,
         "reactions": [],
     }
 
@@ -53,12 +62,12 @@ async def test_update_message(
 @pytest.mark.anyio
 async def test_update_message_with_fail_chat(
     authorized_client: AsyncClient,
-    message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    message: MessageFactory,
+    dbsession: AsyncSession,
 ) -> None:
     """Test message update test with non-existent chat."""
     response = await authorized_client.patch(
-        f"/api/chats/{uuid.uuid4()}/messages/{message_in_chat.id}",
+        f"/api/chats/{uuid.uuid4()}/messages/{message.id}",
         json={"content": "test"},
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -68,12 +77,13 @@ async def test_update_message_with_fail_chat(
 @pytest.mark.anyio
 async def test_update_message_with_fail_message(
     authorized_client: AsyncClient,
-    message_in_chat: MessageFactory,
+    any_chat_with_users: ChatFactory,
+    dbsession: AsyncSession,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test message update test with non-existent message."""
     response = await authorized_client.patch(
-        f"/api/chats/{message_in_chat.chat.id}/messages/{uuid.uuid4()}",
+        f"/api/chats/{any_chat_with_users.id}/messages/{uuid.uuid4()}",
         json={"content": "test"},
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -84,6 +94,7 @@ async def test_update_message_with_fail_message(
 async def test_update_message_for_non_member(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
+    dbsession: AsyncSession,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test for updating a message by a user who is not a member of the group."""
@@ -101,8 +112,8 @@ async def test_update_message_with_non_author(
     authorized_client: AsyncClient,
     user: UserFactory,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test for update a message by a user who is not a author message."""
     message_in_chat.user = user
@@ -118,8 +129,8 @@ async def test_update_message_with_non_author(
 async def test_update_message_by_deleted_user(
     authorized_deleted_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing to update message by a deleted user."""
     chat = message_in_chat.chat
@@ -135,8 +146,8 @@ async def test_update_message_by_deleted_user(
 async def test_update_message_by_banned_user(
     authorized_banned_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing to update message by a banned user."""
     chat = message_in_chat.chat

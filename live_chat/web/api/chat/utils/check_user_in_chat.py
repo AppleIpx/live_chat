@@ -16,11 +16,11 @@ async def validate_user_access_to_chat(
     db_session: AsyncSession = Depends(get_async_session),
 ) -> Chat:
     """Validate that the current user has access to the chat."""
-    chat = await get_chat_by_id(db_session, chat_id=chat_id)
+    chat = await get_chat_by_id(db_session=db_session, chat_id=chat_id)
 
     if chat is None:
         raise HTTPException(status_code=404, detail="Chat not found")
-    user_chats = await get_user_chats(db_session, current_user=current_user)
+    user_chats = await get_user_chats(db_session=db_session, current_user=current_user)
     if chat not in user_chats:
         raise HTTPException(status_code=403, detail="User is not part of the chat")
 

@@ -17,9 +17,9 @@ from tests.factories import ChatFactory, MessageFactory, ReactionFactory
 async def test_delete_message_reaction(
     authorized_client: AsyncClient,
     reaction: ReactionFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing post message reaction."""
     message_id = reaction.message.id
@@ -120,8 +120,8 @@ async def test_delete_message_reaction_nonexistent_user(
 async def test_delete_message_reaction_by_deleted_user(
     authorized_deleted_client: AsyncClient,
     reaction: ReactionFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing delete message reaction by a deleted user."""
     message_id = reaction.message.id
