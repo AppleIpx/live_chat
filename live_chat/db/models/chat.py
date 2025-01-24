@@ -26,8 +26,8 @@ from live_chat.db.utils import RemoveBaseFieldsMixin
 chat_participant = Table(
     "chat_participant",
     meta,
-    Column("user_id", UUID, ForeignKey("user.id"), primary_key=True),
-    Column("chat_id", UUID, ForeignKey("chat.id"), primary_key=True),
+    Column("user_id", UUID, ForeignKey("user.id"), primary_key=False),
+    Column("chat_id", UUID, ForeignKey("chat.id"), primary_key=False),
 )
 
 

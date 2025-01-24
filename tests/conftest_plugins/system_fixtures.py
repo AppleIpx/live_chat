@@ -63,20 +63,9 @@ async def _engine() -> AsyncGenerator[AsyncEngine, None]:
         await drop_database()
 
 
-@pytest.fixture
-async def clean_database(_engine: AsyncEngine) -> None:
-    """Fixture for cleaning the database before each test."""
-    from live_chat.db.meta import meta
-
-    async with _engine.begin() as conn:
-        for table in reversed(meta.sorted_tables):
-            await conn.execute(table.delete())
-
-
 @pytest.fixture(scope="function")
 async def dbsession(
     _engine: AsyncEngine,
-    clean_database: None,
 ) -> AsyncGenerator[AsyncSession, None]:
     """
     Get session to database.
