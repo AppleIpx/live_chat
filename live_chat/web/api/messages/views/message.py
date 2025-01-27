@@ -17,6 +17,7 @@ from live_chat.web.api.chat.utils import validate_user_access_to_chat
 from live_chat.web.api.messages import GetMessageSchema, PostMessageSchema
 from live_chat.web.api.messages.schemas import GetReactionSchema, UpdateMessageSchema
 from live_chat.web.api.messages.utils import (
+    check_parent_message,
     publish_faststream,
     save_message_to_db,
     transformation_message,
@@ -78,6 +79,10 @@ async def post_message(
             sender=current_user,
             db_session=db_session,
         )
+    await check_parent_message(
+        db_session=db_session,
+        message_id=message_schema.parent_message_id,
+    )
     if created_message := await save_message_to_db(
         db_session,
         message_schema,

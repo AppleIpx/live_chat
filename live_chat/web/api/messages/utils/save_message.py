@@ -28,6 +28,7 @@ async def save_message_to_db(
     message = Message(
         content=message_content,
         message_type=message_schema.message_type,
+        parent_message_id=message_schema.parent_message_id,
         file_path=message_schema.file_path,
         file_name=message_schema.file_name,
         chat_id=chat.id,

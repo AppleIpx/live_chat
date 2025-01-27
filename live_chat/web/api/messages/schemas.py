@@ -34,6 +34,7 @@ class GetBaseMessageSchema(BaseModel):
     content: str | None
     created_at: datetime
     updated_at: datetime
+    parent_message_id: UUID | None
     is_deleted: bool
 
 
@@ -52,6 +53,7 @@ class PostMessageSchema(BaseModel):
 
     message_type: MessageType = MessageType.TEXT
     content: str | None = None
+    parent_message_id: UUID | None = None
     file_name: str | None = None
     file_path: str | None = None
 

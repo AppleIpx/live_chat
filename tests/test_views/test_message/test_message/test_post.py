@@ -65,6 +65,7 @@ async def test_post_text_message(
         "created_at": message.created_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": False,
         "reactions": [],
+        "parent_message_id": message.parent_message_id,
         "updated_at": message.updated_at.isoformat().replace("+00:00", "Z"),
         "user_id": f"{direct_chat_with_users.users[0].id}",
     }
@@ -120,6 +121,7 @@ async def test_post_file_message(
         "created_at": message.created_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": False,
         "reactions": [],
+        "parent_message_id": message.parent_message_id,
         "updated_at": message.updated_at.isoformat().replace("+00:00", "Z"),
         "user_id": f"{direct_chat_with_users.users[0].id}",
     }

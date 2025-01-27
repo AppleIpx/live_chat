@@ -46,6 +46,10 @@ class BaseMessage(Base):
     chat_id: Mapped[UUID] = mapped_column(ForeignKey("chat.id"))
     file_name: Mapped[str] = mapped_column(String(50), nullable=True)
     file_path: Mapped[str] = mapped_column(String(1000), nullable=True)
+    parent_message_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("message.id"),
+        nullable=True,
+    )
 
 
 class BaseWarning(Base):
@@ -74,6 +78,11 @@ class Message(BaseMessage):
         "Reaction",
         back_populates="message",
         cascade="all, delete-orphan",
+    )
+    parent_message: Mapped["Message"] = relationship(
+        "Message",
+        remote_side="Message.id",
+        backref="replies",
     )
 
     def __str__(self) -> str:

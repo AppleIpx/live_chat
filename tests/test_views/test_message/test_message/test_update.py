@@ -52,6 +52,7 @@ async def test_update_message(
         "content": updated_message.content,
         "file_name": updated_message.file_name,
         "file_path": updated_message.file_path,
+        "parent_message_id": updated_message.parent_message_id,
         "created_at": updated_message.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": updated_message.updated_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": updated_message.is_deleted,
