@@ -17,7 +17,8 @@ from live_chat.web.api.users.utils import get_user_by_id
 from tests.factories import (
     BlackListFactory,
     ChatFactory,
-    ReadStatusFactory, MessageFactory,
+    MessageFactory,
+    ReadStatusFactory,
 )
 from tests.utils import transformation_message_data
 
@@ -133,6 +134,7 @@ async def test_post_reply_message_with_not_exist_parent_message(
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
+    """Testing post reply message with not exist parent message."""
     chat_id = message_in_chat.chat.id
     response = await authorized_client.post(
         f"/api/chats/{chat_id}/messages",
