@@ -59,7 +59,7 @@ async def get_messages(
     return messages
 
 
-@message_router.post("/chats/{chat_id}/messages")
+@message_router.post("/chats/{chat_id}/messages", status_code=status.HTTP_201_CREATED)
 async def post_message(
     message_schema: PostMessageSchema,
     chat: Chat = Depends(validate_user_access_to_chat),

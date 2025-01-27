@@ -12,10 +12,12 @@ from starlette import status
 
 from live_chat.db.models.chat import Message
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
+from live_chat.web.api.messages.utils import get_message_by_id
+from live_chat.web.api.users.utils import get_user_by_id
 from tests.factories import (
     BlackListFactory,
     ChatFactory,
-    ReadStatusFactory,
+    ReadStatusFactory, MessageFactory,
 )
 from tests.utils import transformation_message_data
 
@@ -54,7 +56,7 @@ async def test_post_text_message(
     )
     assert read_status.count_unread_msg == 1
     assert direct_chat_with_users.last_message_content == "test"
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_201_CREATED
     assert response.json() == {
         "id": f"{message.id}",
         "chat_id": f"{chat_id}",
@@ -69,6 +71,81 @@ async def test_post_text_message(
         "updated_at": message.updated_at.isoformat().replace("+00:00", "Z"),
         "user_id": f"{direct_chat_with_users.users[0].id}",
     }
+
+
+@pytest.mark.anyio
+async def test_post_reply_message(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+    mocked_publish_message: AsyncMock,
+) -> None:
+    """Testing post reply message."""
+    chat_id = message_in_chat.chat.id
+    recipient = await get_user_by_id(
+        db_session=dbsession,
+        user_id=message_in_chat.chat.users[1].id,
+    )
+    target_channel = f"{REDIS_CHANNEL_PREFIX}:{chat_id!s}:{recipient.id!s}"
+    response = await authorized_client.post(
+        f"/api/chats/{chat_id}/messages",
+        json={
+            "message_type": "text",
+            "content": "test",
+            "parent_message_id": str(message_in_chat.id),
+            "file_name": None,
+            "file_path": None,
+        },
+    )
+    new_message_id = response.json()["id"]
+    new_message = await get_message_by_id(
+        db_session=dbsession,
+        message_id=new_message_id,
+    )
+    message_data = await transformation_message_data(new_message)
+    mocked_publish_message.assert_called_with(
+        json.dumps({"event": "new_message", "data": message_data}),
+        channel=target_channel,
+    )
+    sender = await get_user_by_id(db_session=dbsession, user_id=new_message.user_id)
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json() == {
+        "id": f"{new_message.id}",
+        "chat_id": f"{chat_id}",
+        "message_type": new_message.message_type.value,
+        "content": "test",
+        "file_name": new_message.file_name,
+        "file_path": new_message.file_path,
+        "created_at": new_message.created_at.isoformat().replace("+00:00", "Z"),
+        "is_deleted": False,
+        "reactions": [],
+        "parent_message_id": str(new_message.parent_message_id),
+        "updated_at": new_message.updated_at.isoformat().replace("+00:00", "Z"),
+        "user_id": f"{sender.id}",
+    }
+
+
+@pytest.mark.anyio
+async def test_post_reply_message_with_not_exist_parent_message(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    chat_id = message_in_chat.chat.id
+    response = await authorized_client.post(
+        f"/api/chats/{chat_id}/messages",
+        json={
+            "message_type": "text",
+            "content": "test",
+            "parent_message_id": str(uuid.uuid4()),
+            "file_name": None,
+            "file_path": None,
+        },
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Parent message does not exist."}
 
 
 @pytest.mark.anyio
@@ -110,7 +187,7 @@ async def test_post_file_message(
     )
     assert read_status.count_unread_msg == 1
     assert direct_chat_with_users.last_message_content is None
-    assert response.status_code == status.HTTP_200_OK
+    assert response.status_code == status.HTTP_201_CREATED
     assert response.json() == {
         "id": f"{message.id}",
         "chat_id": f"{chat_id}",

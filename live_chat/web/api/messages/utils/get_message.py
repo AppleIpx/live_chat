@@ -41,8 +41,8 @@ async def check_parent_message(
         is None
     ):
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Parent message does not exist",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Parent message does not exist.",
         )
 
 
