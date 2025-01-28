@@ -1,8 +1,10 @@
 from uuid import UUID
 
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from starlette import status
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     DeletedMessage,
@@ -23,6 +25,25 @@ async def get_message_by_id(
     )
     result = await db_session.execute(query)
     return result.scalar_one_or_none()
+
+
+async def check_parent_message(
+    db_session: AsyncSession,
+    message_id: UUID | None,
+) -> None:
+    """Function to check if a message is parent of a message."""
+    if (
+        message_id is not None
+        and await get_message_by_id(
+            db_session=db_session,
+            message_id=message_id,
+        )
+        is None
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Parent message does not exist.",
+        )
 
 
 async def get_deleted_message_by_id(
