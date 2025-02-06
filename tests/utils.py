@@ -91,6 +91,7 @@ async def transformation_message_data(message: MessageFactory | Message) -> str:
                 "parent_message_id": message.parent_message_id,
                 "is_deleted": message.is_deleted,
                 "reactions": [],
+                "forwarded_message": message.forwarded_message,
             },
         ),
     )

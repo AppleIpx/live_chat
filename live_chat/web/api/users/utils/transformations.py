@@ -58,5 +58,6 @@ def transformation_other_user_read(
         user_image=user.user_image,  # type: ignore[call-arg]
         last_online=user.last_online,  # type: ignore[call-arg]
         is_deleted=user.is_deleted,  # type: ignore[call-arg]
-        is_banned=is_blocked,  # type: ignore[call-arg]
+        is_banned=user.is_banned,  # type: ignore[call-arg]
+        is_blocked=is_blocked,  # type: ignore[call-arg]
     )
