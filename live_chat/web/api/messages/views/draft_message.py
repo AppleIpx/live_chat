@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from starlette.responses import Response
 
-from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
+from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.utils import validate_user_access_to_chat
 from live_chat.web.api.messages.schemas import (

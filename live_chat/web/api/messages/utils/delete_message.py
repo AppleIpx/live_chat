@@ -3,10 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Chat,
-    DeletedMessage,
-    DraftMessage,
-    Message,
 )
+from live_chat.db.models.messages import DeletedMessage, DraftMessage, Message
 from live_chat.web.api.chat.utils import set_previous_message_content
 
 

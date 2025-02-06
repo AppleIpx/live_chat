@@ -3,7 +3,8 @@ from fastapi.encoders import jsonable_encoder
 from starlette import status
 from starlette.responses import JSONResponse
 
-from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import Chat
+from live_chat.db.models.user import User
 from live_chat.web.api.chat.utils import validate_user_access_to_chat
 from live_chat.web.api.messages.utils import publish_faststream
 from live_chat.web.api.users.utils import custom_current_user

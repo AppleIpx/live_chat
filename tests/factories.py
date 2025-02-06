@@ -4,18 +4,16 @@ from datetime import datetime
 import factory
 from factory.fuzzy import FuzzyChoice
 
+from live_chat.db.models.black_list import BlackList
+from live_chat.db.models.blocked_users import BlockedUsers
 from live_chat.db.models.chat import (
-    BlackList,
-    BlockedUsers,
     Chat,
-    DeletedMessage,
-    DraftMessage,
-    Message,
-    Reaction,
-    ReadStatus,
-    User,
 )
 from live_chat.db.models.enums import ChatType, MessageType
+from live_chat.db.models.messages import DeletedMessage, DraftMessage, Message
+from live_chat.db.models.reaction import Reaction
+from live_chat.db.models.read_status import ReadStatus
+from live_chat.db.models.user import User
 
 
 class UserFactory(factory.alchemy.SQLAlchemyModelFactory):

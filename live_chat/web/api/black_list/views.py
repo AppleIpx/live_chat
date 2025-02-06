@@ -6,10 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from starlette.responses import JSONResponse
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    BlockedUsers,
-    User,
-)
+from live_chat.db.models.blocked_users import BlockedUsers
+from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.black_list import (
     BlackListCreateSchema,
@@ -140,7 +138,7 @@ async def get_black_list_users(
             .where(User.is_deleted == False)  # noqa: E712
             .join(BlockedUsers, BlockedUsers.user_id == User.id)
             .where(BlockedUsers.blacklist_id == black_list.id)
-            .order_by(User.id)
+            .order_by(User.id)  # type: ignore[arg-type]
         )
         return await paginate(db_session, blocked_users_query, params=params)
     return JSONResponse(content=[], status_code=status.HTTP_200_OK)

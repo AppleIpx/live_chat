@@ -1,10 +1,8 @@
 from typing import List
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    Chat,
-    DraftMessage,
-    ReadStatus,
-)
+from live_chat.db.models.chat import Chat
+from live_chat.db.models.messages import DraftMessage
+from live_chat.db.models.read_status import ReadStatus
 from live_chat.web.api.chat import ChatSchema
 from live_chat.web.api.chat.schemas import ReadStatusSchema
 

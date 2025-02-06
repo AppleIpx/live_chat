@@ -1,7 +1,7 @@
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import Reaction  # type: ignore[attr-defined]
+from live_chat.db.models.reaction import Reaction
 
 
 async def delete_reaction_by_id(

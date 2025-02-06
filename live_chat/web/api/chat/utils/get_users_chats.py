@@ -4,8 +4,9 @@ from sqlalchemy import Select, and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.models.enums import ChatType
+from live_chat.db.models.user import User
 
 
 async def get_query(current_user: User, chat_type: str) -> Select[tuple[Chat]]:

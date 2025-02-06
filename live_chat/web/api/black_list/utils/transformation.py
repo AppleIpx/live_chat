@@ -1,6 +1,7 @@
 from uuid import UUID
 
-from live_chat.db.models.chat import BlackList, User  # type: ignore[attr-defined]
+from live_chat.db.models.black_list import BlackList
+from live_chat.db.models.user import User
 from live_chat.web.api.black_list.schemas import BlackListSchema
 from live_chat.web.api.users.schemas import UserShortRead
 
