@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from live_chat.db.models.chat import Chat
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.models.messages import DeletedMessage
 from live_chat.db.models.read_status import ReadStatus
 from live_chat.db.models.user import User

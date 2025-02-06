@@ -1,6 +1,6 @@
 from typing import List
 
-from live_chat.db.models.chat import Chat
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.models.messages import DraftMessage
 from live_chat.db.models.read_status import ReadStatus
 from live_chat.web.api.chat import ChatSchema

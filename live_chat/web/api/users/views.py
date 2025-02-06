@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.db.models.chat import User  # type: ignore[attr-defined]
+from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.black_list.utils import validate_user_in_black_list
 from live_chat.web.api.black_list.utils.get import (
@@ -31,6 +31,7 @@ from live_chat.web.api.users.utils import (
     recover_me,
 )
 from live_chat.web.api.users.utils.authentication import current_active_user
+from live_chat.web.api.users.utils.transformations import transformation_other_user_read
 from live_chat.web.api.users.utils.validators import validate_user_active
 from live_chat.web.enums import UploadFileDirectoryEnum
 from live_chat.web.utils.image_saver import FileSaver
@@ -66,7 +67,7 @@ async def get_users(
     query = (
         select(User)
         .where(User.is_deleted == False, User.is_banned == False)  # noqa: E712
-        .order_by(User.id)
+        .order_by(User.id)  # type: ignore[arg-type]
     )
     return await paginate(db_session, query, params=params)
 
@@ -76,7 +77,7 @@ async def get_user(
     user_id: UUID,
     current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
-) -> User:
+) -> OtherUserRead:
     """Gets a user by id without authentication."""
     if user := await get_user_by_id(db_session, user_id=user_id):
         await validate_user_active(user)
@@ -86,14 +87,13 @@ async def get_user(
                 db_session=db_session,
             )
         ) and await get_user_in_black_list(black_list, user.id, db_session):
-            user.is_blocked = True
-            return user
+            return transformation_other_user_read(user=user, is_blocked=True)
         await validate_user_in_black_list(
             recipient=user,
             sender=current_user,
             db_session=db_session,
         )
-        return user
+        return transformation_other_user_read(user=user, is_blocked=False)
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail="User not found",

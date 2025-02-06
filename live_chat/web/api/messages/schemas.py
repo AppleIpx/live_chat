@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -38,10 +39,19 @@ class GetBaseMessageSchema(BaseModel):
     is_deleted: bool
 
 
+class GetForwardMessageSchema(BaseModel):
+    """Represents a get command for a forward message."""
+
+    id: UUID
+    chat_id: UUID
+    user_id: UUID
+
+
 class GetMessageSchema(GetBaseMessageSchema):
     """Represents a get command for a message."""
 
     reactions: list[GetReactionSchema]
+    forwarded_message: GetForwardMessageSchema | None
 
 
 class GetDeletedMessageSchema(GetBaseMessageSchema):
@@ -52,10 +62,10 @@ class PostMessageSchema(BaseModel):
     """Represents a message for create."""
 
     message_type: MessageType = MessageType.TEXT
-    content: str | None = None
-    parent_message_id: UUID | None = None
-    file_name: str | None = None
-    file_path: str | None = None
+    content: Optional[str] = None
+    parent_message_id: Optional[UUID] = None
+    file_name: Optional[str] = None
+    file_path: Optional[str] = None
 
 
 class UpdateMessageSchema(PostMessageSchema):
@@ -72,3 +82,16 @@ class UpdateDraftMessageSchema(PostDraftMessageSchema):
 
 class GetDraftMessageSchema(GetBaseMessageSchema):
     """Represents a get command for a draft message."""
+
+
+class PostForwardMessageSchema(BaseModel):
+    """Represents a post command for a forward message."""
+
+    from_chat_id: UUID
+    messages: list[UUID]
+
+
+class CreatedForwardMessageSchema(BaseModel):
+    """Scheme for displaying the created sent messages."""
+
+    forward_messages: list[GetMessageSchema]

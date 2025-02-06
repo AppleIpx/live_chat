@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.db.models.chat import Chat
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.schemas import ReadStatusSchema, UpdateReadStatusSchema

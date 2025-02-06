@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import Chat
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.models.messages import Message
 
 
