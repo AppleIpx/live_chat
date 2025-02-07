@@ -11,6 +11,7 @@ from live_chat.db.utils import async_session_maker, engine
 from live_chat.services.faststream import fast_stream_router
 from live_chat.settings import settings
 from live_chat.web.admin.auth import AdminAuth
+from live_chat.web.admin.models.task_admin import TaskAdmin
 from live_chat.web.admin.models.users_admin import UserAdmin
 from live_chat.web.api.router import api_router
 from live_chat.web.lifespan import lifespan_setup
@@ -63,6 +64,7 @@ def get_app() -> FastAPI:
         templates_dir="live_chat/web/admin/templates",
     )
     admin.add_view(UserAdmin)
+    admin.add_view(TaskAdmin)
 
     add_pagination(app)
     if settings.use_logfire:

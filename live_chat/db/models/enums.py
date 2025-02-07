@@ -13,3 +13,17 @@ class MessageType(enum.Enum):
 
     TEXT = "text"
     FILE = "file"
+
+
+class TaskType(enum.Enum):
+    """Select task type."""
+
+    SUMMARIZATION = "summarization"
+
+
+class TaskStatus(enum.Enum):
+    """Select task status."""
+
+    IN_PROGRESS = "in_progress"
+    SUCCESS = "success"
+    ERROR = "error"

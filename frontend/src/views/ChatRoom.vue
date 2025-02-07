@@ -543,17 +543,17 @@ export default {
     groupedReactions() {
       return this.messages.map(message => {
         const grouped = {};
-
-        message.reactions.forEach(reaction => {
-          if (!grouped[reaction.reaction_type]) {
-            grouped[reaction.reaction_type] = {
-              count: 0,
-              reaction_type: reaction.reaction_type
-            };
-          }
-          grouped[reaction.reaction_type].count += 1;
-        });
-
+        if (message.reactions) {
+          message.reactions.forEach(reaction => {
+            if (!grouped[reaction.reaction_type]) {
+              grouped[reaction.reaction_type] = {
+                count: 0,
+                reaction_type: reaction.reaction_type
+              };
+            }
+            grouped[reaction.reaction_type].count += 1;
+          });
+        }
         return {
           ...message,
           reactions: Object.values(grouped)

@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from live_chat.services.redis.lifespan import init_redis, shutdown_redis
 from live_chat.settings import settings
+from live_chat.web.ai_tools import init_summarizer
 
 
 def _setup_db(app: FastAPI) -> None:  # pragma: no cover
@@ -44,6 +45,7 @@ async def lifespan_setup(
     app.middleware_stack = None
     _setup_db(app)
     init_redis(app)
+    init_summarizer(app)
     app.middleware_stack = app.build_middleware_stack()
 
     yield
