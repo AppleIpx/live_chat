@@ -12,11 +12,11 @@ from transformers import (
     pipeline,
 )
 
-from live_chat.db.models.enums import TaskStatus
+from live_chat.db.models.enums import SummarizationStatus
 from live_chat.web.ai_tools.normalizer import Normalizer
 from live_chat.web.ai_tools.utils import (
-    get_task_by_chat_and_user,
-    update_summarization_task,
+    get_summarization_by_chat_and_user,
+    update_summarization,
 )
 from live_chat.web.api.ai.utils import publish_faststream_summarize
 
@@ -98,17 +98,19 @@ class Summarizer:
         """Generate summary for a chat."""
         date_to_text = await self._split_dialog(messages_map)
         result_data = {}
-        task = await get_task_by_chat_and_user(
+        total_parts = len(date_to_text)
+        processed_parts = 0
+        summarization = await get_summarization_by_chat_and_user(
             chat_id,
             user_id,
-            status=TaskStatus.IN_PROGRESS,
+            status=SummarizationStatus.IN_PROGRESS,
         )
-        if not task:
-            logging.error(msg="Task was not found in db.")
+        if not summarization:
+            logging.error(msg="Summarization was not found in db.")
             await publish_faststream_summarize(
                 user_id,
                 chat_id,
-                {"status": TaskStatus.ERROR},
+                {"status": SummarizationStatus.ERROR},
                 action="finish_summarization",
             )
             return
@@ -119,32 +121,46 @@ class Summarizer:
             else:
                 if result := await self.generate_summary_for_part(normalized_dialog):
                     result_data[date] = result
-                    await update_summarization_task(task_id=task.id, result=result_data)
-                    await publish_faststream_summarize(user_id, chat_id, {date: result})
+                    processed_parts += 1
+                    progress = round((processed_parts / total_parts) * 100, 2)
+                    await update_summarization(
+                        summarization_id=summarization.id,
+                        result=result_data,
+                        progress=progress,
+                    )
+                    await publish_faststream_summarize(
+                        user_id,
+                        chat_id,
+                        {
+                            date: result,
+                            "progress": progress,
+                        },
+                    )
                     continue
                 error_detail = "Error with generate summary"
-            await update_summarization_task(
-                task_id=task.id,
+            await update_summarization(
+                summarization_id=summarization.id,
                 result={"failed_error": error_detail},
-                status=TaskStatus.ERROR,
+                status=SummarizationStatus.ERROR,
                 finished_at=datetime.now(timezone.utc),
             )
             logging.error(msg=error_detail)
             await publish_faststream_summarize(
                 user_id,
                 chat_id,
-                {"status": TaskStatus.ERROR},
+                {"status": SummarizationStatus.ERROR},
                 action="finish_summarization",
             )
-        await update_summarization_task(
-            task_id=task.id,
+        await update_summarization(
+            summarization_id=summarization.id,
             result=result_data,
-            status=TaskStatus.SUCCESS,
+            status=SummarizationStatus.SUCCESS,
             finished_at=datetime.now(timezone.utc),
+            progress=100,
         )
         await publish_faststream_summarize(
             user_id,
             chat_id,
-            {"status": TaskStatus.SUCCESS},
+            {"status": SummarizationStatus.SUCCESS},
             action="finish_summarization",
         )

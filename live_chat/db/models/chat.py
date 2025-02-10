@@ -5,7 +5,6 @@ from typing import List
 
 from fastapi_users_db_sqlalchemy import GUID, UUID_ID, SQLAlchemyBaseUserTableUUID
 from sqlalchemy import (
-    JSON,
     UUID,
     Boolean,
     Column,
@@ -21,7 +20,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from live_chat.db.base import Base
 from live_chat.db.meta import meta
-from live_chat.db.models.enums import ChatType, MessageType, TaskStatus, TaskType
+from live_chat.db.models.enums import ChatType, MessageType
+from live_chat.db.models.summarization import Summarization
 from live_chat.db.utils import RemoveBaseFieldsMixin
 
 chat_participant = Table(
@@ -190,7 +190,7 @@ class Chat(Base):
         back_populates="chat",
         cascade="all,delete",
     )
-    tasks: Mapped[List["Task"]] = relationship(
+    summarizations: Mapped[List["Summarization"]] = relationship(
         back_populates="chat",
         cascade="all,delete",
     )
@@ -310,36 +310,10 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         cascade="all,delete",
     )
     is_warning: Mapped[bool] = mapped_column(Boolean, default=False)
-    tasks: Mapped[List["Task"]] = relationship(
+    summarizations: Mapped[List["Summarization"]] = relationship(
         back_populates="user",
         cascade="all,delete",
     )
 
     def __str__(self) -> str:
         return f"{self.username}"
-
-
-class Task(Base):  # type: ignore[misc]
-    """Background tasks model."""
-
-    __tablename__ = "task"
-
-    id: Mapped[UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
-    type: Mapped[TaskType] = mapped_column(Enum(TaskType, inherit_schema=True))
-    status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus, inherit_schema=True),
-    )
-    result: Mapped[dict] = mapped_column(JSON, default={})
-    finished_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-        default=None,
-    )
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))
-    chat_id: Mapped[UUID] = mapped_column(ForeignKey("chat.id"))
-
-    chat: Mapped[Chat] = relationship(back_populates="tasks")
-    user: Mapped["User"] = relationship(back_populates="tasks")
-
-    def __str__(self) -> str:
-        return f"Task {self.id} - {self.type} - {self.status}"

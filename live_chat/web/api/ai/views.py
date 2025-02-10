@@ -7,17 +7,21 @@ from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from live_chat.db.models.chat import Chat, Task, User  # type: ignore[attr-defined]
-from live_chat.db.models.enums import TaskStatus, TaskType
+from live_chat.db.models.chat import (  # type: ignore[attr-defined]
+    Chat,
+    User,
+)
+from live_chat.db.models.enums import SummarizationStatus
+from live_chat.db.models.summarization import Summarization
 from live_chat.db.utils import get_async_session
 from live_chat.settings import settings
 from live_chat.web.ai_tools.summarizer import Summarizer
 from live_chat.web.ai_tools.utils import (
-    delete_active_tasks_by_chat_and_user,
-    get_task_by_chat_and_user,
-    get_tasks_by_user,
+    delete_active_summarizations,
+    get_summarization_by_chat_and_user,
+    get_summarizations_by_user,
 )
-from live_chat.web.api.ai.schemas import SummarizationTaskSchema
+from live_chat.web.api.ai.schemas import SummarizationSchema
 from live_chat.web.api.chat.utils import validate_user_access_to_chat
 from live_chat.web.api.messages.constants import REDIS_SSE_KEY_PREFIX
 from live_chat.web.api.messages.utils import (
@@ -44,18 +48,17 @@ async def summarize_chat(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="The use of AI is not enabled",
         )
-    await delete_active_tasks_by_chat_and_user(
+    await delete_active_summarizations(
         db_session=db_session,
         chat_id=chat.id,
         user_id=current_user.id,
     )
-    task = Task(
-        type=TaskType.SUMMARIZATION,
-        status=TaskStatus.IN_PROGRESS,
+    summarization = Summarization(
+        status=SummarizationStatus.IN_PROGRESS,
         user_id=current_user.id,
         chat_id=chat.id,
     )
-    db_session.add(task)
+    db_session.add(summarization)
     await db_session.commit()
     messages = await get_formatted_messages_by_chat(
         chat_id=chat.id,
@@ -83,47 +86,50 @@ async def sse_events(
 
 
 @ai_router.get("/summarizations/{chat_id}")
-async def get_summarization_task(
-    task_status: TaskStatus,
+async def get_summarization_for_chat(
+    summarization_status: SummarizationStatus,
     chat: Chat = Depends(validate_user_access_to_chat),
     current_user: User = Depends(custom_current_user),
-) -> SummarizationTaskSchema:
+) -> SummarizationSchema:
     """Get the summarization task for this chat_id."""
-    task = await get_task_by_chat_and_user(
+    summarization = await get_summarization_by_chat_and_user(
         chat_id=chat.id,
         user_id=current_user.id,
-        status=task_status,
+        status=summarization_status,
     )
 
-    if not task:
+    if not summarization:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No summarization task found for this chat and user.",
+            detail="No summarization found for this chat and user.",
         )
 
-    return SummarizationTaskSchema(
-        chat_id=task.chat_id,
-        status=task.status.value,
-        result=task.result,
-        created_at=task.created_at,
-        finished_at=task.finished_at,
+    return SummarizationSchema(
+        chat_id=summarization.chat_id,
+        status=summarization.status.value,
+        result=summarization.result,
+        created_at=summarization.created_at,
+        finished_at=summarization.finished_at,
     )
 
 
 @ai_router.get("/summarizations")
-async def get_summarizations_tasks(
+async def get_summarizations_for_user(
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(custom_current_user),
-) -> list[SummarizationTaskSchema]:
-    """Get the current status of the summarization task."""
-    tasks = await get_tasks_by_user(db_session=db_session, user_id=current_user.id)
+) -> list[SummarizationSchema]:
+    """Get the current status of the summarization."""
+    summarizations = await get_summarizations_by_user(
+        db_session=db_session,
+        user_id=current_user.id,
+    )
     return [
-        SummarizationTaskSchema(
-            chat_id=task.chat_id,
-            status=task.status.value,
-            result=task.result,
-            created_at=task.created_at,
-            finished_at=task.finished_at,
+        SummarizationSchema(
+            chat_id=summarization.chat_id,
+            status=summarization.status.value,
+            result=summarization.result,
+            created_at=summarization.created_at,
+            finished_at=summarization.finished_at,
         )
-        for task in tasks
+        for summarization in summarizations
     ]

@@ -15,14 +15,8 @@ class MessageType(enum.Enum):
     FILE = "file"
 
 
-class TaskType(enum.Enum):
-    """Select task type."""
-
-    SUMMARIZATION = "summarization"
-
-
-class TaskStatus(enum.Enum):
-    """Select task status."""
+class SummarizationStatus(enum.Enum):
+    """Select summarization status."""
 
     IN_PROGRESS = "in_progress"
     SUCCESS = "success"

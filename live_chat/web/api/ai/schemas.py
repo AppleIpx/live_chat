@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 
-class SummarizationTaskSchema(BaseModel):
+class SummarizationSchema(BaseModel):
     """Schema for summarization task."""
 
     chat_id: UUID

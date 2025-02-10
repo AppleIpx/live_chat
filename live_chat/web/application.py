@@ -11,7 +11,7 @@ from live_chat.db.utils import async_session_maker, engine
 from live_chat.services.faststream import fast_stream_router
 from live_chat.settings import settings
 from live_chat.web.admin.auth import AdminAuth
-from live_chat.web.admin.models.task_admin import TaskAdmin
+from live_chat.web.admin.models.summarization_admin import SummarizationAdmin
 from live_chat.web.admin.models.users_admin import UserAdmin
 from live_chat.web.admin.models.warnings import (
     WarningFirstNameAdmin,
@@ -72,7 +72,7 @@ def get_app() -> FastAPI:
     admin.add_view(WarningFirstNameAdmin)
     admin.add_view(WarningLastNameAdmin)
     admin.add_view(WarningUserNameAdmin)
-    admin.add_view(TaskAdmin)
+    admin.add_view(SummarizationAdmin)
 
     add_pagination(app)
     if settings.use_logfire:
