@@ -194,7 +194,36 @@ export const messageService = {
             throw error;
         }
     },
-
+    async sendLastMessage(chatId, messageContent) {
+        try {
+            return await apiClient.post(`/api/chats/${chatId}/draft-message`, {"content": messageContent});
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+    async updateLastMessage(chatId, messageContent) {
+        try {
+            return await apiClient.put(`/api/chats/${chatId}/draft-message`, {"content": messageContent});
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+    async deleteLastMessage(chatId) {
+        try {
+            return await apiClient.delete(`/api/chats/${chatId}/draft-message`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
     async postReaction(chatId, messageId, reactionType) {
         try {
             return apiClient.post(
