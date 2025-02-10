@@ -600,15 +600,10 @@ export default {
   async beforeUnmount() {
     await this.sendReadStatusOnExit();
     if (this.messageText && !this.chatData.draft_message) {
-      console.log("SEND")
       await messageService.sendLastMessage(this.chatId, this.messageText)
     } else if (this.chatData.draft_message && this.messageText === "") {
-            console.log("DELETE")
-
       await messageService.deleteLastMessage(this.chatId)
     } else if (this.chatData.draft_message && this.messageText && this.chatData.draft_message !== this.messageText) {
-            console.log("UPDATE")
-
       await messageService.updateLastMessage(this.chatId, this.messageText)
     }
     SSEManager.disconnect(this.chatId);
