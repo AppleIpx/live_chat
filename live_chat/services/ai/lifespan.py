@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from live_chat.web.ai_tools import Summarizer
+from live_chat.web.ai_tools.summarizer import Summarizer
 from live_chat.web.ai_tools.toxic import ToxicEng, ToxicRus
 
 

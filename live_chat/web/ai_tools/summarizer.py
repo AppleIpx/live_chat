@@ -30,6 +30,7 @@ class Summarizer:
         self.prompt = self._create_prompt()
         self.chain = self.prompt | self.hf_pipeline | StrOutputParser()
         self.normalizer = Normalizer()
+        logging.warning("Summarizer started")
 
     @staticmethod
     def _load_model_and_tokenizer(

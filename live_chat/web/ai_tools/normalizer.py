@@ -12,6 +12,7 @@ class Normalizer:
 
     def __init__(self) -> None:
         self.normalizer = self._load_normalizer()
+        logging.warning("Normalizer started")
 
     @staticmethod
     def _load_normalizer(model_size: str = "medium") -> Any:

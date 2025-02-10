@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Union
 
 from transformers import pipeline
@@ -19,6 +20,7 @@ class ToxicRus(ToxicityDetector):
 
     def __init__(self) -> None:
         super().__init__("s-nlp/russian_toxicity_classifier")
+        logging.warning("Russian toxicity detection started")
 
 
 class ToxicEng(ToxicityDetector):
@@ -26,3 +28,4 @@ class ToxicEng(ToxicityDetector):
 
     def __init__(self) -> None:
         super().__init__("JungleLee/bert-toxic-comment-classification")
+        logging.warning("English toxicity detection started")
