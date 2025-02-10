@@ -1,7 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import Chat, Message  # type: ignore[attr-defined]
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
+from live_chat.db.models.messages import Message
 
 
 async def set_previous_message_content(chat: Chat, db_session: AsyncSession) -> None:
@@ -17,5 +18,5 @@ async def set_previous_message_content(chat: Chat, db_session: AsyncSession) -> 
         .limit(1)
     )
     prev_message = (await db_session.execute(query)).scalar_one_or_none()
-    chat.last_message_content = prev_message.content[:100] if prev_message else None
+    chat.last_message_content = prev_message.content[:100] if prev_message else None  # type: ignore[index]
     await db_session.commit()

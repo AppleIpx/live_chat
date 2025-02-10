@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from starlette.requests import Request
 
-from live_chat.db.models.chat import User  # type: ignore[attr-defined]
+from live_chat.db.models.user import User
 from live_chat.settings import settings
 from live_chat.web.api.users.utils.custom_user_db import CustomSQLAlchemyUserDatabase
 from live_chat.web.api.users.utils.validators import check_user_data_for_toxic
@@ -61,12 +61,12 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                     detail="The request was not sent",
                 )
             await check_user_data_for_toxic(
-                user=user,
+                user=user,  # type: ignore[arg-type]
                 app=request.app,
                 db_session=db_session,
             )
 
-    async def _update(self, user: models.UP, update_dict: dict[str, Any]) -> models.UP:
+    async def _update(self, user: models.UP, update_dict: dict[str, Any]) -> User:
         for field, value in update_dict.items():
             if field == "username" and value != user.username:  # type: ignore[attr-defined]
                 try:
@@ -80,7 +80,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
                         detail="UPDATE_USERNAME_ALREADY_EXISTS",
                     ) from error
 
-        return await super()._update(user, update_dict)
+        return await super()._update(user, update_dict)  # type: ignore[arg-type]
 
     async def validate_password(
         self,

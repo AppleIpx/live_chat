@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import DeletedMessage
+from live_chat.db.models.messages import DeletedMessage
 from live_chat.web.api.chat.utils import get_deleted_message_by_id
 from tests.factories import DeletedMessageFactory
 

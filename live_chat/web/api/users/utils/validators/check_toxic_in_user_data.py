@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from lingua import Language, LanguageDetectorBuilder
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import User  # type: ignore[attr-defined]
+from live_chat.db.models.user import User
 from live_chat.web.ai_tools import ToxicEng, ToxicRus
 from live_chat.web.api.users.utils.create_warning import create_warning_for_user
 

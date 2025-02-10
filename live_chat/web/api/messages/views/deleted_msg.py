@@ -8,23 +8,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from starlette.responses import JSONResponse, Response
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    Chat,
-    DeletedMessage,
-    Message,
-    User,
-)
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
+from live_chat.db.models.messages import DeletedMessage, Message
+from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.utils import validate_user_access_to_chat
 from live_chat.web.api.messages.schemas import GetDeletedMessageSchema
 from live_chat.web.api.messages.utils import (
     publish_faststream,
-    transformation_message,
-    validate_user_access_to_message,
+    validate_user_owns_message_access,
 )
 from live_chat.web.api.messages.utils.delete_message import delete_message_by_id
 from live_chat.web.api.messages.utils.recover_message import restore_message
 from live_chat.web.api.messages.utils.save_message import save_deleted_message_to_db
+from live_chat.web.api.messages.utils.transformations import transformation_message
 from live_chat.web.api.users.utils import custom_current_user
 
 deleted_msg_router = APIRouter()
@@ -53,7 +50,7 @@ async def get_deleted_messages(
 @deleted_msg_router.post("/chats/{chat_id}/messages/{message_id}/recover")
 async def recover_deleted_message(
     chat: Chat = Depends(validate_user_access_to_chat),
-    deleted_message: DeletedMessage = Depends(validate_user_access_to_message),
+    deleted_message: DeletedMessage = Depends(validate_user_owns_message_access),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> JSONResponse:
     """Recover deleted message."""
@@ -85,7 +82,7 @@ async def recover_deleted_message(
 async def delete_message(
     is_forever: bool = False,
     chat: Chat = Depends(validate_user_access_to_chat),
-    message: Message | DeletedMessage = Depends(validate_user_access_to_message),
+    message: Message | DeletedMessage = Depends(validate_user_owns_message_access),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> JSONResponse | Response:
     """Delete message.
@@ -103,7 +100,7 @@ async def delete_message(
     message.is_deleted = True
     if deleted_message := await save_deleted_message_to_db(
         db_session=db_session,
-        message=message,
+        message=message,  # type: ignore[arg-type]
         chat=chat,
     ):
         db_session.add_all([message, deleted_message])

@@ -3,7 +3,7 @@ from fastapi_users.authentication import JWTStrategy
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.dependencies import get_db_session
-from live_chat.db.models.chat import User  # type: ignore[attr-defined]
+from live_chat.db.models.user import User
 from live_chat.settings import settings
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils.custom_user_db import CustomSQLAlchemyUserDatabase

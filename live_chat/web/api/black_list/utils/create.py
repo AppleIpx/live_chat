@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import BlackList, User  # type: ignore[attr-defined]
+from live_chat.db.models.black_list import BlackList
+from live_chat.db.models.user import User
 
 
 async def create_black_list(

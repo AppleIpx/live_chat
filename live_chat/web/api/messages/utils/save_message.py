@@ -1,16 +1,17 @@
 from datetime import datetime
+from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    Chat,
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
+from live_chat.db.models.enums import MessageType
+from live_chat.db.models.messages import (
     DeletedMessage,
     DraftMessage,
     Message,
-    User,
 )
+from live_chat.db.models.user import User
 from live_chat.web.api.chat.utils import set_previous_message_content
-from live_chat.web.api.messages import PostMessageSchema
 from live_chat.web.api.messages.schemas import (
     PostDraftMessageSchema,
     UpdateMessageSchema,
@@ -19,27 +20,30 @@ from live_chat.web.api.messages.schemas import (
 
 async def save_message_to_db(
     db_session: AsyncSession,
-    message_schema: PostMessageSchema,
     chat: Chat,
-    current_user: User,
-) -> Message | None:
-    """Save the message to the database."""
-    message_content = message_schema.content
+    message_type: MessageType,
+    owner_msg_id: UUID,
+    content: str | None = None,
+    parent_message_id: UUID | None = None,
+    file_path: str | None = None,
+    file_name: str | None = None,
+) -> Message:
+    """Function to save messages without forwarded messages in the database."""
     message = Message(
-        content=message_content,
-        message_type=message_schema.message_type,
-        parent_message_id=message_schema.parent_message_id,
-        file_path=message_schema.file_path,
-        file_name=message_schema.file_name,
+        content=content,
+        message_type=message_type,
+        parent_message_id=parent_message_id,
+        file_path=file_path,
+        file_name=file_name,
         chat_id=chat.id,
-        user_id=current_user.id,
+        user_id=owner_msg_id,
         reactions=[],
     )
     chat.updated_at = datetime.now()
-    if message_content is None:
+    if content is None:
         await set_previous_message_content(chat, db_session)
     else:
-        chat.last_message_content = message_content[:100]
+        chat.last_message_content = content[:100]
     db_session.add_all([message, chat])
     await db_session.commit()
     return message
@@ -116,3 +120,30 @@ async def update_draft_message_to_db(
 
     else:
         return draft_message
+
+
+async def save_forwarded_message(
+    db_session: AsyncSession,
+    orig_messages: list[Message | None],
+    to_chat: Chat,
+    current_user: User,
+) -> list[Message]:
+    """Function that creates copy of the message in another chat and adds sent data."""
+    forwarded_messages = []
+    for orig_msg in orig_messages:
+        if orig_msg is not None:
+            new_message = Message(
+                content=orig_msg.content,
+                message_type=orig_msg.message_type,
+                parent_message_id=orig_msg.parent_message_id,
+                file_path=orig_msg.file_path,
+                file_name=orig_msg.file_name,
+                chat_id=to_chat.id,
+                user_id=current_user.id,
+                reactions=[],
+                forwarded_message_id=orig_msg.id,
+            )
+            db_session.add(new_message)
+            await db_session.commit()
+            forwarded_messages.append(new_message)
+    return forwarded_messages

@@ -6,10 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from starlette import status
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    DeletedMessage,
-    Message,
-)
+from live_chat.db.models.messages import DeletedMessage, Message
 
 
 async def get_message_by_id(

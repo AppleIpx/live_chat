@@ -1,6 +1,6 @@
 from sqladmin import ModelView
 
-from live_chat.db.models.chat import WarningFirstName  # type: ignore[attr-defined]
+from live_chat.db.models.warnings import WarningFirstName
 from live_chat.web.admin.forms import WarningForm
 
 
@@ -11,7 +11,7 @@ class WarningFirstNameAdmin(ModelView, model=WarningFirstName):
         WarningFirstName.id,
         WarningFirstName.correction_deadline,
     )
-    column_details_list = (
+    column_details_list = (  # type: ignore[assignment]
         *column_list,
         "user",
         WarningFirstName.created_at,

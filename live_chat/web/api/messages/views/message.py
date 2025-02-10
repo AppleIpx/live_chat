@@ -7,22 +7,39 @@ from fastapi_pagination.cursor import CursorPage, CursorParams
 from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from starlette import status
 
-from live_chat.db.models.chat import Chat, Message, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.models.enums import MessageType
+from live_chat.db.models.messages import Message
+from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.black_list.utils import validate_user_in_black_list
 from live_chat.web.api.chat.utils import validate_user_access_to_chat
 from live_chat.web.api.messages import GetMessageSchema, PostMessageSchema
-from live_chat.web.api.messages.schemas import GetReactionSchema, UpdateMessageSchema
+from live_chat.web.api.messages.schemas import (
+    CreatedForwardMessageSchema,
+    GetForwardMessageSchema,
+    GetReactionSchema,
+    PostForwardMessageSchema,
+    UpdateMessageSchema,
+)
 from live_chat.web.api.messages.utils import (
     check_parent_message,
+    get_message_by_id,
     publish_faststream,
-    save_message_to_db,
-    transformation_message,
+    validate_access_to_msg_in_chat,
     validate_message_schema,
-    validate_user_access_to_message,
+    validate_user_owns_message_access,
+)
+from live_chat.web.api.messages.utils.save_message import (
+    save_forwarded_message,
+    save_message_to_db,
+)
+from live_chat.web.api.messages.utils.transformations import (
+    transformation_forward_msg,
+    transformation_message,
 )
 from live_chat.web.api.read_status.utils import increase_in_unread_messages
 from live_chat.web.api.users.utils import custom_current_user
@@ -42,6 +59,10 @@ async def get_messages(
     query = (
         select(Message)
         .where(Message.chat_id == chat.id, Message.is_deleted != True)  # noqa: E712
+        .options(
+            selectinload(Message.reactions),
+            selectinload(Message.forwarded_message),
+        )
         .order_by(Message.created_at.desc())
     )
     messages = await paginate(db_session, query, params=params)
@@ -56,6 +77,14 @@ async def get_messages(
             )
             for reaction in message.reactions
         ]
+        if message.forwarded_message is not None:
+            message.forwarded_message = GetForwardMessageSchema(
+                id=message.forwarded_message.id,
+                user_id=message.forwarded_message.user_id,
+                chat_id=message.forwarded_message.chat_id,
+            )
+        else:
+            message.forwarded_message = None
     return messages
 
 
@@ -69,10 +98,7 @@ async def post_message(
 ) -> GetMessageSchema:
     """Post message in FastStream."""
     if chat.chat_type.value == "direct":
-        recipient = next(
-            (user for user in chat.users if user.id != current_user.id),
-            None,
-        )
+        recipient = chat.users[1]
         await validate_user_active(recipient)
         await validate_user_in_black_list(
             recipient=recipient,
@@ -84,10 +110,11 @@ async def post_message(
         message_id=message_schema.parent_message_id,
     )
     if created_message := await save_message_to_db(
-        db_session,
-        message_schema,
-        chat,
-        current_user,
+        db_session=db_session,
+        content=message_schema.content,
+        chat=chat,
+        message_type=message_schema.message_type,
+        owner_msg_id=current_user.id,
     ):
         message_data = await transformation_message(created_message)
         event_data = jsonable_encoder(message_data.model_dump())
@@ -111,7 +138,7 @@ async def post_message(
 async def update_message(
     message_schema: UpdateMessageSchema,
     chat: Chat = Depends(validate_user_access_to_chat),
-    message: Message = Depends(validate_user_access_to_message),
+    message: Message = Depends(validate_user_owns_message_access),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> GetMessageSchema:
     """Update message."""
@@ -127,4 +154,44 @@ async def update_message(
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="File message cannot updated",
+    )
+
+
+@message_router.post(
+    "/chats/{chat_id}/forwarding-message/",
+    response_model=CreatedForwardMessageSchema,
+    status_code=status.HTTP_201_CREATED,
+)
+async def forward_message_view(
+    forward_message_schema: PostForwardMessageSchema,
+    current_user: User = Depends(custom_current_user),
+    chat: Chat = Depends(validate_user_access_to_chat),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> CreatedForwardMessageSchema:
+    """Post forwarding message/messages in other chat."""
+    messages = [
+        await get_message_by_id(
+            db_session=db_session,
+            message_id=msg_id,
+        )
+        for msg_id in forward_message_schema.messages
+    ]
+    await validate_access_to_msg_in_chat(
+        from_chat_id=forward_message_schema.from_chat_id,
+        current_user=current_user,
+        db_session=db_session,
+        messages=messages,
+    )
+    forwarded_messages = await save_forwarded_message(
+        db_session=db_session,
+        orig_messages=messages,
+        to_chat=chat,
+        current_user=current_user,
+    )
+    list_get_schem = await transformation_forward_msg(
+        forward_messages=forwarded_messages,
+    )
+
+    return CreatedForwardMessageSchema(
+        forward_messages=list_get_schem,
     )

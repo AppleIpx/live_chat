@@ -4,8 +4,8 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import User
 from live_chat.db.models.enums import ChatType, MessageType
+from live_chat.db.models.user import User
 from live_chat.web.api.chat.utils import get_chat_by_id
 from live_chat.web.api.messages.utils import get_message_by_id
 from live_chat.web.api.users.utils import get_user_by_id

@@ -2,7 +2,7 @@ import json
 from typing import Any, List
 from uuid import UUID
 
-from live_chat.db.models.chat import User  # type: ignore[attr-defined]
+from live_chat.db.models.user import User
 from live_chat.services.faststream import fast_stream_broker
 from live_chat.services.redis import redis
 from live_chat.web.api.messages.constants import (

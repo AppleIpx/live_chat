@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import Reaction  # type: ignore[attr-defined]
+from live_chat.db.models.reaction import Reaction
 
 
 async def get_reaction_by_message_id_and_user_id(

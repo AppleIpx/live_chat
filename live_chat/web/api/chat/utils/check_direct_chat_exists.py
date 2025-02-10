@@ -1,8 +1,9 @@
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.models.enums import ChatType
+from live_chat.db.models.user import User
 
 
 async def direct_chat_exists(

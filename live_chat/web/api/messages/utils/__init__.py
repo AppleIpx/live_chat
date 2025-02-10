@@ -1,8 +1,11 @@
+from live_chat.web.api.messages.utils.check_access_to_msg import (
+    validate_access_to_msg_in_chat,
+)
 from live_chat.web.api.messages.utils.delete_reaction import delete_reaction_by_id
 from live_chat.web.api.messages.utils.dependency import (
     validate_message_exists,
     validate_message_schema,
-    validate_user_access_to_message,
+    validate_user_owns_message_access,
 )
 from live_chat.web.api.messages.utils.get_correct_last_message import (
     get_correct_last_message,
@@ -21,11 +24,7 @@ from live_chat.web.api.messages.utils.get_reaction import (
 )
 from live_chat.web.api.messages.utils.get_user import get_user_from_token
 from live_chat.web.api.messages.utils.publish_message import publish_faststream
-from live_chat.web.api.messages.utils.save_message import save_message_to_db
 from live_chat.web.api.messages.utils.sse_generators import message_generator
-from live_chat.web.api.messages.utils.transformations import (
-    transformation_message,
-)
 
 __all__ = (
     "check_parent_message",
@@ -39,9 +38,8 @@ __all__ = (
     "get_user_from_token",
     "message_generator",
     "publish_faststream",
-    "save_message_to_db",
-    "transformation_message",
     "validate_message_exists",
     "validate_message_schema",
-    "validate_user_access_to_message",
+    "validate_user_owns_message_access",
+    "validate_access_to_msg_in_chat",
 )

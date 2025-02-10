@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.db.models.chat import Message
+from live_chat.db.models.messages import Message
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
 from live_chat.web.api.messages.utils import get_message_by_id
 from live_chat.web.api.users.utils import get_user_by_id
@@ -69,6 +69,7 @@ async def test_post_text_message(
         "is_deleted": False,
         "reactions": [],
         "parent_message_id": message.parent_message_id,
+        "forwarded_message": message.forwarded_message,
         "updated_at": message.updated_at.isoformat().replace("+00:00", "Z"),
         "user_id": f"{direct_chat_with_users.users[0].id}",
     }
@@ -118,10 +119,11 @@ async def test_post_reply_message(
         "content": "test",
         "file_name": new_message.file_name,
         "file_path": new_message.file_path,
+        "forwarded_message": new_message.forwarded_message,
         "created_at": new_message.created_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": False,
         "reactions": [],
-        "parent_message_id": str(new_message.parent_message_id),
+        "parent_message_id": new_message.parent_message_id,
         "updated_at": new_message.updated_at.isoformat().replace("+00:00", "Z"),
         "user_id": f"{sender.id}",
     }
@@ -197,6 +199,7 @@ async def test_post_file_message(
         "content": None,
         "file_name": message.file_name,
         "file_path": message.file_path,
+        "forwarded_message": message.forwarded_message,
         "created_at": message.created_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": False,
         "reactions": [],

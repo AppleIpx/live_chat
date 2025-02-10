@@ -11,7 +11,7 @@ from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from live_chat.db.models.chat import User  # type: ignore[attr-defined]
+from live_chat.db.models.user import User
 from live_chat.db.utils import async_session_maker
 from live_chat.web.admin.forms import UserForm
 from live_chat.web.admin.utils import CustomQuery, custom_object_identifier_values
@@ -22,7 +22,7 @@ from live_chat.web.api.users.utils import get_user_by_id
 class UserAdmin(ModelView, model=User):
     """User class that appears in the admin panel."""
 
-    column_list = (
+    column_list = (  # type: ignore[assignment]
         User.id,
         User.username,
         User.first_name,
@@ -33,18 +33,18 @@ class UserAdmin(ModelView, model=User):
         User.is_banned,
     )
     column_details_list = (
-        *column_list,
+        *column_list,  # type: ignore[has-type]
         User.user_image,
         User.created_at,
         User.last_online,
-        User.is_active,
-        User.is_verified,
+        User.is_active,  # type: ignore[arg-type]
+        User.is_verified,  # type: ignore[arg-type]
         User.ban_reason,
     )
     form = UserForm
     details_template = "user_details.html"
     column_searchable_list = (User.username, User.email)
-    column_sortable_list = (
+    column_sortable_list = (  # type: ignore[assignment]
         User.username,
         User.is_superuser,
         User.is_deleted,
@@ -83,14 +83,15 @@ class UserAdmin(ModelView, model=User):
     async def toggle_ban(self, request: Request) -> JSONResponse:
         """Manages the blocking or unblocking of the user."""
         if user_id := request.query_params.get("pk"):
-            reason = request.query_params.get("reason")
+            reason = request.query_params.get("reason", None)
             async with async_session_maker() as session:
-                user: User = await get_user_by_id(
+                user: User | None = await get_user_by_id(
                     db_session=session,
                     user_id=UUID(user_id),
                 )
-                user.is_banned = not user.is_banned
-                user.ban_reason = reason if user.is_banned else None
+                user.is_banned = not user.is_banned  # type: ignore[union-attr]
+                user.ban_reason = reason if user.is_banned else None  # type: ignore[union-attr]
+                session.add(user)
                 await session.commit()
             return JSONResponse(status_code=status.HTTP_200_OK, content=None)
         raise HTTPException(
