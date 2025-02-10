@@ -5,6 +5,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import User
+from live_chat.web.api.users.utils import get_user_by_id
 from tests.factories import (
     ChatFactory,
     DeletedMessageFactory,
@@ -115,7 +116,8 @@ async def reaction(
 ) -> ReactionFactory:
     """Fixture for creating a reaction."""
     ReactionFactory._meta.sqlalchemy_session = dbsession  # noqa: SLF001
-    sender = message_in_chat.chat.users[0]
+    sender_id = message_in_chat.chat.users[0].id
+    sender = await get_user_by_id(db_session=dbsession, user_id=sender_id)
 
     return ReactionFactory(
         user=sender,

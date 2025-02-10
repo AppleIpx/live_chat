@@ -27,7 +27,7 @@ from live_chat.web.api.users.utils import (
     custom_current_user,
     get_user_by_id,
 )
-from live_chat.web.api.users.utils.validate import validate_user_active
+from live_chat.web.api.users.utils.validators import validate_user_active
 
 create_chat_router = APIRouter()
 

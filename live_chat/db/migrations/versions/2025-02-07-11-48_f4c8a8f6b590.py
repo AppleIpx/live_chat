@@ -13,7 +13,7 @@ from sqlalchemy.dialects.postgresql import ENUM
 
 # revision identifiers, used by Alembic.
 revision = "f4c8a8f6b590"
-down_revision = "db0a6bd98f4a"
+down_revision = "1a1e95303233"
 branch_labels = None
 depends_on = None
 

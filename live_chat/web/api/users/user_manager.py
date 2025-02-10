@@ -10,12 +10,14 @@ from fastapi_users import (
     models,
     schemas,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 from starlette.requests import Request
 
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.settings import settings
 from live_chat.web.api.users.utils.custom_user_db import CustomSQLAlchemyUserDatabase
+from live_chat.web.api.users.utils.validators import check_user_data_for_toxic
 from live_chat.web.api.users.utils.validators.password import validate_password
 
 
@@ -40,6 +42,29 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             raise exceptions.UserNotExists
 
         return user
+
+    async def on_after_register(
+        self,
+        user: models.UP,
+        request: Optional[Request] = None,
+    ) -> None:
+        """
+        Overridden method from the BaseUserManager.
+
+        Performs a toxicity check user's data after registration.
+        """
+        db_session: AsyncSession = self.user_db.session  # type: ignore[has-type]
+        if settings.use_ai:
+            if request is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="The request was not sent",
+                )
+            await check_user_data_for_toxic(
+                user=user,
+                app=request.app,
+                db_session=db_session,
+            )
 
     async def _update(self, user: models.UP, update_dict: dict[str, Any]) -> models.UP:
         for field, value in update_dict.items():

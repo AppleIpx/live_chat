@@ -22,8 +22,9 @@ from tests.utils import get_first_deleted_message
 async def test_mark_messages_is_deleted(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test mark messages as deleted."""
     chat = message_in_chat.chat
@@ -45,8 +46,9 @@ async def test_mark_messages_is_deleted(
 async def test_delete_message(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test delete message."""
     message_in_chat.is_deleted = True
@@ -68,9 +70,9 @@ async def test_delete_message(
 async def test_delete_orig_message(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
-    mocked_publish_message: AsyncMock,
     dbsession: AsyncSession,
+    mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing deleting the original message."""
     message_in_chat.is_deleted = True
@@ -96,9 +98,9 @@ async def test_delete_orig_message(
 async def test_create_deleted_message(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
-    mocked_publish_message: AsyncMock,
     dbsession: AsyncSession,
+    mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing to create a deleted message when a message is deleted."""
     chat = message_in_chat.chat
@@ -133,8 +135,9 @@ async def test_create_deleted_message(
 async def test_delete_message_with_query_param(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
     mocked_publish_message: AsyncMock,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
     is_forever: bool,
     expected_status: int,
     expected_response: dict | None,
@@ -162,6 +165,7 @@ async def test_delete_message_with_query_param(
 async def test_delete_message_not_found(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
+    dbsession: AsyncSession,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test message delete test with non-existent message."""
@@ -176,6 +180,7 @@ async def test_delete_message_not_found(
 async def test_delete_message_with_fail_chat(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
+    dbsession: AsyncSession,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test message delete test with non-existent chat."""
@@ -190,6 +195,7 @@ async def test_delete_message_with_fail_chat(
 async def test_delete_message_for_non_member(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
+    dbsession: AsyncSession,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test for delete a message by a user who is not a member of the group."""
@@ -206,8 +212,8 @@ async def test_delete_message_with_non_author(
     authorized_client: AsyncClient,
     user: UserFactory,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Test for delete a message by a user who is not a author message."""
     message_in_chat.user = user
@@ -222,8 +228,8 @@ async def test_delete_message_with_non_author(
 async def test_delete_message_by_deleted_user(
     authorized_deleted_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing delete message by a deleted user."""
     chat = message_in_chat.chat
@@ -238,8 +244,8 @@ async def test_delete_message_by_deleted_user(
 async def test_delete_message_by_banned_user(
     authorized_banned_client: AsyncClient,
     message_in_chat: MessageFactory,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
     """Testing delete message by a banned user."""
     chat = message_in_chat.chat

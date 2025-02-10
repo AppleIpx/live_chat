@@ -77,8 +77,6 @@ async def test_get_chats_deleted(
 @pytest.mark.anyio
 async def test_get_deleted_chats_by_deleted_user(
     authorized_deleted_client: AsyncClient,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
-    dbsession: AsyncSession,
 ) -> None:
     """Testing get deleted chats by a deleted user."""
     response = await authorized_deleted_client.get("/api/chats/deleted")
@@ -89,8 +87,6 @@ async def test_get_deleted_chats_by_deleted_user(
 @pytest.mark.anyio
 async def test_get_deleted_chats_by_banned_user(
     authorized_banned_client: AsyncClient,
-    override_get_async_session: AsyncGenerator[AsyncSession, None],
-    dbsession: AsyncSession,
 ) -> None:
     """Testing get deleted chats by a banned user."""
     response = await authorized_banned_client.get("/api/chats/banned")

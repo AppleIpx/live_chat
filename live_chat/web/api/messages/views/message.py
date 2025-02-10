@@ -17,6 +17,7 @@ from live_chat.web.api.chat.utils import validate_user_access_to_chat
 from live_chat.web.api.messages import GetMessageSchema, PostMessageSchema
 from live_chat.web.api.messages.schemas import GetReactionSchema, UpdateMessageSchema
 from live_chat.web.api.messages.utils import (
+    check_parent_message,
     publish_faststream,
     save_message_to_db,
     transformation_message,
@@ -25,7 +26,7 @@ from live_chat.web.api.messages.utils import (
 )
 from live_chat.web.api.read_status.utils import increase_in_unread_messages
 from live_chat.web.api.users.utils import custom_current_user
-from live_chat.web.api.users.utils.validate import validate_user_active
+from live_chat.web.api.users.utils.validators import validate_user_active
 
 message_router = APIRouter()
 
@@ -58,7 +59,7 @@ async def get_messages(
     return messages
 
 
-@message_router.post("/chats/{chat_id}/messages")
+@message_router.post("/chats/{chat_id}/messages", status_code=status.HTTP_201_CREATED)
 async def post_message(
     message_schema: PostMessageSchema,
     chat: Chat = Depends(validate_user_access_to_chat),
@@ -78,6 +79,10 @@ async def post_message(
             sender=current_user,
             db_session=db_session,
         )
+    await check_parent_message(
+        db_session=db_session,
+        message_id=message_schema.parent_message_id,
+    )
     if created_message := await save_message_to_db(
         db_session,
         message_schema,
@@ -114,7 +119,6 @@ async def update_message(
         message.content = message_schema.content
         message.updated_at = datetime.now(timezone.utc)
         chat.last_message_content = message_schema.content[:100]  # type: ignore[index]
-        db_session.add_all([message, chat])
         await db_session.commit()
         message_data = await transformation_message(message)
         event_data = jsonable_encoder(message_data.model_dump())

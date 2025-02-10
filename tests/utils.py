@@ -23,6 +23,7 @@ payload = {
     "user_image": None,
     "is_deleted": False,
     "is_banned": False,
+    "is_warning": False,
 }
 
 new_payload = {
@@ -88,6 +89,7 @@ async def transformation_message_data(message: MessageFactory | Message) -> str:
                 "content": message.content,
                 "created_at": message.created_at,
                 "updated_at": message.updated_at,
+                "parent_message_id": message.parent_message_id,
                 "is_deleted": message.is_deleted,
                 "reactions": [],
             },

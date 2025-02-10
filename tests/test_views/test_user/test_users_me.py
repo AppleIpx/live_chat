@@ -34,6 +34,7 @@ async def test_get_users_me(
             if user.last_online
             else None
         ),
+        "is_warning": user.is_warning,
         "username": user.username,
         "user_image": user.user_image,
     }
@@ -66,6 +67,7 @@ async def test_patch_users_me_correct(
         ),
         "username": user.username,
         "user_image": user.user_image,
+        "is_warning": user.is_warning,
     }
 
 
@@ -174,6 +176,7 @@ async def test_patch_users_me_banned_user(
             if user.last_online
             else None
         ),
+        "is_warning": user.is_warning,
         "username": user.username,
         "user_image": user.user_image,
     }
