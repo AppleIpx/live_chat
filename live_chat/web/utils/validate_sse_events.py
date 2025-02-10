@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.db.models.chat import User  # type: ignore[attr-defined]
+from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat.utils import get_chat_by_id, get_user_chats
 from live_chat.web.api.messages.utils import get_user_from_token

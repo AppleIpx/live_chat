@@ -3,8 +3,8 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import Summarization  # type: ignore[attr-defined]
 from live_chat.db.models.enums import SummarizationStatus
+from live_chat.db.models.summarization import Summarization
 from live_chat.db.utils import async_session_maker
 
 

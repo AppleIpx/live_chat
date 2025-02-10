@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
+from sqlalchemy import JSON
 
 
 class SummarizationSchema(BaseModel):
@@ -9,6 +10,7 @@ class SummarizationSchema(BaseModel):
 
     chat_id: UUID
     status: str
-    result: dict[str, str]
+    progress: float
+    result: JSON
     created_at: datetime
     finished_at: datetime | None

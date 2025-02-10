@@ -7,12 +7,10 @@ from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    Chat,
-    User,
-)
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.models.enums import SummarizationStatus
 from live_chat.db.models.summarization import Summarization
+from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.settings import settings
 from live_chat.web.ai_tools.summarizer import Summarizer
@@ -107,6 +105,7 @@ async def get_summarization_for_chat(
     return SummarizationSchema(
         chat_id=summarization.chat_id,
         status=summarization.status.value,
+        progress=summarization.progress,
         result=summarization.result,
         created_at=summarization.created_at,
         finished_at=summarization.finished_at,
@@ -127,6 +126,7 @@ async def get_summarizations_for_user(
         SummarizationSchema(
             chat_id=summarization.chat_id,
             status=summarization.status.value,
+            progress=summarization.progress,
             result=summarization.result,
             created_at=summarization.created_at,
             finished_at=summarization.finished_at,

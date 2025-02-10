@@ -1,6 +1,6 @@
 from sqladmin import ModelView
 
-from live_chat.db.models.chat import WarningFirstName  # type: ignore[attr-defined]
+from live_chat.db.models.warnings import WarningFirstName  # type: ignore[attr-defined]
 from live_chat.web.admin.models.warnings.base_warning import BaseWarningAdmin
 
 

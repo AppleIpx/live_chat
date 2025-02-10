@@ -1,6 +1,8 @@
 from sqladmin import ModelView
 
-from live_chat.db.models.chat import Summarization  # type: ignore[attr-defined]
+from live_chat.db.models.summarization import (
+    Summarization,
+)
 from live_chat.web.admin.utils.identifier_utils import CustomStmtMixin
 
 

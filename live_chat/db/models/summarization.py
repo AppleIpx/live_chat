@@ -7,8 +7,9 @@ from sqlalchemy import JSON, DateTime, Enum, Float, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from live_chat.db.base import Base
-from live_chat.db.models.chat import Chat, User  # type: ignore[attr-defined]
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.models.enums import SummarizationStatus
+from live_chat.db.models.user import User
 
 
 class Summarization(Base):  # type: ignore[misc]
@@ -20,7 +21,7 @@ class Summarization(Base):  # type: ignore[misc]
     status: Mapped[SummarizationStatus] = mapped_column(
         Enum(SummarizationStatus, inherit_schema=True),
     )
-    progres: Mapped[float] = mapped_column(Float, defalt=0.0)
+    progress: Mapped[float] = mapped_column(Float, default=0.0)
     result: Mapped[JSON] = mapped_column(JSON, default={})
     finished_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
