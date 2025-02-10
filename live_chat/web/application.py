@@ -13,9 +13,11 @@ from live_chat.settings import settings
 from live_chat.web.admin.auth import AdminAuth
 from live_chat.web.admin.models.task_admin import TaskAdmin
 from live_chat.web.admin.models.users_admin import UserAdmin
-from live_chat.web.admin.models.warning_first_name import WarningFirstNameAdmin
-from live_chat.web.admin.models.warning_last_name import WarningLastNameAdmin
-from live_chat.web.admin.models.warning_username import WarningUserNameAdmin
+from live_chat.web.admin.models.warnings import (
+    WarningFirstNameAdmin,
+    WarningLastNameAdmin,
+    WarningUserNameAdmin,
+)
 from live_chat.web.api.router import api_router
 from live_chat.web.lifespan import lifespan_setup
 from live_chat.web.middlewares import UpdateLastOnlineMiddleware

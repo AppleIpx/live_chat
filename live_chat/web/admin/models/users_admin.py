@@ -3,10 +3,6 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from sqladmin import ModelView, action
-from sqladmin.helpers import (
-    get_primary_keys,
-)
-from sqlalchemy import Select, select
 from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -14,12 +10,13 @@ from starlette.responses import JSONResponse
 from live_chat.db.models.chat import User  # type: ignore[attr-defined]
 from live_chat.db.utils import async_session_maker
 from live_chat.web.admin.forms import UserForm
-from live_chat.web.admin.utils import CustomQuery, custom_object_identifier_values
+from live_chat.web.admin.utils import CustomQuery
+from live_chat.web.admin.utils.identifier_utils import CustomStmtMixin
 from live_chat.web.admin.utils.transformation import transformation_new_user_admin
 from live_chat.web.api.users.utils import get_user_by_id
 
 
-class UserAdmin(ModelView, model=User):
+class UserAdmin(CustomStmtMixin, ModelView, model=User):
     """User class that appears in the admin panel."""
 
     column_list = (
@@ -65,13 +62,6 @@ class UserAdmin(ModelView, model=User):
     async def delete_model(self, request: Request, pk: Any) -> None:
         """Function to mark user is_deleted flag through the admin panel."""
         await CustomQuery(self).delete(pk, request)
-
-    def _stmt_by_identifier(self, identifier: str) -> Select[Any]:
-        stmt: Select[Any] = select(self.model)
-        pks = get_primary_keys(self.model)
-        values = custom_object_identifier_values(identifier, self.model)
-        conditions = [pk == value for (pk, value) in zip(pks, values)]
-        return stmt.where(*conditions)
 
     @action(
         name="toggle_ban",
