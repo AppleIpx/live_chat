@@ -1,7 +1,8 @@
 import asyncio
 import logging
+from typing import Any
 
-from runorm import RUNorm
+from live_chat.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -13,10 +14,14 @@ class Normalizer:
         self.normalizer = self._load_normalizer()
 
     @staticmethod
-    def _load_normalizer(model_size: str = "medium") -> RUNorm:
-        normalizer = RUNorm()
-        normalizer.load(model_size=model_size, workdir="./local_cache")
-        return normalizer
+    def _load_normalizer(model_size: str = "medium") -> Any:
+        if settings.use_ai:
+            from runorm import RUNorm
+
+            normalizer = RUNorm()
+            normalizer.load(model_size=model_size, workdir="./local_cache")
+            return normalizer
+        return None
 
     async def normalize_text(self, text: str) -> str:
         """Async normalize the text to be normalized."""
