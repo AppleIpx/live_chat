@@ -12,7 +12,7 @@ from live_chat.db.models.enums import TaskStatus, TaskType
 from live_chat.db.utils import get_async_session
 from live_chat.settings import settings
 from live_chat.web.ai_tools import Summarizer
-from live_chat.web.ai_tools.utils.get_task import (
+from live_chat.web.ai_tools.utils import (
     delete_active_tasks_by_chat_and_user,
     get_task_by_chat_and_user,
     get_tasks_by_user,
