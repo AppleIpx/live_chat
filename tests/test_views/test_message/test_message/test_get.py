@@ -39,6 +39,7 @@ async def test_get_messages(
             "updated_at": message.updated_at.isoformat(),
             "is_deleted": message.is_deleted,
             "parent_message_id": message.parent_message_id,
+            "forwarded_message": message.forwarded_message,
             "reactions": [],
         }
         for message in sorted(

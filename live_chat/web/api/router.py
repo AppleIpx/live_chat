@@ -17,11 +17,11 @@ api_router.include_router(users.router)
 api_router.include_router(ai.ai_router, prefix="/ai", tags=["ai"])
 
 # messages
-api_router.include_router(messages.deleted_msg_router, tags=["chat"])
-api_router.include_router(messages.draft_message_router, tags=["chat"])
-api_router.include_router(messages.message_router, tags=["chat"])
-api_router.include_router(messages.reaction_router, tags=["chat"])
-api_router.include_router(messages.sse_event_router, tags=["chat"])
+api_router.include_router(messages.deleted_msg_router, tags=["deleted-messages"])
+api_router.include_router(messages.draft_message_router, tags=["draft-messages"])
+api_router.include_router(messages.message_router, tags=["messages"])
+api_router.include_router(messages.reaction_router, tags=["reactions-messages"])
+api_router.include_router(messages.sse_event_router, tags=["sse-messages"])
 
 # chats
 api_router.include_router(chat.update_chat_router, prefix="/chats", tags=["chat"])

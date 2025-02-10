@@ -3,10 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import (  # type:ignore[attr-defined]
-    DeletedMessage,
-    Message,
-)
+from live_chat.db.models.messages import DeletedMessage, Message
 from live_chat.web.api.messages.utils import get_message_by_id
 
 

@@ -4,11 +4,9 @@ from fastapi_pagination.cursor import CursorPage
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    DraftMessage,
-    ReadStatus,
-    User,
-)
+from live_chat.db.models.messages import DraftMessage
+from live_chat.db.models.read_status import ReadStatus
+from live_chat.db.models.user import User
 from live_chat.web.api.chat import ChatSchema
 
 
@@ -37,4 +35,4 @@ async def get_draft_messages(
         DraftMessage.chat_id.in_([chat.id for chat in chats.items]),
     )
     draft_messages = await db_session.execute(draft_messages_query)
-    return {dm.chat_id: dm.content for dm in draft_messages.scalars().all()}
+    return {dm.chat_id: dm.content for dm in draft_messages.scalars().all()}  # type: ignore[misc]

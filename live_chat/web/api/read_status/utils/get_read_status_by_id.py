@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import ReadStatus  # type: ignore[attr-defined]
+from live_chat.db.models.read_status import ReadStatus
 
 
 async def get_read_status_by_id(

@@ -3,11 +3,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    BlackList,
-    BlockedUsers,
-    User,
-)
+from live_chat.db.models.black_list import BlackList
+from live_chat.db.models.blocked_users import BlockedUsers
+from live_chat.db.models.user import User
 
 
 async def delete_user_from_black_list(

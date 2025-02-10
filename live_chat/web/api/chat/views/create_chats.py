@@ -7,9 +7,9 @@ from starlette import status
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
     Chat,
-    ReadStatus,
-    User,
 )
+from live_chat.db.models.read_status import ReadStatus
+from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.chat import ChatSchema, CreateDirectChatSchema
 from live_chat.web.api.chat.schemas import CreateGroupChatSchema
@@ -102,11 +102,10 @@ async def create_direct_chat_view(
 )
 async def create_group_chat_view(
     create_group_chat_schema: CreateGroupChatSchema,
-    db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(custom_current_user),
+    db_session: AsyncSession = Depends(get_async_session),
 ) -> ChatSchema:
     """Create a new group chat."""
-    # check if another user (recipient) exists
     recipient_users_id: List[UUID] = create_group_chat_schema.recipient_user_ids
     recipient_users: List[User] = await collect_users_for_group(
         recipient_users_id=recipient_users_id,

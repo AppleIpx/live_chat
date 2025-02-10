@@ -1,12 +1,17 @@
-from live_chat.db.models.chat import DraftMessage, Message  # type: ignore[attr-defined]
+from typing import List
+
+from live_chat.db.models.messages import DraftMessage, Message
 from live_chat.web.api.messages.schemas import (
     GetDraftMessageSchema,
+    GetForwardMessageSchema,
     GetMessageSchema,
     GetReactionSchema,
 )
 
 
-async def transformation_message(message: Message) -> GetMessageSchema:
+async def transformation_message(
+    message: Message,
+) -> GetMessageSchema:
     """Transform a Message into a GetMessageSchema."""
     reactions = [
         GetReactionSchema(
@@ -18,6 +23,14 @@ async def transformation_message(message: Message) -> GetMessageSchema:
         )
         for reaction in message.reactions
     ]
+    if message.forwarded_message is not None:
+        forward_message = GetForwardMessageSchema(
+            id=message.forwarded_message_id,  # type: ignore[arg-type]
+            user_id=message.forwarded_message.user_id,
+            chat_id=message.forwarded_message.chat_id,
+        )
+    else:
+        forward_message = None
     return GetMessageSchema(
         id=message.id,
         content=message.content,
@@ -31,6 +44,7 @@ async def transformation_message(message: Message) -> GetMessageSchema:
         file_name=message.file_name,
         file_path=message.file_path,
         reactions=reactions,
+        forwarded_message=forward_message,
     )
 
 
@@ -51,3 +65,50 @@ async def transformation_draft_message(
         file_name=draft_message.file_name,
         file_path=draft_message.file_path,
     )
+
+
+async def transformation_forward_msg(
+    forward_messages: List[Message],
+) -> list[GetMessageSchema]:
+    """Transform a list of forward messages into GetMessageSchema."""
+
+    result = []
+    for forward_message in forward_messages:
+        forward_msg_schema = None
+        if forward_message.forwarded_message:
+            forward_msg_schema = GetForwardMessageSchema(
+                id=forward_message.forwarded_message.id,
+                user_id=forward_message.forwarded_message.user_id,
+                chat_id=forward_message.forwarded_message.chat_id,
+            )
+
+        reactions_schema = [
+            GetReactionSchema(
+                id=reaction.id,
+                reaction_type=reaction.reaction_type,
+                user_id=reaction.user_id,
+                message_id=reaction.message_id,
+                updated_at=reaction.updated_at,
+            )
+            for reaction in forward_message.reactions
+        ]
+
+        result.append(
+            GetMessageSchema(
+                id=forward_message.id,
+                chat_id=forward_message.chat_id,
+                user_id=forward_message.user_id,
+                content=forward_message.content,
+                reactions=reactions_schema,
+                forwarded_message=forward_msg_schema,
+                message_type=forward_message.message_type,
+                created_at=forward_message.created_at,
+                updated_at=forward_message.updated_at,
+                is_deleted=forward_message.is_deleted,
+                file_name=forward_message.file_name,
+                file_path=forward_message.file_path,
+                parent_message_id=forward_message.parent_message_id,
+            ),
+        )
+
+    return result

@@ -7,7 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
-from live_chat.db.models.chat import User  # type: ignore[attr-defined]
+from live_chat.db.models.user import User
 from live_chat.db.utils import async_session_maker
 from live_chat.web.api.users.utils import get_jwt_strategy
 

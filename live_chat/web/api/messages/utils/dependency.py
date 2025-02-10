@@ -3,12 +3,9 @@ from uuid import UUID
 from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    DeletedMessage,
-    Message,
-    User,
-)
 from live_chat.db.models.enums import MessageType
+from live_chat.db.models.messages import DeletedMessage, Message
+from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.messages.schemas import PostMessageSchema, UpdateMessageSchema
 from live_chat.web.api.messages.utils.get_message import (
@@ -18,12 +15,12 @@ from live_chat.web.api.messages.utils.get_message import (
 from live_chat.web.api.users.utils import custom_current_user
 
 
-async def validate_user_access_to_message(
+async def validate_user_owns_message_access(
     message_id: UUID,
     current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
 ) -> Message | DeletedMessage:
-    """Validate that the current user has access to the message."""
+    """Validate that the current user has access to his message."""
     message = await get_message_by_id(db_session, message_id=message_id)
     deleted_message = await get_deleted_message_by_id(
         db_session,
@@ -39,7 +36,7 @@ async def validate_user_access_to_message(
             detail="User is not the author of this message",
         )
 
-    return message if message else deleted_message
+    return message if message else deleted_message  # type: ignore[return-value]
 
 
 async def validate_message_exists(

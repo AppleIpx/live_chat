@@ -1,7 +1,7 @@
 from operator import attrgetter
 from typing import List
 
-from live_chat.db.models.chat import Message  # type: ignore[attr-defined]
+from live_chat.db.models.messages import Message
 
 
 async def get_correct_last_message(messages: List[Message]) -> Message | None:

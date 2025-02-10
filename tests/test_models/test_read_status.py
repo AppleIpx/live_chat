@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import ReadStatus
+from live_chat.db.models.read_status import ReadStatus
 from live_chat.web.api.read_status.utils import get_read_status_by_id
 from tests.factories import ReadStatusFactory
 

@@ -5,7 +5,7 @@ from sqladmin.authentication import AuthenticationBackend
 from sqlalchemy import select
 from starlette.requests import Request
 
-from live_chat.db.models.chat import User  # type: ignore[attr-defined]
+from live_chat.db.models.user import User
 from live_chat.db.utils import async_session_maker
 from live_chat.web.api.users.user_manager import UserManager
 from live_chat.web.api.users.utils.custom_user_db import CustomSQLAlchemyUserDatabase
@@ -19,9 +19,9 @@ class AdminAuth(AuthenticationBackend):
         form = await request.form()
         username, password = str(form["username"]), str(form["password"])
         async with async_session_maker() as session:
-            query = select(User).where(User.email == username)
+            query = select(User).where(User.email == username)  # type:ignore[arg-type]
             result = await session.execute(query)
-            user_db: User = result.scalar_one_or_none()
+            user_db: User | None = result.scalar_one_or_none()
             # TODO добавить проверку на админа (if user_db and user_db.is_superuser)
             if user_db:
                 user_manager = UserManager(

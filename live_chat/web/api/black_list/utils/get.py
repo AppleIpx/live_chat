@@ -3,11 +3,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    BlackList,
-    BlockedUsers,
-    User,
-)
+from live_chat.db.models.black_list import BlackList
+from live_chat.db.models.blocked_users import BlockedUsers
+from live_chat.db.models.user import User
 
 
 async def get_black_list_by_owner(
@@ -31,4 +29,4 @@ async def get_user_in_black_list(
         BlockedUsers.user_id == user_id,
     )
     result = await db_session.execute(query)
-    return result.scalar_one_or_none()
+    return result.scalar_one_or_none()  # type: ignore[return-value]

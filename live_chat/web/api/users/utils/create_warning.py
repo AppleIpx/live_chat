@@ -3,8 +3,8 @@ from typing import Type, Union
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from live_chat.db.models.chat import (  # type: ignore[attr-defined]
-    User,
+from live_chat.db.models.user import User
+from live_chat.db.models.warnings import (
     WarningFirstName,
     WarningLastName,
     WarningUsername,
@@ -61,5 +61,5 @@ async def create_warning_for_user(
             field=field,
             db_session=db_session,
             user=user,
-            warning_model=warning_model,
+            warning_model=warning_model,  # type: ignore[arg-type]
         )

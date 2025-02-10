@@ -4,14 +4,13 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from live_chat.db.models.black_list import BlackList
 from live_chat.db.models.chat import (
-    BlackList,
     Chat,
-    DeletedMessage,
-    Message,
-    Reaction,
-    User,
 )
+from live_chat.db.models.messages import DeletedMessage, Message
+from live_chat.db.models.reaction import Reaction
+from live_chat.db.models.user import User
 from tests.factories import MessageFactory
 
 payload = {
@@ -92,6 +91,7 @@ async def transformation_message_data(message: MessageFactory | Message) -> str:
                 "parent_message_id": message.parent_message_id,
                 "is_deleted": message.is_deleted,
                 "reactions": [],
+                "forwarded_message": message.forwarded_message,
             },
         ),
     )
