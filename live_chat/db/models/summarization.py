@@ -22,7 +22,7 @@ class Summarization(Base):  # type: ignore[misc]
         Enum(SummarizationStatus, inherit_schema=True),
     )
     progress: Mapped[float] = mapped_column(Float, default=0.0)
-    result: Mapped[JSON] = mapped_column(JSON, default={})
+    result: Mapped[dict[str, str]] = mapped_column(JSON, default={})
     finished_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
