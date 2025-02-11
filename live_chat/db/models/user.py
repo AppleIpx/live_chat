@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from live_chat.db.models.messages import DraftMessage
     from live_chat.db.models.reaction import Reaction
     from live_chat.db.models.read_status import ReadStatus
+    from live_chat.db.models.summarization import Summarization
 
 
 class User(SQLAlchemyBaseUserTableUUID, Base):
@@ -59,6 +60,10 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
         cascade="all,delete",
     )
     is_warning: Mapped[bool] = mapped_column(Boolean, default=False)
+    summarizations: Mapped[List["Summarization"]] = relationship(
+        back_populates="user",
+        cascade="all,delete",
+    )
 
     def __str__(self) -> str:
         return f"{self.username}"

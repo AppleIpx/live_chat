@@ -563,7 +563,6 @@ export default {
     groupedReactions() {
       return this.messages.map(message => {
         const grouped = {};
-
         if (message.reactions) {
           message.reactions.forEach(reaction => {
             if (!grouped[reaction.reaction_type]) {

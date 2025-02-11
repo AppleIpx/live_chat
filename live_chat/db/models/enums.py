@@ -13,3 +13,11 @@ class MessageType(enum.Enum):
 
     TEXT = "text"
     FILE = "file"
+
+
+class SummarizationStatus(enum.Enum):
+    """Select summarization status."""
+
+    IN_PROGRESS = "in_progress"
+    SUCCESS = "success"
+    ERROR = "error"

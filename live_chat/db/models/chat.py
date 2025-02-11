@@ -20,6 +20,7 @@ from live_chat.db.models.enums import ChatType
 if TYPE_CHECKING:
     from live_chat.db.models.messages import DraftMessage
     from live_chat.db.models.read_status import ReadStatus
+    from live_chat.db.models.summarization import Summarization
     from live_chat.db.models.user import User
 
 chat_participant = Table(
@@ -63,6 +64,10 @@ class Chat(Base):
         overlaps="messages",
     )
     read_statuses: Mapped[List["ReadStatus"]] = relationship(
+        back_populates="chat",
+        cascade="all,delete",
+    )
+    summarizations: Mapped[List["Summarization"]] = relationship(
         back_populates="chat",
         cascade="all,delete",
     )
