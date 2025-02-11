@@ -112,6 +112,7 @@ async def post_message(
     if created_message := await save_message_to_db(
         db_session=db_session,
         content=message_schema.content,
+        parent_message_id=message_schema.parent_message_id,
         chat=chat,
         message_type=message_schema.message_type,
         owner_msg_id=current_user.id,

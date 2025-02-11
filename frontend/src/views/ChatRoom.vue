@@ -166,6 +166,14 @@
                   ></i>
                 </div>
               </div>
+              <div v-if="message.parent_message_id"
+                   class="reply-message"
+                   @click="scrollToMessage(message.parent_message_id)"
+              >
+                <p>Ответ на: {{
+                    getMessageById(message.parent_message_id).content
+                  }}</p>
+              </div>
               <div class="message-content">
                 <span v-if="message.content">{{ message.content }}</span>
                 <img
@@ -211,18 +219,21 @@
                   </div>
                 </div>
               </div>
-              <div v-if="message.isMine" class="message-options">
+              <div class="message-options">
                 <button @click="toggleMenu(message.id)" class="menu-button">...</button>
                 <div v-if="message.showMenu" class="menu-dropdown">
-                  <button v-if="message.message_type === 'text'"
+                  <button @click="setReplyMessage(message)" class="icon-button-reply">
+                    <i class="fa fa-reply"></i>
+                  </button>
+                  <button v-if="message.message_type === 'text'&& message.isMine"
                           @click="openEditModal(message)"
                           class="icon-button-update">
                     <i class="fa fa-pencil"></i>
                   </button>
-                  <button @click="openDeleteModal(message)" class="icon-button-delete">
+                  <button v-if="message.isMine" @click="openDeleteModal(message)" class="icon-button-delete">
                     <i class="fa fa-trash"></i>
                   </button>
-                  <button v-if="chatType === 'group'"
+                  <button v-if="chatType === 'group' && message.isMine"
                           @click="openReadStatusModal(message)" class="icon-button-eye">
                     <i class="fa fa-eye"></i>
                   </button>
@@ -237,6 +248,13 @@
       </div>
 
       <!-- Message Input -->
+      <div v-if="replyToMessage" class="reply-preview">
+        <i class="fa fa-reply reply-icon"></i>
+        <p class="reply-text">Ответ на: {{ replyToMessage.content }}</p>
+        <button @click="clearReply" class="cancel-reply">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
       <div class="chat-input-container">
         <label class="attachment-button">
           <i class="fa fa-paperclip"></i>
@@ -477,6 +495,7 @@ export default {
     return {
       messages: [],
       messageText: "",
+      replyToMessage: null,
       showPicker: false,
       showSmallPicker: false,
       user: null,
@@ -893,6 +912,7 @@ export default {
               reactions: message.reactions,
               readStatus: [],
               readUsers: [],
+              parent_message_id: message.parent_message_id,
             }));
         const currentUserStatus = this.chatData.read_statuses.find(
             status => status.user_id === this.user.id
@@ -1077,6 +1097,7 @@ export default {
           created_at: new Date(newMessage.created_at).toLocaleString(),
           updated_at: new Date(newMessage.updated_at).toLocaleString(),
           isMine: newMessage.user_id === this.user.id,
+          parent_message_id: newMessage.parent_message_id,
         };
         const index = this.messages.findIndex(
             (msg) => new Date(msg.created_at) > new Date(message.created_at)
@@ -1210,6 +1231,30 @@ export default {
       this.fileToUpload = null
     },
 
+    scrollToMessage(messageId) {
+      this.$nextTick(() => {
+        const targetMessage = this.messageRefs[messageId];
+        if (targetMessage) {
+          targetMessage.scrollIntoView({behavior: "smooth", block: "center"});
+          targetMessage.classList.add("highlight");
+          setTimeout(() => {
+            targetMessage.classList.remove("highlight");
+          }, 1500);
+        }
+      });
+    },
+
+    getMessageById(id) {
+      return this.messages.find((msg) => msg.id === id) || {content: "сообщение"};
+    },
+
+    setReplyMessage(message) {
+      this.replyToMessage = message;
+    },
+    clearReply() {
+      this.replyToMessage = null;
+    },
+
     // Send message
     async sendMessage() {
       if (!this.messageText.trim() && !this.messageFileName) return;
@@ -1230,6 +1275,7 @@ export default {
         file_path: this.messageFilePath || null,
         file_name: this.messageFileName || null,
         message_type: this.messageFilePath ? "file" : "text",
+        parent_message_id: this.replyToMessage ? this.replyToMessage.id : null,
       };
 
       try {
@@ -1249,8 +1295,10 @@ export default {
           isMine: true,
           readStatus: ['delivered'],
           reactions: [],
+          parent_message_id: this.replyToMessage ? this.replyToMessage.id : null,
         });
         this.messageText = "";
+        this.replyToMessage = null;
         this.removeFile()
         this.closeUploadModal()
         this.scrollToBottom();
@@ -1411,6 +1459,64 @@ export default {
   font-size: 14px;
   color: #333;
   position: relative;
+  transition: background 1s ease-out;
+}
+
+.reply-message {
+  background: #f0f0f0;
+  padding: 4px 8px;
+  border-left: 3px solid #4699f3;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+  max-width: calc(100% - 56px);
+  margin-top: 5px;
+}
+
+.reply-message:hover {
+  background: #e0e0e0;
+}
+
+.highlight {
+  background: #a9caf1 !important;
+}
+
+.reply-preview {
+  display: flex;
+  align-items: center;
+  background: #f3f3f3;
+  padding: 8px 12px;
+  border-left: 4px solid #007bff;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.reply-icon {
+  color: #007bff;
+  margin-right: 8px;
+}
+
+.reply-text {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cancel-reply {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  font-size: 16px;
+  transition: color 0.2s;
+}
+
+.cancel-reply:hover {
+  color: #ff4d4d;
 }
 
 .message-header {
@@ -1582,6 +1688,19 @@ export default {
 
 .icon-button-delete:hover {
   color: #da0707;
+}
+
+.icon-button-reply {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px;
+  color: #333;
+}
+
+.icon-button-reply:hover {
+  color: #131eee;
 }
 
 .read-status-list {
