@@ -38,11 +38,15 @@ from live_chat.web.api.messages.utils.save_message import (
     save_message_to_db,
 )
 from live_chat.web.api.messages.utils.transformations import (
+    # get_user_short_schema,
     transformation_forward_msg,
     transformation_message,
 )
 from live_chat.web.api.read_status.utils import increase_in_unread_messages
 from live_chat.web.api.users.utils import custom_current_user
+from live_chat.web.api.users.utils.transformations import (
+    transformation_short_user,
+)
 from live_chat.web.api.users.utils.validators import validate_user_active
 
 message_router = APIRouter()
@@ -78,10 +82,12 @@ async def get_messages(
             for reaction in message.reactions
         ]
         if message.forwarded_message is not None:
+            user_schema = transformation_short_user(
+                user=message.forwarded_message.user,
+            )
             message.forwarded_message = GetForwardMessageSchema(
                 id=message.forwarded_message.id,
-                user_id=message.forwarded_message.user_id,
-                chat_id=message.forwarded_message.chat_id,
+                user=user_schema,
             )
         else:
             message.forwarded_message = None
@@ -116,7 +122,10 @@ async def post_message(
         message_type=message_schema.message_type,
         owner_msg_id=current_user.id,
     ):
-        message_data = await transformation_message(created_message)
+        message_data = await transformation_message(
+            created_message,
+            db_session=db_session,
+        )
         event_data = jsonable_encoder(message_data.model_dump())
         await increase_in_unread_messages(
             chat=chat,
@@ -147,7 +156,7 @@ async def update_message(
         message.updated_at = datetime.now(timezone.utc)
         chat.last_message_content = message_schema.content[:100]  # type: ignore[index]
         await db_session.commit()
-        message_data = await transformation_message(message)
+        message_data = await transformation_message(message, db_session=db_session)
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("update_message", chat.users, event_data, chat.id)
         return message_data
@@ -158,7 +167,7 @@ async def update_message(
 
 
 @message_router.post(
-    "/chats/{chat_id}/forwarding-message/",
+    "/chats/{chat_id}/forward",
     response_model=CreatedForwardMessageSchema,
     status_code=status.HTTP_201_CREATED,
 )
@@ -177,7 +186,7 @@ async def forward_message_view(
         for msg_id in forward_message_schema.messages
     ]
     await validate_access_to_msg_in_chat(
-        from_chat_id=forward_message_schema.from_chat_id,
+        from_chat=chat,
         current_user=current_user,
         db_session=db_session,
         messages=messages,
@@ -190,6 +199,7 @@ async def forward_message_view(
     )
     list_get_schem = await transformation_forward_msg(
         forward_messages=forwarded_messages,
+        db_session=db_session,
     )
 
     return CreatedForwardMessageSchema(

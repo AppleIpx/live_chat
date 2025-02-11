@@ -24,7 +24,23 @@ def transformation_users(users: List[User]) -> list[UserRead]:
     ]
 
 
-def transformation_short_users(users: List[User]) -> list[UserShortRead]:
+def transformation_short_user(user: User) -> UserShortRead:
+    """Transformation of user to the desired data type. Used to fixed mypy error."""
+    return UserShortRead(
+        id=user.id,
+        is_deleted=user.is_deleted,  # type: ignore[call-arg]
+        first_name=user.first_name,  # type: ignore[call-arg]
+        last_name=user.last_name,  # type: ignore[call-arg]
+        username=user.username,  # type: ignore[call-arg]
+        user_image=user.user_image,  # type: ignore[call-arg]
+        last_online=user.last_online,  # type: ignore[call-arg]
+        is_banned=user.is_banned,  # type: ignore[call-arg]
+    )
+
+
+def transformation_short_users(
+    users: List[User],
+) -> list[UserShortRead]:
     """Transformation of users to the desired data type. Used to fixed mypy error."""
     return [
         UserShortRead(

@@ -62,7 +62,7 @@ async def recover_deleted_message(
     if message := await restore_message(db_session, deleted_message):
         if message.content:
             chat.last_message_content = message.content[:100]
-        message_data = await transformation_message(message)
+        message_data = await transformation_message(message, db_session=db_session)
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("recover_message", chat.users, event_data, chat.id)
         return JSONResponse(
