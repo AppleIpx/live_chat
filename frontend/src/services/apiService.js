@@ -148,6 +148,19 @@ export const messageService = {
             throw error;
         }
     },
+    async fetchMessagesRange(chatId, fromId, toId) {
+        try {
+            const params = new URLSearchParams();
+            params.append("from_id", fromId);
+            params.append("to_id", toId);
+            return await apiClient.get(`/api/chats/${chatId}/messages/range?${params.toString()}`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
     async fetchDeletedMessages(chatId, {cursor, size}) {
         try {
             const params = new URLSearchParams();

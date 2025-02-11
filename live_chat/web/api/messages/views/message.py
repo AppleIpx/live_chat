@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -21,6 +22,7 @@ from live_chat.web.api.messages import GetMessageSchema, PostMessageSchema
 from live_chat.web.api.messages.schemas import (
     CreatedForwardMessageSchema,
     GetForwardMessageSchema,
+    GetParentMessageSchema,
     GetReactionSchema,
     PostForwardMessageSchema,
     UpdateMessageSchema,
@@ -28,8 +30,10 @@ from live_chat.web.api.messages.schemas import (
 from live_chat.web.api.messages.utils import (
     check_parent_message,
     get_message_by_id,
+    get_messages_range,
     publish_faststream,
     validate_access_to_msg_in_chat,
+    validate_message_exists,
     validate_message_schema,
     validate_user_owns_message_access,
 )
@@ -85,7 +89,40 @@ async def get_messages(
             )
         else:
             message.forwarded_message = None
+        message.parent_message = (
+            GetParentMessageSchema(
+                id=message.parent_message.id,
+                message_type=message.parent_message.message_type,
+                file_name=message.parent_message.file_name,
+                file_path=message.parent_message.file_path,
+                content=message.parent_message.content,
+            )
+            if message.parent_message
+            else None
+        )
     return messages
+
+
+@message_router.get("/chats/{chat_id}/messages/range")
+async def get_range_messages(
+    from_id: UUID,
+    to_id: UUID,
+    chat: Chat = Depends(validate_user_access_to_chat),
+    db_session: AsyncSession = Depends(get_async_session),
+) -> list[GetMessageSchema]:
+    """Get a range messages in chat."""
+    message_from = await validate_message_exists(
+        db_session=db_session,
+        message_id=from_id,
+    )
+    message_to = await validate_message_exists(db_session=db_session, message_id=to_id)
+    messages = await get_messages_range(
+        db_session=db_session,
+        chat_id=chat.id,
+        from_date=message_from.created_at,
+        to_date=message_to.created_at,
+    )
+    return [await transformation_message(message) for message in messages]
 
 
 @message_router.post("/chats/{chat_id}/messages", status_code=status.HTTP_201_CREATED)
@@ -112,9 +149,12 @@ async def post_message(
     if created_message := await save_message_to_db(
         db_session=db_session,
         content=message_schema.content,
+        parent_message_id=message_schema.parent_message_id,
         chat=chat,
         message_type=message_schema.message_type,
         owner_msg_id=current_user.id,
+        file_name=message_schema.file_name,
+        file_path=message_schema.file_path,
     ):
         message_data = await transformation_message(created_message)
         event_data = jsonable_encoder(message_data.model_dump())

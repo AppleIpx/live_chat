@@ -23,6 +23,16 @@ class PostReactionSchema(BaseModel):
     reaction_type: str
 
 
+class GetParentMessageSchema(BaseModel):
+    """Represents a get parent message."""
+
+    id: UUID
+    message_type: MessageType
+    file_name: str | None
+    file_path: str | None
+    content: str | None
+
+
 class GetBaseMessageSchema(BaseModel):
     """Represents a base get command for a message."""
 
@@ -35,7 +45,6 @@ class GetBaseMessageSchema(BaseModel):
     content: str | None
     created_at: datetime
     updated_at: datetime
-    parent_message_id: UUID | None
     is_deleted: bool
 
 
@@ -52,6 +61,7 @@ class GetMessageSchema(GetBaseMessageSchema):
 
     reactions: list[GetReactionSchema]
     forwarded_message: GetForwardMessageSchema | None
+    parent_message: GetParentMessageSchema | None
 
 
 class GetDeletedMessageSchema(GetBaseMessageSchema):
