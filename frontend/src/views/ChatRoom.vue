@@ -166,13 +166,12 @@
                   ></i>
                 </div>
               </div>
-              <div v-if="message.parent_message_id"
+              <div v-if="message.parent_message && message.parent_message.id"
                    class="reply-message"
-                   @click="scrollToMessage(message.parent_message_id)"
+                   @click="scrollToMessage(message)"
               >
-                <p>Ответ на: {{
-                    getMessageById(message.parent_message_id).content
-                  }}</p>
+                <p v-if="message.parent_message.content">Ответ на: {{ message.parent_message.content }}</p>
+                <p v-else>Ответ на: {{ message.parent_message.file_name }}</p>
               </div>
               <div class="message-content">
                 <span v-if="message.content">{{ message.content }}</span>
@@ -230,7 +229,8 @@
                           class="icon-button-update">
                     <i class="fa fa-pencil"></i>
                   </button>
-                  <button v-if="message.isMine" @click="openDeleteModal(message)" class="icon-button-delete">
+                  <button v-if="message.isMine" @click="openDeleteModal(message)"
+                          class="icon-button-delete">
                     <i class="fa fa-trash"></i>
                   </button>
                   <button v-if="chatType === 'group' && message.isMine"
@@ -250,7 +250,8 @@
       <!-- Message Input -->
       <div v-if="replyToMessage" class="reply-preview">
         <i class="fa fa-reply reply-icon"></i>
-        <p class="reply-text">Ответ на: {{ replyToMessage.content }}</p>
+        <p class="reply-text" v-if="replyToMessage.content">Ответ на: {{ replyToMessage.content }}</p>
+        <p class="reply-text" v-else>Ответ на: {{ replyToMessage.file_name }}</p>
         <button @click="clearReply" class="cancel-reply">
           <i class="fa fa-times"></i>
         </button>
@@ -912,7 +913,7 @@ export default {
               reactions: message.reactions,
               readStatus: [],
               readUsers: [],
-              parent_message_id: message.parent_message_id,
+              parent_message: message.parent_message,
             }));
         const currentUserStatus = this.chatData.read_statuses.find(
             status => status.user_id === this.user.id
@@ -1015,6 +1016,35 @@ export default {
       }
     },
 
+    async loadMessagesWithParent(message) {
+      const lastMessageId = this.messages[this.messages.length - 1]?.id;
+
+      try {
+        const response = await messageService.fetchMessagesRange(this.chatId, message.parent_message.id, lastMessageId);
+        const newMessages = response.data
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+            .map(msg => ({
+              id: msg.id,
+              user: this.chatData.users.find(user => user.id === msg.user_id) || {},
+              content: msg.content,
+              file_path: msg.file_path,
+              file_name: msg.file_name,
+              message_type: msg.message_type,
+              created_at: new Date(msg.created_at).toLocaleString(),
+              updated_at: new Date(msg.updated_at).toLocaleString(),
+              showMenu: false,
+              isMine: msg.user_id === this.user.id,
+              reactions: msg.reactions,
+              readStatus: [],
+              readUsers: [],
+              parent_message: msg.parent_message,
+            }));
+        this.messages = [...newMessages, ...this.messages];
+      } catch (error) {
+        console.error('Error loading parent messages:', error);
+      }
+    },
+
     groupCallback(group_data, type_event) {
       if (type_event === "name") {
         this.chatName = group_data.group_name;
@@ -1097,7 +1127,7 @@ export default {
           created_at: new Date(newMessage.created_at).toLocaleString(),
           updated_at: new Date(newMessage.updated_at).toLocaleString(),
           isMine: newMessage.user_id === this.user.id,
-          parent_message_id: newMessage.parent_message_id,
+          parent_message: newMessage.parent_message,
         };
         const index = this.messages.findIndex(
             (msg) => new Date(msg.created_at) > new Date(message.created_at)
@@ -1231,21 +1261,21 @@ export default {
       this.fileToUpload = null
     },
 
-    scrollToMessage(messageId) {
-      this.$nextTick(() => {
-        const targetMessage = this.messageRefs[messageId];
-        if (targetMessage) {
-          targetMessage.scrollIntoView({behavior: "smooth", block: "center"});
-          targetMessage.classList.add("highlight");
-          setTimeout(() => {
-            targetMessage.classList.remove("highlight");
-          }, 1500);
-        }
-      });
-    },
+    async scrollToMessage(message) {
+      if (!this.messages.some(m => m.id === message.parent_message?.id)) {
+        await this.loadMessagesWithParent(message);
+      }
+      await this.$nextTick();
+      const targetMessage = this.messageRefs[message.parent_message.id];
 
-    getMessageById(id) {
-      return this.messages.find((msg) => msg.id === id) || {content: "сообщение"};
+      if (targetMessage) {
+        targetMessage.scrollIntoView({behavior: "smooth", block: "center"});
+        targetMessage.classList.add("highlight");
+
+        setTimeout(() => {
+          targetMessage.classList.remove("highlight");
+        }, 2500);
+      }
     },
 
     setReplyMessage(message) {
@@ -1295,7 +1325,7 @@ export default {
           isMine: true,
           readStatus: ['delivered'],
           reactions: [],
-          parent_message_id: this.replyToMessage ? this.replyToMessage.id : null,
+          parent_message: this.replyToMessage ? this.replyToMessage : null,
         });
         this.messageText = "";
         this.replyToMessage = null;
@@ -1638,6 +1668,7 @@ export default {
 
 .menu-dropdown {
   position: absolute;
+  margin-top: 10px;
   top: 25px;
   right: 0;
   background: white;
