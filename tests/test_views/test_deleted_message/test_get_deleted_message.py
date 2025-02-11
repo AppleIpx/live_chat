@@ -36,7 +36,6 @@ async def test_get_deleted_message_in_chat(
                     "+00:00",
                     "Z",
                 ),
-                "parent_message_id": deleted_message_in_chat.parent_message_id,
                 "updated_at": deleted_message_in_chat.updated_at.isoformat().replace(
                     "+00:00",
                     "Z",

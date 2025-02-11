@@ -166,6 +166,13 @@
                   ></i>
                 </div>
               </div>
+              <div v-if="message.parent_message && message.parent_message.id"
+                   class="reply-message"
+                   @click="scrollToMessage(message)"
+              >
+                <p v-if="message.parent_message.content">Ответ на: {{ message.parent_message.content }}</p>
+                <p v-else>Ответ на: {{ message.parent_message.file_name }}</p>
+              </div>
               <div class="message-content">
                 <span v-if="message.content">{{ message.content }}</span>
                 <img
@@ -211,18 +218,22 @@
                   </div>
                 </div>
               </div>
-              <div v-if="message.isMine" class="message-options">
+              <div class="message-options">
                 <button @click="toggleMenu(message.id)" class="menu-button">...</button>
                 <div v-if="message.showMenu" class="menu-dropdown">
-                  <button v-if="message.message_type === 'text'"
+                  <button @click="setReplyMessage(message)" class="icon-button-reply">
+                    <i class="fa fa-reply"></i>
+                  </button>
+                  <button v-if="message.message_type === 'text'&& message.isMine"
                           @click="openEditModal(message)"
                           class="icon-button-update">
                     <i class="fa fa-pencil"></i>
                   </button>
-                  <button @click="openDeleteModal(message)" class="icon-button-delete">
+                  <button v-if="message.isMine" @click="openDeleteModal(message)"
+                          class="icon-button-delete">
                     <i class="fa fa-trash"></i>
                   </button>
-                  <button v-if="chatType === 'group'"
+                  <button v-if="chatType === 'group' && message.isMine"
                           @click="openReadStatusModal(message)" class="icon-button-eye">
                     <i class="fa fa-eye"></i>
                   </button>
@@ -237,6 +248,14 @@
       </div>
 
       <!-- Message Input -->
+      <div v-if="replyToMessage" class="reply-preview">
+        <i class="fa fa-reply reply-icon"></i>
+        <p class="reply-text" v-if="replyToMessage.content">Ответ на: {{ replyToMessage.content }}</p>
+        <p class="reply-text" v-else>Ответ на: {{ replyToMessage.file_name }}</p>
+        <button @click="clearReply" class="cancel-reply">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
       <div class="chat-input-container">
         <label class="attachment-button">
           <i class="fa fa-paperclip"></i>
@@ -477,6 +496,7 @@ export default {
     return {
       messages: [],
       messageText: "",
+      replyToMessage: null,
       showPicker: false,
       showSmallPicker: false,
       user: null,
@@ -554,6 +574,7 @@ export default {
             grouped[reaction.reaction_type].count += 1;
           });
         }
+
         return {
           ...message,
           reactions: Object.values(grouped)
@@ -595,8 +616,15 @@ export default {
       console.error('Ошибка при загрузке чата:', error);
     });
   },
-  beforeUnmount() {
-    this.sendReadStatusOnExit();
+  async beforeUnmount() {
+    await this.sendReadStatusOnExit();
+    if (this.messageText && !this.chatData.draft_message) {
+      await messageService.sendLastMessage(this.chatId, this.messageText)
+    } else if (this.chatData.draft_message && this.messageText === "") {
+      await messageService.deleteLastMessage(this.chatId)
+    } else if (this.chatData.draft_message && this.messageText && this.chatData.draft_message !== this.messageText) {
+      await messageService.updateLastMessage(this.chatId, this.messageText)
+    }
     SSEManager.disconnect(this.chatId);
   },
   methods: {
@@ -771,6 +799,7 @@ export default {
         const chatResponse = await this.$store.dispatch("StoreFetchChatDetail", chatId);
         this.chatData = chatResponse.data;
         this.chatType = chatResponse.data.chat_type
+        this.messageText = chatResponse.data.draft_message
 
         // Set the other user for direct chats
         if (this.chatData.chat_type === "direct") {
@@ -893,6 +922,7 @@ export default {
               reactions: message.reactions,
               readStatus: [],
               readUsers: [],
+              parent_message: message.parent_message,
             }));
         const currentUserStatus = this.chatData.read_statuses.find(
             status => status.user_id === this.user.id
@@ -995,6 +1025,35 @@ export default {
       }
     },
 
+    async loadMessagesWithParent(message) {
+      const lastMessageId = this.messages[this.messages.length - 1]?.id;
+
+      try {
+        const response = await messageService.fetchMessagesRange(this.chatId, message.parent_message.id, lastMessageId);
+        const newMessages = response.data
+            .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+            .map(msg => ({
+              id: msg.id,
+              user: this.chatData.users.find(user => user.id === msg.user_id) || {},
+              content: msg.content,
+              file_path: msg.file_path,
+              file_name: msg.file_name,
+              message_type: msg.message_type,
+              created_at: new Date(msg.created_at).toLocaleString(),
+              updated_at: new Date(msg.updated_at).toLocaleString(),
+              showMenu: false,
+              isMine: msg.user_id === this.user.id,
+              reactions: msg.reactions,
+              readStatus: [],
+              readUsers: [],
+              parent_message: msg.parent_message,
+            }));
+        this.messages = [...newMessages, ...this.messages];
+      } catch (error) {
+        console.error('Error loading parent messages:', error);
+      }
+    },
+
     groupCallback(group_data, type_event) {
       if (type_event === "name") {
         this.chatName = group_data.group_name;
@@ -1077,6 +1136,7 @@ export default {
           created_at: new Date(newMessage.created_at).toLocaleString(),
           updated_at: new Date(newMessage.updated_at).toLocaleString(),
           isMine: newMessage.user_id === this.user.id,
+          parent_message: newMessage.parent_message,
         };
         const index = this.messages.findIndex(
             (msg) => new Date(msg.created_at) > new Date(message.created_at)
@@ -1210,6 +1270,30 @@ export default {
       this.fileToUpload = null
     },
 
+    async scrollToMessage(message) {
+      if (!this.messages.some(m => m.id === message.parent_message?.id)) {
+        await this.loadMessagesWithParent(message);
+      }
+      await this.$nextTick();
+      const targetMessage = this.messageRefs[message.parent_message.id];
+
+      if (targetMessage) {
+        targetMessage.scrollIntoView({behavior: "smooth", block: "center"});
+        targetMessage.classList.add("highlight");
+
+        setTimeout(() => {
+          targetMessage.classList.remove("highlight");
+        }, 2500);
+      }
+    },
+
+    setReplyMessage(message) {
+      this.replyToMessage = message;
+    },
+    clearReply() {
+      this.replyToMessage = null;
+    },
+
     // Send message
     async sendMessage() {
       if (!this.messageText.trim() && !this.messageFileName) return;
@@ -1230,6 +1314,7 @@ export default {
         file_path: this.messageFilePath || null,
         file_name: this.messageFileName || null,
         message_type: this.messageFilePath ? "file" : "text",
+        parent_message_id: this.replyToMessage ? this.replyToMessage.id : null,
       };
 
       try {
@@ -1249,8 +1334,10 @@ export default {
           isMine: true,
           readStatus: ['delivered'],
           reactions: [],
+          parent_message: this.replyToMessage ? this.replyToMessage : null,
         });
         this.messageText = "";
+        this.replyToMessage = null;
         this.removeFile()
         this.closeUploadModal()
         this.scrollToBottom();
@@ -1411,6 +1498,64 @@ export default {
   font-size: 14px;
   color: #333;
   position: relative;
+  transition: background 1s ease-out;
+}
+
+.reply-message {
+  background: #f0f0f0;
+  padding: 4px 8px;
+  border-left: 3px solid #4699f3;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+  max-width: calc(100% - 56px);
+  margin-top: 5px;
+}
+
+.reply-message:hover {
+  background: #e0e0e0;
+}
+
+.highlight {
+  background: #a9caf1 !important;
+}
+
+.reply-preview {
+  display: flex;
+  align-items: center;
+  background: #f3f3f3;
+  padding: 8px 12px;
+  border-left: 4px solid #007bff;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.reply-icon {
+  color: #007bff;
+  margin-right: 8px;
+}
+
+.reply-text {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cancel-reply {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  font-size: 16px;
+  transition: color 0.2s;
+}
+
+.cancel-reply:hover {
+  color: #ff4d4d;
 }
 
 .message-header {
@@ -1532,6 +1677,7 @@ export default {
 
 .menu-dropdown {
   position: absolute;
+  margin-top: 10px;
   top: 25px;
   right: 0;
   background: white;
@@ -1582,6 +1728,19 @@ export default {
 
 .icon-button-delete:hover {
   color: #da0707;
+}
+
+.icon-button-reply {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 5px;
+  color: #333;
+}
+
+.icon-button-reply:hover {
+  color: #131eee;
 }
 
 .read-status-list {

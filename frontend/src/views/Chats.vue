@@ -131,9 +131,12 @@
               </strong>
               <span class="timestamp">{{ formatDate(chat.updated_at) }}</span>
             </div>
-            <p class="last-message">{{
-                chat.last_message_content || "Нет сообщений"
-              }}</p>
+            <p v-if="chat.draft_message" class="last-message">
+              <span style="color: #b63434;">Черновик:</span> {{ chat.draft_message }}
+            </p>
+            <p v-else class="last-message">
+              {{ chat.last_message_content || "Нет сообщений" }}
+            </p>
           </a>
         </div>
       </div>
@@ -262,8 +265,7 @@ export default {
         if (user.is_deleted) return '/deleted_avatar.png';
         if (user.is_banned) return '/banned_avatar.png';
         return user?.user_image || '/default_avatar.png';
-      }
-      else if (chat.chat_type === 'group') {
+      } else if (chat.chat_type === 'group') {
         return chat.image || '/default_group_image.png';
       }
     },
