@@ -15,7 +15,6 @@ from transformers import (
 from live_chat.db.models.enums import SummarizationStatus
 from live_chat.web.ai_tools.normalizer import Normalizer
 from live_chat.web.ai_tools.utils import (
-    get_summarization_by_chat_and_user,
     update_summarization,
 )
 from live_chat.web.api.ai.utils import publish_faststream_summarize
@@ -29,8 +28,17 @@ class Summarizer:
         self.hf_pipeline = self._create_pipeline()
         self.prompt = self._create_prompt()
         self.chain = self.prompt | self.hf_pipeline | StrOutputParser()
-        self.normalizer = Normalizer()
         logging.warning("Summarizer started")
+        self.normalizer = Normalizer()
+        self.summarization_id: UUID
+        self.user_id: UUID
+        self.chat_id: UUID
+
+    def __call__(self, summarization_id: UUID, user_id: UUID, chat_id: UUID) -> None:
+        """Initialize ids for summarize."""
+        self.summarization_id = summarization_id
+        self.user_id = user_id
+        self.chat_id = chat_id
 
     @staticmethod
     def _load_model_and_tokenizer(
@@ -45,8 +53,8 @@ class Summarizer:
     def _create_prompt() -> PromptTemplate:
         """Creates a template for the prompt."""
         prompt_template = (
-            "Summarize the shortest the following conversation, "
-            "focusing on important details: {text}"
+            "Summarize the following chat conversation between two people as concisely "
+            "as possible. Highlight the main points and key topics discussed:\n{text}"
         )
         return PromptTemplate.from_template(prompt_template)
 
@@ -66,6 +74,45 @@ class Summarizer:
         """Asynchronous summarization generation for a part of the text."""
         self.hf_pipeline = self._create_pipeline(max_length=len(part))
         return await self.chain.ainvoke({"text": part})
+
+    async def _failed_summarization(self, error_message: str) -> None:
+        """Send and update failed summarizations."""
+        await update_summarization(
+            summarization_id=self.summarization_id,
+            result={"error": error_message},
+            status=SummarizationStatus.ERROR,
+            finished_at=datetime.now(timezone.utc),
+        )
+        logging.error(msg=error_message)
+        await publish_faststream_summarize(
+            self.user_id,
+            self.chat_id,
+            {"status": SummarizationStatus.ERROR, "detail": error_message},
+            action="finish_summarization",
+        )
+
+    async def _update_summarization(
+        self,
+        result_db: dict[str, Any],
+        result_sse: dict[str, Any],
+        progress: float,
+        action: str = "progress_summarization",
+        status: SummarizationStatus = SummarizationStatus.IN_PROGRESS,
+    ) -> None:
+        is_finished = status == SummarizationStatus.SUCCESS
+        await update_summarization(
+            summarization_id=self.summarization_id,
+            result=result_db,
+            status=status,
+            finished_at=datetime.now(timezone.utc) if is_finished else None,
+            progress=progress,
+        )
+        await publish_faststream_summarize(
+            self.user_id,
+            self.chat_id,
+            result_sse,
+            action=action,
+        )
 
     async def _split_dialog(self, messages_map: dict[str, str]) -> dict[str, str]:
         """Breaks the dialog into parts that are as large as possible for model."""
@@ -89,31 +136,15 @@ class Summarizer:
                 date_to_text[date] = parts[0]
         return date_to_text
 
-    async def generate_summary(
-        self,
-        messages_map: dict[Any, str],
-        user_id: UUID,
-        chat_id: UUID,
-    ) -> None:
+    async def generate_summary(self, messages_map: dict[Any, str]) -> None:
         """Generate summary for a chat."""
         date_to_text = await self._split_dialog(messages_map)
+        if not date_to_text:
+            await self._failed_summarization("Not enough messages to generate summary")
+            return
         result_data = {}
         total_parts = len(date_to_text)
         processed_parts = 0
-        summarization = await get_summarization_by_chat_and_user(
-            chat_id,
-            user_id,
-            status=SummarizationStatus.IN_PROGRESS,
-        )
-        if not summarization:
-            logging.error(msg="Summarization was not found in db.")
-            await publish_faststream_summarize(
-                user_id,
-                chat_id,
-                {"status": SummarizationStatus.ERROR},
-                action="finish_summarization",
-            )
-            return
         for date, dialog in date_to_text.items():
             normalized_dialog = await self.normalizer.normalize_text(dialog)
             if not normalized_dialog:
@@ -123,44 +154,19 @@ class Summarizer:
                     result_data[date] = result
                     processed_parts += 1
                     progress = round((processed_parts / total_parts) * 100, 2)
-                    await update_summarization(
-                        summarization_id=summarization.id,
-                        result=result_data,
+                    await self._update_summarization(
+                        result_sse={date: result, "progress": progress},
+                        result_db=result_data,
                         progress=progress,
-                    )
-                    await publish_faststream_summarize(
-                        user_id,
-                        chat_id,
-                        {
-                            date: result,
-                            "progress": progress,
-                        },
                     )
                     continue
                 error_detail = "Error with generate summary"
-            await update_summarization(
-                summarization_id=summarization.id,
-                result={"failed_error": error_detail},
-                status=SummarizationStatus.ERROR,
-                finished_at=datetime.now(timezone.utc),
-            )
-            logging.error(msg=error_detail)
-            await publish_faststream_summarize(
-                user_id,
-                chat_id,
-                {"status": SummarizationStatus.ERROR},
-                action="finish_summarization",
-            )
-        await update_summarization(
-            summarization_id=summarization.id,
-            result=result_data,
-            status=SummarizationStatus.SUCCESS,
-            finished_at=datetime.now(timezone.utc),
+            await self._failed_summarization(error_detail)
+            return
+        await self._update_summarization(
+            result_sse={"status": SummarizationStatus.SUCCESS},
+            result_db=result_data,
             progress=100,
-        )
-        await publish_faststream_summarize(
-            user_id,
-            chat_id,
-            {"status": SummarizationStatus.SUCCESS},
             action="finish_summarization",
+            status=SummarizationStatus.SUCCESS,
         )

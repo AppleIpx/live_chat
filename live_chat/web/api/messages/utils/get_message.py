@@ -1,8 +1,9 @@
-from typing import Any
+from datetime import datetime
+from typing import Any, Sequence
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import Row, RowMapping, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from starlette import status
@@ -69,28 +70,21 @@ async def get_deleted_by_orig_message_id(
     return result.scalar_one_or_none()
 
 
-async def get_formatted_messages_by_chat(
+async def get_messages_by_date(
     db_session: AsyncSession,
     *,
     chat_id: UUID,
-    current_user_id: UUID,
-) -> dict[Any, str]:
-    """Function to get a formatted messages by chat_id from db."""
+    date_limit: datetime,
+) -> Sequence[Row[Any] | RowMapping | Any]:
+    """Function to get a messages by chat_id in selected date limit."""
     query = (
         select(Message.content, Message.user_id, Message.created_at)
-        .where(Message.chat_id == chat_id, Message.message_type == MessageType.TEXT)
+        .where(
+            Message.chat_id == chat_id,
+            Message.message_type == MessageType.TEXT,
+            Message.created_at >= date_limit,
+        )
         .order_by(Message.created_at)
     )
     result = await db_session.execute(query)
-    messages = result.all()
-    formatted_messages: dict[str, list[str]] = {}
-    previous_date = None
-    for content, user_id, created_at in messages:
-        formatted_user = "Я" if user_id == current_user_id else "Другой пользователь"
-        message_date = created_at.date().isoformat()
-        if previous_date != message_date:
-            previous_date = message_date
-        if message_date not in formatted_messages:
-            formatted_messages[message_date] = []
-        formatted_messages[message_date].append(f"{formatted_user}: {content}")
-    return {date: "\n".join(messages) for date, messages in formatted_messages.items()}
+    return result.all()

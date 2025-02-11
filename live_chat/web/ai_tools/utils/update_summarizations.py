@@ -11,7 +11,7 @@ from live_chat.db.utils import async_session_maker
 
 async def update_summarization(
     summarization_id: UUID,
-    **updated_fields: dict[str, Any] | datetime | SummarizationStatus | float,
+    **updated_fields: dict[str, Any] | datetime | SummarizationStatus | float | None,
 ) -> None:
     """Update summarization."""
     if not updated_fields:

@@ -17,8 +17,8 @@ from live_chat.web.api.messages.utils.get_message import (
     check_parent_message,
     get_deleted_by_orig_message_id,
     get_deleted_message_by_id,
-    get_formatted_messages_by_chat,
     get_message_by_id,
+    get_messages_by_date,
 )
 from live_chat.web.api.messages.utils.get_reaction import (
     get_reaction_by_message_id_and_user_id,
@@ -43,5 +43,5 @@ __all__ = (
     "validate_message_schema",
     "validate_user_owns_message_access",
     "validate_access_to_msg_in_chat",
-    "get_formatted_messages_by_chat",
+    "get_messages_by_date",
 )

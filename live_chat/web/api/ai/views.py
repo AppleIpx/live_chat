@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -15,27 +16,37 @@ from live_chat.db.utils import get_async_session
 from live_chat.settings import settings
 from live_chat.web.ai_tools.summarizer import Summarizer
 from live_chat.web.ai_tools.utils import (
-    delete_active_summarizations,
+    delete_summarizations_for_chat_from_user,
     get_summarization_by_chat_and_user,
     get_summarizations_by_user,
 )
+from live_chat.web.api.ai.enums import DurationSummarizationEnum
 from live_chat.web.api.ai.schemas import SummarizationSchema
+from live_chat.web.api.ai.utils import get_formatted_messages
 from live_chat.web.api.chat.utils import validate_user_access_to_chat
 from live_chat.web.api.messages.constants import REDIS_SSE_KEY_PREFIX
 from live_chat.web.api.messages.utils import (
-    get_formatted_messages_by_chat,
+    get_messages_by_date,
     message_generator,
 )
 from live_chat.web.api.users.utils import custom_current_user
 from live_chat.web.utils.validate_sse_events import validate_user_in_chat_sse
 
 ai_router = APIRouter()
+DURATION_MAP = {
+    DurationSummarizationEnum.DAY: timedelta(days=1),
+    DurationSummarizationEnum.THREE_DAYS: timedelta(days=3),
+    DurationSummarizationEnum.WEEK: timedelta(weeks=1),
+    DurationSummarizationEnum.TWO_WEEKS: timedelta(weeks=2),
+    DurationSummarizationEnum.MONTH: timedelta(weeks=4),
+}
 
 
 @ai_router.post("/summarizations")
 async def summarize_chat(
     request: Request,
     background_tasks: BackgroundTasks,
+    duration: DurationSummarizationEnum,
     chat: Chat = Depends(validate_user_access_to_chat),
     current_user: User = Depends(custom_current_user),
     db_session: AsyncSession = Depends(get_async_session),
@@ -46,7 +57,22 @@ async def summarize_chat(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="The use of AI is not enabled",
         )
-    await delete_active_summarizations(
+    date_limit = datetime.now(tz=timezone.utc) - DURATION_MAP[duration]
+    messages = await get_messages_by_date(
+        chat_id=chat.id,
+        date_limit=date_limit,
+        db_session=db_session,
+    )
+    if not messages:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No messages found for this time period",
+        )
+    formatted_messages = await get_formatted_messages(
+        messages,
+        current_user_id=current_user.id,
+    )
+    await delete_summarizations_for_chat_from_user(
         db_session=db_session,
         chat_id=chat.id,
         user_id=current_user.id,
@@ -58,17 +84,15 @@ async def summarize_chat(
     )
     db_session.add(summarization)
     await db_session.commit()
-    messages = await get_formatted_messages_by_chat(
-        chat_id=chat.id,
-        current_user_id=current_user.id,
-        db_session=db_session,
-    )
     summarizer: Summarizer = request.app.state.summarizer
+    summarizer(
+        summarization_id=summarization.id,
+        user_id=current_user.id,
+        chat_id=chat.id,
+    )
     background_tasks.add_task(
         summarizer.generate_summary,
-        messages,
-        current_user.id,
-        chat.id,
+        formatted_messages,
     )
     return JSONResponse(content={"status": "Task created and processing started."})
 
