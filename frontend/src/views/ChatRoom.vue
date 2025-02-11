@@ -564,15 +564,17 @@ export default {
       return this.messages.map(message => {
         const grouped = {};
 
-        message.reactions.forEach(reaction => {
-          if (!grouped[reaction.reaction_type]) {
-            grouped[reaction.reaction_type] = {
-              count: 0,
-              reaction_type: reaction.reaction_type
-            };
-          }
-          grouped[reaction.reaction_type].count += 1;
-        });
+        if (message.reactions) {
+          message.reactions.forEach(reaction => {
+            if (!grouped[reaction.reaction_type]) {
+              grouped[reaction.reaction_type] = {
+                count: 0,
+                reaction_type: reaction.reaction_type
+              };
+            }
+            grouped[reaction.reaction_type].count += 1;
+          });
+        }
 
         return {
           ...message,
@@ -615,8 +617,15 @@ export default {
       console.error('Ошибка при загрузке чата:', error);
     });
   },
-  beforeUnmount() {
-    this.sendReadStatusOnExit();
+  async beforeUnmount() {
+    await this.sendReadStatusOnExit();
+    if (this.messageText && !this.chatData.draft_message) {
+      await messageService.sendLastMessage(this.chatId, this.messageText)
+    } else if (this.chatData.draft_message && this.messageText === "") {
+      await messageService.deleteLastMessage(this.chatId)
+    } else if (this.chatData.draft_message && this.messageText && this.chatData.draft_message !== this.messageText) {
+      await messageService.updateLastMessage(this.chatId, this.messageText)
+    }
     SSEManager.disconnect(this.chatId);
   },
   methods: {
@@ -791,6 +800,7 @@ export default {
         const chatResponse = await this.$store.dispatch("StoreFetchChatDetail", chatId);
         this.chatData = chatResponse.data;
         this.chatType = chatResponse.data.chat_type
+        this.messageText = chatResponse.data.draft_message
 
         // Set the other user for direct chats
         if (this.chatData.chat_type === "direct") {
