@@ -3,6 +3,7 @@ from datetime import datetime
 
 import factory
 from factory.fuzzy import FuzzyChoice
+from google.protobuf.message_factory import MessageFactory
 
 from live_chat.db.models.black_list import BlackList
 from live_chat.db.models.blocked_users import BlockedUsers
@@ -73,6 +74,8 @@ class MessageFactory(factory.alchemy.SQLAlchemyModelFactory):
     created_at = factory.LazyFunction(datetime.now)
     updated_at = factory.LazyFunction(datetime.now)
     is_deleted = factory.Faker("boolean")
+    forwarded_message_id = factory.LazyFunction(uuid.uuid4)
+    forwarded_message = factory.SubFactory(MessageFactory)
 
 
 class DeletedMessageFactory(MessageFactory):

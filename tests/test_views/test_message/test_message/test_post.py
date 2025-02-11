@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.messages import Message
+from live_chat.web.api.chat.utils import get_chat_by_id
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
 from live_chat.web.api.messages.utils import get_message_by_id
 from live_chat.web.api.users.utils import get_user_by_id
@@ -19,8 +20,9 @@ from tests.factories import (
     ChatFactory,
     MessageFactory,
     ReadStatusFactory,
+    UserFactory,
 )
-from tests.utils import transformation_message_data
+from tests.utils import get_first_user_from_db, transformation_message_data
 
 
 @pytest.mark.anyio
@@ -381,3 +383,199 @@ async def test_post_message_to_banned_user(
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json() == {"detail": "This user has been banned."}
+
+
+@pytest.mark.anyio
+async def test_post_forwarding_messages(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    direct_chat_with_users: ChatFactory,
+    dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+) -> None:
+    """Testing to post forward messages in other chat."""
+    response = await authorized_client.post(
+        f"/api/chats/{direct_chat_with_users.id}/forwarding-message/",
+        json={
+            "from_chat_id": f"{message_in_chat.chat.id}",
+            "messages": [
+                f"{message_in_chat.id}",
+            ],
+        },
+    )
+    new_message = await get_message_by_id(
+        db_session=dbsession,
+        message_id=response.json()["forward_messages"][0]["id"],
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    assert response.json() == {
+        "forward_messages": [
+            {
+                "id": str(new_message.id),
+                "user_id": str(new_message.user.id),
+                "chat_id": str(new_message.chat.id),
+                "message_type": new_message.message_type.value,
+                "file_name": new_message.file_name,
+                "file_path": new_message.file_path,
+                "content": new_message.content,
+                "created_at": new_message.created_at.isoformat().replace("+00:00", "Z"),
+                "updated_at": new_message.updated_at.isoformat().replace("+00:00", "Z"),
+                "parent_message_id": new_message.parent_message_id,
+                "is_deleted": new_message.is_deleted,
+                "reactions": new_message.reactions,
+                "forwarded_message": {
+                    "id": str(message_in_chat.id),
+                    "user_id": str(message_in_chat.user.id),
+                    "chat_id": str(message_in_chat.chat.id),
+                },
+            },
+        ],
+    }
+
+
+@pytest.mark.anyio
+async def test_post_forwarding_messages_with_not_existent_chat(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+) -> None:
+    """Testing to post forward messages in non-existent chat."""
+    response = await authorized_client.post(
+        f"/api/chats/{uuid.uuid4()}/forwarding-message/",
+        json={
+            "from_chat_id": f"{message_in_chat.chat.id}",
+            "messages": [
+                f"{message_in_chat.id}",
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Chat not found"}
+
+
+@pytest.mark.anyio
+async def test_post_forwarding_messages_with_existent_from_chat(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    direct_chat_with_users: ChatFactory,
+    dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+) -> None:
+    """Testing to post forward messages from non-existent chat."""
+    response = await authorized_client.post(
+        f"/api/chats/{direct_chat_with_users.id}/forwarding-message/",
+        json={
+            "from_chat_id": f"{uuid.uuid4()}",
+            "messages": [
+                f"{message_in_chat.id}",
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Chat not found"}
+
+
+@pytest.mark.anyio
+async def test_post_forwarding_messages_with_non_part_user_in_chat(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    chat: ChatFactory,
+    dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+) -> None:
+    """
+    Testing to post forward messages to chat where user is not part of the chat.
+
+    This test checks that the user cannot forward a message to a chat
+    in which he does not consist
+    """
+    response = await authorized_client.post(
+        f"/api/chats/{chat.id}/forwarding-message/",
+        json={
+            "from_chat_id": f"{message_in_chat.chat.id}",
+            "messages": [
+                f"{message_in_chat.id}",
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": "User is not part of the chat"}
+
+
+@pytest.mark.anyio
+async def test_post_forwarding_messages_with_non_part_user_from_chat(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    chat: ChatFactory,
+    dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+) -> None:
+    """
+    Testing to post forward messages to chat where user is not part of the chat.
+
+    In this test it is checked that the user does not have access to the chat,
+    where does it want to forward a message from
+    """
+    response = await authorized_client.post(
+        f"/api/chats/{message_in_chat.chat.id}/forwarding-message/",
+        json={
+            "from_chat_id": f"{chat.id}",
+            "messages": [
+                f"{message_in_chat.id}",
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": f"You have no access to this chat {chat.id}",
+    }
+
+
+@pytest.mark.anyio
+async def test_post_forwarding_messages_with_non_part_message_from_chat(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    message: MessageFactory,
+    direct_chat_with_users: ChatFactory,
+    dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+) -> None:
+    """
+    Testing to post forward messages to chat where message is not part of the chat.
+
+    This test checks that the message being forwarded is not applicable to the chat
+    from which the message originated.
+    """
+    response = await authorized_client.post(
+        f"/api/chats/{message_in_chat.chat.id}/forwarding-message/",
+        json={
+            "from_chat_id": f"{direct_chat_with_users.id}",
+            "messages": [
+                f"{message.id}",
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {
+        "detail": f"Message {message.id} is not from chat {direct_chat_with_users.id}",
+    }
+
+
+@pytest.mark.anyio
+async def test_post_forwarding_messages_with_not_existent_message(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+) -> None:
+    """Testing to post forward messages from non-existent message."""
+    response = await authorized_client.post(
+        f"/api/chats/{message_in_chat.chat.id}/forwarding-message/",
+        json={
+            "from_chat_id": f"{message_in_chat.chat.id}",
+            "messages": [
+                f"{uuid.uuid4()}",
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Message not found, it is none"}

@@ -136,6 +136,17 @@ async def message_in_chat(
 
 
 @pytest.fixture
+async def message_in_chat_with_forward_message(
+    message_in_chat: MessageFactory,
+    message: MessageFactory,
+    dbsession: AsyncSession,
+) -> MessageFactory:
+    message_in_chat.forwarded_message = message
+    message_in_chat.forwarded_message_id = message.id
+    return message_in_chat
+
+
+@pytest.fixture
 async def deleted_message_in_chat(
     message_in_chat: MessageFactory,
     dbsession: AsyncSession,
