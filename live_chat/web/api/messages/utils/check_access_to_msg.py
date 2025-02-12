@@ -1,23 +1,21 @@
 from typing import List
-from uuid import UUID
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
 from live_chat.db.models.messages import Message
 from live_chat.db.models.user import User
-from live_chat.web.api.chat.utils import get_chat_by_id
 
 
 async def validate_access_to_msg_in_chat(
-    from_chat_id: UUID,
+    from_chat: Chat,
     messages: List[Message | None],
     current_user: User,
     db_session: AsyncSession,
 ) -> None:
     """Checks whether the user has access to the specified messages in a chat."""
-    from_chat = await get_chat_by_id(chat_id=from_chat_id, db_session=db_session)
     if not from_chat:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

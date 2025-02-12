@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from live_chat.db.models.enums import MessageType
+from live_chat.web.api.users.schemas import UserShortRead
 
 
 class GetReactionSchema(BaseModel):
@@ -52,8 +53,7 @@ class GetForwardMessageSchema(BaseModel):
     """Represents a get command for a forward message."""
 
     id: UUID
-    chat_id: UUID
-    user_id: UUID
+    user: UserShortRead
 
 
 class GetMessageSchema(GetBaseMessageSchema):
@@ -97,7 +97,7 @@ class GetDraftMessageSchema(GetBaseMessageSchema):
 class PostForwardMessageSchema(BaseModel):
     """Represents a post command for a forward message."""
 
-    from_chat_id: UUID
+    to_chat_id: UUID
     messages: list[UUID]
 
 
