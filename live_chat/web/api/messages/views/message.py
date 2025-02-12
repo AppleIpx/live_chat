@@ -42,7 +42,6 @@ from live_chat.web.api.messages.utils.save_message import (
     save_message_to_db,
 )
 from live_chat.web.api.messages.utils.transformations import (
-    # get_user_short_schema,
     transformation_forward_msg,
     transformation_message,
 )
