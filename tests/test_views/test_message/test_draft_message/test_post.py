@@ -47,7 +47,6 @@ async def test_create_draft_message(
         "created_at": draft_message.created_at.isoformat().replace("+00:00", "Z"),
         "updated_at": draft_message.updated_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": draft_message.is_deleted,
-        "parent_message_id": draft_message.parent_message_id,
     }
 
 

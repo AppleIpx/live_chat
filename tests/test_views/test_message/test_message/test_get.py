@@ -22,11 +22,9 @@ async def test_get_messages(
     response = await authorized_client.get(
         f"api/chats/{many_messages[0].chat.id}/messages",
     )
-    non_deleted_messages = [
-        message for message in many_messages if not message.is_deleted
-    ]
+
     assert response.status_code == status.HTTP_200_OK
-    assert len(response.json()["items"]) == len(non_deleted_messages)
+    assert len(response.json()["items"]) == len(many_messages)
     assert response.json()["items"] == [
         {
             "id": f"{message.id}",
@@ -39,15 +37,50 @@ async def test_get_messages(
             "created_at": message.created_at.isoformat(),
             "updated_at": message.updated_at.isoformat(),
             "is_deleted": message.is_deleted,
-            "parent_message_id": message.parent_message_id,
+            "parent_message": None,
             "forwarded_message": message.forwarded_message,
             "reactions": [],
         }
         for message in sorted(
-            non_deleted_messages,
+            many_messages,
             key=attrgetter("created_at"),
             reverse=True,
         )
+    ]
+
+
+@pytest.mark.anyio
+async def test_get_messages_range(
+    authorized_client: AsyncClient,
+    many_messages: List[MessageFactory],
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+    dbsession: AsyncSession,
+) -> None:
+    """Testing getting a range of messages."""
+    response = await authorized_client.get(
+        f"api/chats/{many_messages[0].chat.id}/messages/range",
+        params={"from_id": many_messages[0].id, "to_id": many_messages[2].id},
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert len(response.json()) == 3
+    assert response.json() == [
+        {
+            "id": f"{message.id}",
+            "user_id": f"{message.user_id}",
+            "chat_id": f"{message.chat_id}",
+            "content": message.content,
+            "message_type": message.message_type.value,
+            "file_name": message.file_name,
+            "file_path": message.file_path,
+            "created_at": message.created_at.isoformat(),
+            "updated_at": message.updated_at.isoformat(),
+            "is_deleted": message.is_deleted,
+            "parent_message": None,
+            "forwarded_message": message.forwarded_message,
+            "reactions": [],
+        }
+        for message in sorted(many_messages, key=attrgetter("created_at"))[:3]
     ]
 
 

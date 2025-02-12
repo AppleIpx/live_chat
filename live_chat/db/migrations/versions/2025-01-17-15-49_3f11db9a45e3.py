@@ -104,8 +104,10 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.add_column("user", sa.Column("is_warning", sa.Boolean(), nullable=False))
     # ### end Alembic commands ###
+    op.add_column("user", sa.Column("is_warning", sa.Boolean(), nullable=True))
+    op.execute('UPDATE "user" SET is_warning = FALSE')
+    op.alter_column("user", "is_warning", nullable=False)
 
 
 def downgrade() -> None:

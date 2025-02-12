@@ -185,4 +185,5 @@ async def many_messages(
         user_id=sender.id,
         chat=any_chat_with_users,
         chat_id=any_chat_with_users.id,
+        is_deleted=False,
     )

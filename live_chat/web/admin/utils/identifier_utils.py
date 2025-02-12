@@ -7,6 +7,7 @@ from sqladmin.helpers import (
     get_column_python_type,
     get_primary_keys,
 )
+from sqlalchemy import Select, select
 
 
 def custom_object_identifier_values(
@@ -26,3 +27,16 @@ def custom_object_identifier_values(
         value = False if type_ is bool and part == "False" else type_(part)
         values.append(value)
     return tuple(values)
+
+
+class CustomStmtMixin:
+    """Mixin for SQLAdmin that raise error with UUID identifiers."""
+
+    model: Any
+
+    def _stmt_by_identifier(self, identifier: str) -> Select[Any]:
+        stmt: Select[Any] = select(self.model)
+        pks = get_primary_keys(self.model)
+        values = custom_object_identifier_values(identifier, self.model)
+        conditions = [pk == value for (pk, value) in zip(pks, values)]
+        return stmt.where(*conditions)

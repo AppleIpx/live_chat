@@ -70,7 +70,7 @@ async def test_post_text_message(
         "created_at": message.created_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": False,
         "reactions": [],
-        "parent_message_id": message.parent_message_id,
+        "parent_message": None,
         "forwarded_message": message.forwarded_message,
         "updated_at": message.updated_at.isoformat().replace("+00:00", "Z"),
         "user_id": f"{direct_chat_with_users.users[0].id}",
@@ -97,7 +97,13 @@ async def test_post_reply_message(
         json={
             "message_type": "text",
             "content": "test",
-            "parent_message_id": str(message_in_chat.id),
+            "parent_message": {
+                "id": str(message_in_chat.id),
+                "message_type": message_in_chat.message_type.value,
+                "file_name": message_in_chat.file_name,
+                "file_path": message_in_chat.file_path,
+                "content": message_in_chat.content,
+            },
             "file_name": None,
             "file_path": None,
         },
@@ -125,7 +131,7 @@ async def test_post_reply_message(
         "created_at": new_message.created_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": False,
         "reactions": [],
-        "parent_message_id": new_message.parent_message_id,
+        "parent_message": None,
         "updated_at": new_message.updated_at.isoformat().replace("+00:00", "Z"),
         "user_id": f"{sender.id}",
     }
@@ -205,7 +211,7 @@ async def test_post_file_message(
         "created_at": message.created_at.isoformat().replace("+00:00", "Z"),
         "is_deleted": False,
         "reactions": [],
-        "parent_message_id": message.parent_message_id,
+        "parent_message": None,
         "updated_at": message.updated_at.isoformat().replace("+00:00", "Z"),
         "user_id": f"{direct_chat_with_users.users[0].id}",
     }
