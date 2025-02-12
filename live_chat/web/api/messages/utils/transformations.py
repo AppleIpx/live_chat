@@ -17,7 +17,6 @@ from live_chat.web.api.users.utils.transformations import (
 
 async def transformation_message(
     message: Message,
-    db_session: AsyncSession,
 ) -> GetMessageSchema:
     """Transform a Message into a GetMessageSchema."""
     reactions = [

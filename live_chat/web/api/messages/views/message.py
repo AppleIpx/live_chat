@@ -162,10 +162,7 @@ async def post_message(
         file_name=message_schema.file_name,
         file_path=message_schema.file_path,
     ):
-        message_data = await transformation_message(
-            created_message,
-            db_session=db_session,
-        )
+        message_data = await transformation_message(created_message)
         event_data = jsonable_encoder(message_data.model_dump())
         await increase_in_unread_messages(
             chat=chat,
@@ -196,7 +193,7 @@ async def update_message(
         message.updated_at = datetime.now(timezone.utc)
         chat.last_message_content = message_schema.content[:100]  # type: ignore[index]
         await db_session.commit()
-        message_data = await transformation_message(message, db_session=db_session)
+        message_data = await transformation_message(message)
         event_data = jsonable_encoder(message_data.model_dump())
         await publish_faststream("update_message", chat.users, event_data, chat.id)
         return message_data
