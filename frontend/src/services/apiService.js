@@ -148,6 +148,19 @@ export const messageService = {
             throw error;
         }
     },
+    async fetchMessagesRange(chatId, fromId, toId) {
+        try {
+            const params = new URLSearchParams();
+            params.append("from_id", fromId);
+            params.append("to_id", toId);
+            return await apiClient.get(`/api/chats/${chatId}/messages/range?${params.toString()}`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
     async fetchDeletedMessages(chatId, {cursor, size}) {
         try {
             const params = new URLSearchParams();
@@ -194,7 +207,36 @@ export const messageService = {
             throw error;
         }
     },
-
+    async sendLastMessage(chatId, messageContent) {
+        try {
+            return await apiClient.post(`/api/chats/${chatId}/draft-message`, {"content": messageContent});
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+    async updateLastMessage(chatId, messageContent) {
+        try {
+            return await apiClient.put(`/api/chats/${chatId}/draft-message`, {"content": messageContent});
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+    async deleteLastMessage(chatId) {
+        try {
+            return await apiClient.delete(`/api/chats/${chatId}/draft-message`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
     async postReaction(chatId, messageId, reactionType) {
         try {
             return apiClient.post(

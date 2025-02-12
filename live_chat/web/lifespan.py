@@ -4,7 +4,11 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from live_chat.services.ai.lifespan import init_eng_toxilization, init_rus_toxilization
+from live_chat.services.ai.lifespan import (
+    init_eng_toxilization,
+    init_rus_toxilization,
+    init_summarizer,
+)
 from live_chat.services.redis.lifespan import init_redis, shutdown_redis
 from live_chat.settings import settings
 
@@ -45,8 +49,10 @@ async def lifespan_setup(
     app.middleware_stack = None
     _setup_db(app)
     init_redis(app)
-    init_rus_toxilization(app)
-    init_eng_toxilization(app)
+    if settings.use_ai:
+        init_rus_toxilization(app)
+        init_eng_toxilization(app)
+        init_summarizer(app)
     app.middleware_stack = app.build_middleware_stack()
 
     yield

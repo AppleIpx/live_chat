@@ -7,6 +7,7 @@ from live_chat.web.api.messages.schemas import (
     GetDraftMessageSchema,
     GetForwardMessageSchema,
     GetMessageSchema,
+    GetParentMessageSchema,
     GetReactionSchema,
 )
 from live_chat.web.api.users.utils.transformations import (
@@ -39,6 +40,17 @@ async def transformation_message(
         )
     else:
         forward_message = None
+    parent_message_schema = (
+        GetParentMessageSchema(
+            id=message.parent_message.id,
+            message_type=message.parent_message.message_type,
+            file_name=message.parent_message.file_name,
+            file_path=message.parent_message.file_path,
+            content=message.parent_message.content,
+        )
+        if message.parent_message
+        else None
+    )
     return GetMessageSchema(
         id=message.id,
         content=message.content,
@@ -48,7 +60,7 @@ async def transformation_message(
         user_id=message.user.id,
         is_deleted=message.is_deleted,
         message_type=message.message_type,
-        parent_message_id=message.parent_message_id,
+        parent_message=parent_message_schema,
         file_name=message.file_name,
         file_path=message.file_path,
         reactions=reactions,
@@ -68,7 +80,6 @@ async def transformation_draft_message(
         chat_id=draft_message.chat.id,
         user_id=draft_message.user.id,
         is_deleted=draft_message.is_deleted,
-        parent_message_id=draft_message.parent_message_id,
         message_type=draft_message.message_type,
         file_name=draft_message.file_name,
         file_path=draft_message.file_path,
@@ -93,6 +104,14 @@ async def transformation_forward_msg(
                 user=user_schema,
             )
 
+        parent_message_schema = GetParentMessageSchema(
+            id=forward_message.parent_message.id,
+            message_type=forward_message.parent_message.message_type,
+            file_name=forward_message.parent_message.file_name,
+            file_path=forward_message.parent_message.file_path,
+            content=forward_message.parent_message.content,
+        )
+
         result.append(
             GetMessageSchema(
                 id=forward_message.id,
@@ -107,7 +126,7 @@ async def transformation_forward_msg(
                 is_deleted=forward_message.is_deleted,
                 file_name=forward_message.file_name,
                 file_path=forward_message.file_path,
-                parent_message_id=forward_message.parent_message_id,
+                parent_message=parent_message_schema,
             ),
         )
 

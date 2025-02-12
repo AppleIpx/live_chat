@@ -1,11 +1,14 @@
+from datetime import datetime
+from typing import Any, Sequence
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import Row, RowMapping, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from starlette import status
 
+from live_chat.db.models.enums import MessageType
 from live_chat.db.models.messages import DeletedMessage, Message
 
 
@@ -65,3 +68,44 @@ async def get_deleted_by_orig_message_id(
     )
     result = await db_session.execute(query)
     return result.scalar_one_or_none()
+
+
+async def get_messages_range(
+    db_session: AsyncSession,
+    *,
+    from_date: datetime,
+    to_date: datetime,
+    chat_id: UUID,
+) -> list[Message]:
+    """Function to get messages between two dates."""
+    query = (
+        select(Message)
+        .options(selectinload(Message.reactions))
+        .where(
+            Message.chat_id == chat_id,
+            Message.created_at >= from_date,
+            Message.created_at <= to_date,
+        )
+    )
+    result = await db_session.execute(query)
+    return list(result.scalars().all())
+
+
+async def get_messages_by_date(
+    db_session: AsyncSession,
+    *,
+    chat_id: UUID,
+    date_limit: datetime,
+) -> Sequence[Row[Any] | RowMapping | Any]:
+    """Function to get a messages by chat_id in selected date limit."""
+    query = (
+        select(Message.content, Message.user_id, Message.created_at)
+        .where(
+            Message.chat_id == chat_id,
+            Message.message_type == MessageType.TEXT,
+            Message.created_at >= date_limit,
+        )
+        .order_by(Message.created_at)
+    )
+    result = await db_session.execute(query)
+    return result.all()
