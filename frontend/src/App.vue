@@ -48,27 +48,6 @@ button {
   transition: background-color 0.3s ease;
 }
 
-.btn-main {
-  background-color: #37a5de;
-  border: #37a5de;
-  color: white;
-  padding: 12px 30px;
-  font-size: 16px;
-  font-weight: bold;
-  text-transform: uppercase;
-  border: none;
-  cursor: pointer;
-  border-radius: 25px;
-  transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.btn-main:hover {
-  background-color: white;
-  color: #37a5de;
-  transform: translateY(-4px);
-  box-shadow: 0 5px 5px rgba(0, 0, 0, 0.2);
-}
-
 #app {
   padding-top: 10px;
 }

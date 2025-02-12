@@ -373,6 +373,44 @@ export const readStatusService = {
     },
 };
 
+export const aiService = {
+    async postSummarization(chatId, duration) {
+        const params = new URLSearchParams();
+            params.append("chat_id", chatId);
+            params.append("duration", duration);
+        try {
+            return await apiClient.post(`/api/ai/summarizations?${params.toString()}`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+
+    async fetchSummarizations(status) {
+        try {
+            return await apiClient.get(`/api/ai/summarizations?summarization_status=${status}`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
+
+    async fetchSummarizationDetail(chatId) {
+        try {
+            return await apiClient.get(`/api/ai/summarizations/${chatId}`);
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    }
+};
+
 export const blackListService = {
     async fetchBlockedUsers(size, pageCursor) {
         try {

@@ -109,15 +109,13 @@ async def sse_events(
 
 @ai_router.get("/summarizations/{chat_id}")
 async def get_summarization_for_chat(
-    summarization_status: SummarizationStatus,
     chat: Chat = Depends(validate_user_access_to_chat),
     current_user: User = Depends(custom_current_user),
 ) -> SummarizationSchema:
-    """Get the summarization task for this chat_id."""
+    """Get the summarization for this chat from this user."""
     summarization = await get_summarization_by_chat_and_user(
         chat_id=chat.id,
         user_id=current_user.id,
-        status=summarization_status,
     )
 
     if not summarization:
@@ -138,13 +136,15 @@ async def get_summarization_for_chat(
 
 @ai_router.get("/summarizations")
 async def get_summarizations_for_user(
+    summarization_status: SummarizationStatus,
     db_session: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(custom_current_user),
 ) -> list[SummarizationSchema]:
-    """Get the current status of the summarization."""
+    """Get the summarizations for user."""
     summarizations = await get_summarizations_by_user(
         db_session=db_session,
         user_id=current_user.id,
+        status=summarization_status,
     )
     return [
         SummarizationSchema(
