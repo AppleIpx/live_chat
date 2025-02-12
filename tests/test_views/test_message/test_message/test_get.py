@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.web.api.messages.utils import get_message_by_id
+from live_chat.web.api.users.utils import get_user_by_id
 from tests.factories import ChatFactory, MessageFactory
 
 
@@ -91,6 +92,7 @@ async def test_get_message_with_forwarded_message(
     override_get_async_session: AsyncGenerator[AsyncSession, None],
     dbsession: AsyncSession,
 ) -> None:
+    """Testing getting a message with forwarded message."""
     message = message_in_chat_with_forward_message
     response = await authorized_client.get(
         f"api/chats/{message.chat.id}/messages",
@@ -98,6 +100,10 @@ async def test_get_message_with_forwarded_message(
     forwarding_message = await get_message_by_id(
         db_session=dbsession,
         message_id=message.forwarded_message_id,
+    )
+    user_forwarded_message = await get_user_by_id(
+        db_session=dbsession,
+        user_id=forwarding_message.user_id,
     )
     assert response.status_code == status.HTTP_200_OK
     assert forwarding_message is not None
@@ -113,11 +119,19 @@ async def test_get_message_with_forwarded_message(
             "created_at": message.created_at.isoformat(),
             "updated_at": message.updated_at.isoformat(),
             "is_deleted": message.is_deleted,
-            "parent_message_id": message.parent_message_id,
+            "parent_message": message.parent_message_id,
             "forwarded_message": {
                 "id": str(forwarding_message.id),
-                "chat_id": str(forwarding_message.chat_id),
-                "user_id": str(forwarding_message.user_id),
+                "user": {
+                    "first_name": user_forwarded_message.first_name,
+                    "last_name": user_forwarded_message.last_name,
+                    "username": user_forwarded_message.username,
+                    "user_image": user_forwarded_message.user_image,
+                    "last_online": user_forwarded_message.last_online.isoformat(),
+                    "is_deleted": user_forwarded_message.is_deleted,
+                    "is_banned": user_forwarded_message.is_banned,
+                    "id": str(user_forwarded_message.id),
+                },
             },
             "reactions": [],
         },

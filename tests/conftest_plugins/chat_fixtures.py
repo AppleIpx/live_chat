@@ -141,6 +141,7 @@ async def message_in_chat_with_forward_message(
     message: MessageFactory,
     dbsession: AsyncSession,
 ) -> MessageFactory:
+    """Fixture for creating a chat message with forward message."""
     message_in_chat.forwarded_message = message
     message_in_chat.forwarded_message_id = message.id
     return message_in_chat

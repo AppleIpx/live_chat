@@ -17,7 +17,7 @@ from live_chat.db.models.messages import Message
 from live_chat.db.models.user import User
 from live_chat.db.utils import get_async_session
 from live_chat.web.api.black_list.utils import validate_user_in_black_list
-from live_chat.web.api.chat.utils import validate_user_access_to_chat
+from live_chat.web.api.chat.utils import get_chat_by_id, validate_user_access_to_chat
 from live_chat.web.api.messages import GetMessageSchema, PostMessageSchema
 from live_chat.web.api.messages.schemas import (
     CreatedForwardMessageSchema,
@@ -221,21 +221,23 @@ async def forward_message_view(
         )
         for msg_id in forward_message_schema.messages
     ]
+    to_chat = await get_chat_by_id(
+        db_session=db_session,
+        chat_id=forward_message_schema.to_chat_id,
+    )
     await validate_access_to_msg_in_chat(
         from_chat=chat,
         current_user=current_user,
-        db_session=db_session,
         messages=messages,
     )
     forwarded_messages = await save_forwarded_message(
         db_session=db_session,
         orig_messages=messages,
-        to_chat=chat,
+        to_chat=to_chat,
         current_user=current_user,
     )
     list_get_schem = await transformation_forward_msg(
         forward_messages=forwarded_messages,
-        db_session=db_session,
     )
 
     return CreatedForwardMessageSchema(

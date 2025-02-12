@@ -11,7 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.messages import Message
-from live_chat.web.api.chat.utils import get_chat_by_id
 from live_chat.web.api.messages.constants import REDIS_CHANNEL_PREFIX
 from live_chat.web.api.messages.utils import get_message_by_id
 from live_chat.web.api.users.utils import get_user_by_id
@@ -20,9 +19,8 @@ from tests.factories import (
     ChatFactory,
     MessageFactory,
     ReadStatusFactory,
-    UserFactory,
 )
-from tests.utils import get_first_user_from_db, transformation_message_data
+from tests.utils import transformation_message_data
 
 
 @pytest.mark.anyio
@@ -401,9 +399,9 @@ async def test_post_forwarding_messages(
 ) -> None:
     """Testing to post forward messages in other chat."""
     response = await authorized_client.post(
-        f"/api/chats/{direct_chat_with_users.id}/forwarding-message/",
+        f"/api/chats/{message_in_chat.chat.id}/messages/forward",
         json={
-            "from_chat_id": f"{message_in_chat.chat.id}",
+            "to_chat_id": f"{direct_chat_with_users.id}",
             "messages": [
                 f"{message_in_chat.id}",
             ],
@@ -426,13 +424,21 @@ async def test_post_forwarding_messages(
                 "content": new_message.content,
                 "created_at": new_message.created_at.isoformat().replace("+00:00", "Z"),
                 "updated_at": new_message.updated_at.isoformat().replace("+00:00", "Z"),
-                "parent_message_id": new_message.parent_message_id,
+                "parent_message": new_message.parent_message_id,
                 "is_deleted": new_message.is_deleted,
                 "reactions": new_message.reactions,
                 "forwarded_message": {
                     "id": str(message_in_chat.id),
-                    "user_id": str(message_in_chat.user.id),
-                    "chat_id": str(message_in_chat.chat.id),
+                    "user": {
+                        "first_name": message_in_chat.user.first_name,
+                        "last_name": message_in_chat.user.last_name,
+                        "username": message_in_chat.user.username,
+                        "user_image": message_in_chat.user.user_image,
+                        "last_online": message_in_chat.user.last_online,
+                        "is_deleted": message_in_chat.user.is_deleted,
+                        "is_banned": message_in_chat.user.is_banned,
+                        "id": str(message_in_chat.user.id),
+                    },
                 },
             },
         ],
@@ -446,9 +452,9 @@ async def test_post_forwarding_messages_with_not_existent_chat(
 ) -> None:
     """Testing to post forward messages in non-existent chat."""
     response = await authorized_client.post(
-        f"/api/chats/{uuid.uuid4()}/forwarding-message/",
+        f"/api/chats/{message_in_chat.chat.id}/messages/forward",
         json={
-            "from_chat_id": f"{message_in_chat.chat.id}",
+            "to_chat_id": f"{uuid.uuid4()}",
             "messages": [
                 f"{message_in_chat.id}",
             ],
@@ -468,9 +474,9 @@ async def test_post_forwarding_messages_with_existent_from_chat(
 ) -> None:
     """Testing to post forward messages from non-existent chat."""
     response = await authorized_client.post(
-        f"/api/chats/{direct_chat_with_users.id}/forwarding-message/",
+        f"/api/chats/{uuid.uuid4()}/messages/forward",
         json={
-            "from_chat_id": f"{uuid.uuid4()}",
+            "to_chat_id": f"{direct_chat_with_users.id}",
             "messages": [
                 f"{message_in_chat.id}",
             ],
@@ -495,9 +501,9 @@ async def test_post_forwarding_messages_with_non_part_user_in_chat(
     in which he does not consist
     """
     response = await authorized_client.post(
-        f"/api/chats/{chat.id}/forwarding-message/",
+        f"/api/chats/{chat.id}/messages/forward",
         json={
-            "from_chat_id": f"{message_in_chat.chat.id}",
+            "to_chat_id": f"{message_in_chat.chat.id}",
             "messages": [
                 f"{message_in_chat.id}",
             ],
@@ -522,9 +528,9 @@ async def test_post_forwarding_messages_with_non_part_user_from_chat(
     where does it want to forward a message from
     """
     response = await authorized_client.post(
-        f"/api/chats/{message_in_chat.chat.id}/forwarding-message/",
+        f"/api/chats/{chat.id}/messages/forward",
         json={
-            "from_chat_id": f"{chat.id}",
+            "to_chat_id": f"{message_in_chat.chat.id}",
             "messages": [
                 f"{message_in_chat.id}",
             ],
@@ -532,7 +538,7 @@ async def test_post_forwarding_messages_with_non_part_user_from_chat(
     )
     assert response.status_code == status.HTTP_403_FORBIDDEN
     assert response.json() == {
-        "detail": f"You have no access to this chat {chat.id}",
+        "detail": "User is not part of the chat",
     }
 
 
@@ -552,9 +558,9 @@ async def test_post_forwarding_messages_with_non_part_message_from_chat(
     from which the message originated.
     """
     response = await authorized_client.post(
-        f"/api/chats/{message_in_chat.chat.id}/forwarding-message/",
+        f"/api/chats/{direct_chat_with_users.id }/messages/forward",
         json={
-            "from_chat_id": f"{direct_chat_with_users.id}",
+            "to_chat_id": f"{message_in_chat.chat.id}",
             "messages": [
                 f"{message.id}",
             ],
@@ -575,9 +581,9 @@ async def test_post_forwarding_messages_with_not_existent_message(
 ) -> None:
     """Testing to post forward messages from non-existent message."""
     response = await authorized_client.post(
-        f"/api/chats/{message_in_chat.chat.id}/forwarding-message/",
+        f"/api/chats/{message_in_chat.chat.id}/messages/forward",
         json={
-            "from_chat_id": f"{message_in_chat.chat.id}",
+            "to_chat_id": f"{message_in_chat.chat.id}",
             "messages": [
                 f"{uuid.uuid4()}",
             ],

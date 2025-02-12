@@ -1,7 +1,6 @@
 from typing import List
 
 from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
@@ -13,7 +12,6 @@ async def validate_access_to_msg_in_chat(
     from_chat: Chat,
     messages: List[Message | None],
     current_user: User,
-    db_session: AsyncSession,
 ) -> None:
     """Checks whether the user has access to the specified messages in a chat."""
     if not from_chat:
