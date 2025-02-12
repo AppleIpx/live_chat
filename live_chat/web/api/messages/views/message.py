@@ -167,7 +167,7 @@ async def update_message(
 
 
 @message_router.post(
-    "/chats/{chat_id}/forward",
+    "/chats/{chat_id}/messages/forward",
     response_model=CreatedForwardMessageSchema,
     status_code=status.HTTP_201_CREATED,
 )
