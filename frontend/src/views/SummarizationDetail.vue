@@ -74,6 +74,9 @@ export default {
     this.fetchSummarizationDetails();
     SSESummarizerManager.connect_summarize(this.chatId, this.handleSummarizationUpdate);
   },
+  beforeUnmount() {
+    SSESummarizerManager.disconnect(this.chatId)
+  },
   methods: {
     async fetchSummarizationDetails() {
       try {

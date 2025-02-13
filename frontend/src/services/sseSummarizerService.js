@@ -25,12 +25,20 @@ const SSESummarizerManager = {
         }
         const baseURL = process.env.VUE_APP_BACKEND_URL;
         const eventSource = new EventSource(
-            `${baseURL}/api/ai/summarizations/stream/?chat_id=${chatId}&token=${encodeURIComponent(token)}`
+            `${baseURL}/api/ai/summarizations/stream?chat_id=${chatId}&token=${encodeURIComponent(token)}`
         );
         eventSource.addEventListener("progress_summarization", async (event) => {
             const summarization_data = JSON.parse(event.data);
+            console.log("in sse", summarization_data)
             if (summarization_data) {
-                updateCallback(summarization_data);
+                updateCallback(summarization_data, "progress_summarization");
+            }
+        });
+        eventSource.addEventListener("failed_summarization", async (event) => {
+            const summarization_data = JSON.parse(event.data);
+            console.log("in sse", summarization_data)
+            if (summarization_data) {
+                updateCallback(summarization_data, "failed_summarization");
             }
         });
         this.connections[chatId] = eventSource;
