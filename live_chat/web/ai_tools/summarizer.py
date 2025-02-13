@@ -88,7 +88,7 @@ class Summarizer:
             self.user_id,
             self.chat_id,
             {"status": SummarizationStatus.ERROR, "detail": error_message},
-            action="finish_summarization",
+            action="failed_summarization",
         )
 
     async def _update_summarization(
@@ -155,7 +155,7 @@ class Summarizer:
                     processed_parts += 1
                     progress = round((processed_parts / total_parts) * 100, 2)
                     await self._update_summarization(
-                        result_sse={date: result, "progress": progress},
+                        result_sse={"result": {date: result}, "progress": progress},
                         result_db=result_data,
                         progress=progress,
                     )

@@ -11,7 +11,6 @@ from live_chat.db.utils import async_session_maker
 async def get_summarization_by_chat_and_user(
     chat_id: UUID,
     user_id: UUID,
-    status: SummarizationStatus | None = None,
 ) -> Summarization | None:
     """Function for get a summarization by chat_id and user_id."""
     async with async_session_maker() as db_session:
@@ -19,17 +18,19 @@ async def get_summarization_by_chat_and_user(
             Summarization.user_id == user_id,
             Summarization.chat_id == chat_id,
         )
-        if status:
-            query = query.where(Summarization.status == status)
         result = await db_session.execute(query)
-        return result.scalar_one_or_none() if status else result.scalars().first()
+        return result.scalar_one_or_none()
 
 
 async def get_summarizations_by_user(
     db_session: AsyncSession,
+    status: SummarizationStatus,
     user_id: UUID,
 ) -> list[Summarization]:
     """Function to get a summarizations by user."""
-    query = select(Summarization).where(Summarization.user_id == user_id)
+    query = select(Summarization).where(
+        Summarization.user_id == user_id,
+        Summarization.status == status,
+    )
     result = await db_session.execute(query)
     return list(result.scalars().all())

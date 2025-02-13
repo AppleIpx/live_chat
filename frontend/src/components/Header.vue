@@ -11,14 +11,25 @@
         <span class="dropdown-toggle">Чаты</span>
         <div class="dropdown-menu">
           <router-link to="/chats" class="dropdown-item">Все чаты</router-link>
-          <router-link to="/chats/deleted" class="dropdown-item">Удалённые сообщения</router-link>
+          <router-link to="/chats/deleted" class="dropdown-item">Удалённые сообщения
+          </router-link>
         </div>
       </div>
       <div class="nav-item dropdown">
         <span class="dropdown-toggle">Пользователи</span>
         <div class="dropdown-menu">
           <router-link to="/users" class="dropdown-item">Все пользователи</router-link>
-          <router-link to="/black-list" class="dropdown-item">Чёрный список</router-link>
+          <router-link to="/black-list" class="dropdown-item">Чёрный список
+          </router-link>
+        </div>
+      </div>
+      <div class="nav-item dropdown">
+        <span class="dropdown-toggle">Суммаризация</span>
+        <div class="dropdown-menu">
+          <router-link to="/ai/new-summarization" class="dropdown-item">Новая
+          </router-link>
+          <router-link to="/ai/summarization-history" class="dropdown-item">История
+          </router-link>
         </div>
       </div>
       <router-link to="/profile/me" class="nav-item">Мой профиль</router-link>

@@ -18,6 +18,9 @@ import AnotherDeleted from "@/components/AnotherDeleted.vue";
 import Blocked from "@/components/Blocked.vue";
 import BannedAccount from "@/components/Banned.vue";
 import AnotherBanned from "@/components/AnotherBanned.vue";
+import Summarization from "@/views/SummarizationForm.vue";
+import SummarizationsHistory from "@/views/SummarizationsHistory.vue";
+import SummarizationDetail from "@/views/SummarizationDetail.vue";
 
 const routes = [
     {path: '/', name: 'Home', component: home},
@@ -36,6 +39,17 @@ const routes = [
     {path: '/users/', name: 'Users', component: Users},
     {path: '/black-list', name: 'BlackList', component: BlackList},
     {path: '/chats/:chat_id', name: 'ChatRoom', component: chatRoom, props: true},
+    {path: '/ai/new-summarization', name: 'Summarization', component: Summarization},
+    {
+        path: '/ai/summarization-history',
+        name: 'SummarizationsHistory',
+        component: SummarizationsHistory
+    },
+    {
+        path: '/summarization-detail/:chatId',
+        name: 'summarization-detail',
+        component: SummarizationDetail,
+    },
     {path: '/403', name: 'Forbidden', component: Forbidden},
     {path: '/blocked', name: 'Blocked', component: Blocked},
     {path: '/banned', name: 'Banned', component: BannedAccount},
