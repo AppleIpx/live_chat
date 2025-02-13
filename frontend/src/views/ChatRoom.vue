@@ -6,6 +6,10 @@
         <button @click="goBack" class="back-button">
           <i class="fa fa-arrow-left"></i>
         </button>
+        <button v-if="isSelectingMessages" @click="openChatModal"
+                class="big-share-button">
+          <i class="fa-solid fa-share"></i> Переслать
+        </button>
 
         <!-- Chat Info -->
         <div class="chat-info">
@@ -125,7 +129,8 @@
                 v-for="message in messages"
                 :key="message.id"
                 :ref="el => (messageRefs[message.id] = el)"
-                :class="{'mine': message.isMine, 'other': !message.isMine}">
+                :class="{'mine': message.isMine, 'other': !message.isMine, 'selected': forwardMessages.includes(message.id)}"
+                @click="toggleSelectMessage(message)">
               <div class="message-header">
                 <strong>
                   <template v-if="message.user">
@@ -166,11 +171,25 @@
                   ></i>
                 </div>
               </div>
-              <div v-if="message.parent_message && message.parent_message.id"
-                   class="reply-message"
-                   @click="scrollToMessage(message)"
+              <div class="forwarded-info" v-if="message.forwarded_message &&
+                message.forwarded_message.user">
+                <i class="fa-solid fa-share"></i>
+                <span class="forwarded-text">
+                    Переслано от
+                    <a :href="message.forwarded_message.user.username === user.username ? '/profile/me' : '/profile/' + message.forwarded_message.user.id">
+                      {{
+                        message.forwarded_message.user.first_name
+                      }} {{ message.forwarded_message.user.last_name }}
+                    </a>
+                  </span>
+              </div>
+              <div
+                  v-if="message.parent_message && message.parent_message.id && !message.forwarded_message"
+                  class="reply-message"
+                  @click="scrollToMessage(message)"
               >
-                <p v-if="message.parent_message.content">Ответ на: {{ message.parent_message.content }}</p>
+                <p v-if="message.parent_message.content">Ответ на:
+                  {{ message.parent_message.content }}</p>
                 <p v-else>Ответ на: {{ message.parent_message.file_name }}</p>
               </div>
               <div class="message-content">
@@ -224,6 +243,9 @@
                   <button @click="setReplyMessage(message)" class="icon-button-reply">
                     <i class="fa fa-reply"></i>
                   </button>
+                  <button @click="openChatModal(message)" class="icon-button-reply">
+                    <i class="fa-solid fa-share"></i>
+                  </button>
                   <button v-if="message.message_type === 'text'&& message.isMine"
                           @click="openEditModal(message)"
                           class="icon-button-update">
@@ -250,7 +272,8 @@
       <!-- Message Input -->
       <div v-if="replyToMessage" class="reply-preview">
         <i class="fa fa-reply reply-icon"></i>
-        <p class="reply-text" v-if="replyToMessage.content">Ответ на: {{ replyToMessage.content }}</p>
+        <p class="reply-text" v-if="replyToMessage.content">Ответ на:
+          {{ replyToMessage.content }}</p>
         <p class="reply-text" v-else>Ответ на: {{ replyToMessage.file_name }}</p>
         <button @click="clearReply" class="cancel-reply">
           <i class="fa fa-times"></i>
@@ -477,6 +500,8 @@
           </div>
         </div>
       </div>
+      <ChatModal v-if="isChatModalOpen" @close="isChatModalOpen = false"
+                 @select-chat="setChat"/>
     </div>
   </div>
 </template>
@@ -488,10 +513,11 @@ import SSEManager from "@/services/sseService";
 import EmojiPicker from "vue3-emoji-picker";
 import 'vue3-emoji-picker/css'
 import {handleError} from "@/utils/errorHandler";
+import ChatModal from "@/components/ChatModal.vue";
 
 
 export default {
-  components: {EmojiPicker},
+  components: {ChatModal, EmojiPicker},
   data() {
     return {
       messages: [],
@@ -535,6 +561,10 @@ export default {
       isReactionDetailsModalVisible: false,
       currentMessageReactions: [],
       reactionPickersVisible: {},
+      isChatModalOpen: false,
+      forwardMessageId: null,
+      forwardMessages: [],
+      isSelectingMessages: false,
     };
   },
   computed: {
@@ -847,6 +877,41 @@ export default {
       this.editMessageText = "";
     },
 
+    toggleSelectMessage(message) {
+      if (!this.isSelectingMessages) return;
+      const index = this.forwardMessages.indexOf(message.id);
+      if (index === -1) {
+        this.forwardMessages.push(message.id);
+      } else {
+        this.forwardMessages.splice(index, 1);
+      }
+    },
+
+    openChatModal(message) {
+      message.showMenu = false;
+      if (!this.isSelectingMessages) {
+        this.isSelectingMessages = true;
+        return;
+      }
+      if (this.forwardMessages.length > 0) {
+        this.isChatModalOpen = true;
+      } else {
+        alert("Выберите хотя бы одно сообщение!");
+      }
+    },
+
+    async setChat(chat) {
+      try {
+        await messageService.forwardMessage(this.chatId, chat.id, this.forwardMessages)
+        this.isChatModalOpen = false;
+        this.isSelectingMessages = false;
+        this.forwardMessages = [];
+      } catch (error) {
+        await handleError(error)
+        this.isChatModalOpen = false;
+      }
+    },
+
     openDeleteModal(message) {
       this.messageToDelete = message;
       this.isDeleteModalVisible = true;
@@ -923,6 +988,7 @@ export default {
               readStatus: [],
               readUsers: [],
               parent_message: message.parent_message,
+              forwarded_message: message.forwarded_message
             }));
         const currentUserStatus = this.chatData.read_statuses.find(
             status => status.user_id === this.user.id
@@ -1048,7 +1114,9 @@ export default {
               readUsers: [],
               parent_message: msg.parent_message,
             }));
-        this.messages = [...newMessages, ...this.messages];
+        const existingMessageIds = new Set(this.messages.map(msg => msg.id));
+        const uniqueNewMessages = newMessages.filter(msg => !existingMessageIds.has(msg.id));
+        this.messages = [...uniqueNewMessages, ...this.messages];
       } catch (error) {
         console.error('Error loading parent messages:', error);
       }
@@ -1122,7 +1190,9 @@ export default {
     },
 
     handleNewMessage(newMessage, action) {
-      this.otherUser.last_online = new Date()
+      if (this.chatType === "direct") {
+        this.otherUser.last_online = new Date()
+      }
       const existingMessageIndex = this.messages.findIndex(message => message.id === newMessage.id);
       if (action === "new" || action === "recover") {
         const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
@@ -1387,6 +1457,14 @@ export default {
   cursor: pointer;
 }
 
+.big-share-button {
+  background-color: transparent;
+  border: none;
+  color: #0078d4;
+  font-size: 18px;
+  cursor: pointer;
+}
+
 .chat-info {
   flex-grow: 1;
   text-align: center;
@@ -1518,6 +1596,37 @@ export default {
 
 .highlight {
   background: #a9caf1 !important;
+}
+
+.forwarded-info {
+  display: flex;
+  justify-content: left;
+  position: relative;
+  margin-top: 8px;
+}
+
+.forwarded-text {
+  position: absolute;
+  top: 0;
+  left: 1.5em;
+  background-color: #f0f0f0;
+  padding: 2px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+  z-index: 1;
+}
+
+.forwarded-info:hover .forwarded-text {
+  opacity: 1;
+  visibility: visible;
+}
+
+.forwarded-info > i {
+  position: relative;
+  z-index: 2;
 }
 
 .reply-preview {
@@ -1654,6 +1763,12 @@ export default {
 .message.other {
   align-self: flex-start;
   background-color: #e1f5fe;
+}
+
+.message.selected {
+  background-color: rgba(94, 94, 248, 0.15);
+  border: 2px solid rgba(75, 75, 255, 0.8);
+  border-radius: 10px;
 }
 
 .message-options {

@@ -1,4 +1,4 @@
-from sqlalchemy import delete
+from sqlalchemy import Executable, delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.chat import (  # type: ignore[attr-defined]
@@ -15,8 +15,11 @@ async def delete_message_by_id(
     chat: Chat,
 ) -> None:
     """Function to delete a message from the database."""
-    statements = []
-
+    statements: list[Executable] = [
+        update(Message)
+        .where(Message.forwarded_message_id == message.id)
+        .values(forwarded_message_id=None),
+    ]
     if isinstance(message, DraftMessage):
         statements.append(
             delete(DraftMessage).where(
