@@ -20,7 +20,7 @@ from tests.factories import (
     MessageFactory,
     ReadStatusFactory,
 )
-from tests.utils import transformation_message_data
+from tests.utils import transformation_forward_message_data, transformation_message_data
 
 
 @pytest.mark.anyio
@@ -394,6 +394,7 @@ async def test_post_forwarding_messages(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
     direct_chat_with_users: ChatFactory,
+    mocked_publish_message: AsyncMock,
     dbsession: AsyncSession,
     override_get_async_session: AsyncGenerator[AsyncSession, None],
 ) -> None:
@@ -410,6 +411,14 @@ async def test_post_forwarding_messages(
     new_message = await get_message_by_id(
         db_session=dbsession,
         message_id=response.json()["forward_messages"][0]["id"],
+    )
+    user_id = direct_chat_with_users.users[1].id
+    target_channel = f"{REDIS_CHANNEL_PREFIX}:{direct_chat_with_users.id!s}:{user_id!s}"
+    message_data = await transformation_forward_message_data(new_message)
+
+    mocked_publish_message.assert_called_with(
+        json.dumps({"event": "forward_message", "data": message_data}),
+        channel=target_channel,
     )
     assert response.status_code == status.HTTP_201_CREATED
     assert response.json() == {

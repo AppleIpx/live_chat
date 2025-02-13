@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 import pytest
 from _pytest.logging import LogCaptureFixture
 from httpx import AsyncClient
@@ -43,11 +45,13 @@ async def test_get_users_me(
 @pytest.mark.anyio
 async def test_patch_users_me_correct(
     authorized_client: AsyncClient,
+    mocked_publish_message: AsyncMock,
     dbsession: AsyncSession,
 ) -> None:
     """Test patch users me."""
     user = await get_first_user_from_db(dbsession)
     response = await authorized_client.patch("/api/users/me", json=new_payload)
+    mocked_publish_message.assert_called_with(channel=f"{user.id!s}:check_toxic")
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == {
         "id": str(user.id),
@@ -143,6 +147,7 @@ async def test_patch_users_me_unauthorized_user(client: AsyncClient) -> None:
 @pytest.mark.anyio
 async def test_patch_users_me_banned_user(
     authorized_client: AsyncClient,
+    mocked_publish_message: AsyncMock,
     dbsession: AsyncSession,
     caplog: LogCaptureFixture,
 ) -> None:
@@ -152,6 +157,7 @@ async def test_patch_users_me_banned_user(
     user.ban_reason = "Offensive nickname"
     response = await authorized_client.patch("/api/users/me", json=new_payload)
 
+    mocked_publish_message.assert_called_with(channel=f"{user.id!s}:check_toxic")
     assert (
         f"User {user.username} who was blocked due to {user.ban_reason} "
         f"updated account: \n"

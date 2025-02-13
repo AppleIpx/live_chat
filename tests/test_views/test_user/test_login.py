@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from httpx import AsyncClient, Response
@@ -89,12 +89,14 @@ async def test_login_missing_fields(
 @pytest.mark.anyio
 async def test_login_with_changed_data(
     authorized_client: AsyncClient,
+    mocked_publish_message: AsyncMock,
     dbsession: AsyncSession,
     mocker: Mock,
 ) -> None:
     """Testing to receive a token after changing fields in patch users/me."""
     user = await get_first_user_from_db(dbsession)
     response = await authorized_client.patch("/api/users/me", json=new_payload)
+    mocked_publish_message.assert_called_with(channel=f"{user.id!s}:check_toxic")
     assert response.status_code == 200
     response = await authorized_client.post(
         "/api/auth/jwt/login",
