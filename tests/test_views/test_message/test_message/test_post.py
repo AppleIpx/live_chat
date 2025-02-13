@@ -543,6 +543,47 @@ async def test_post_forwarding_messages_with_non_part_user_from_chat(
 
 
 @pytest.mark.anyio
+async def test_post_forwarding_messages_with_non_part_user_to_chat(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+    chat: ChatFactory,
+    dbsession: AsyncSession,
+    override_get_async_session: AsyncGenerator[AsyncSession, None],
+) -> None:
+    """Testing to post forward messages to chat where user is not part of the chat."""
+    response = await authorized_client.post(
+        f"/api/chats/{message_in_chat.chat.id}/messages/forward",
+        json={
+            "to_chat_id": f"{chat.id}",
+            "messages": [
+                f"{message_in_chat.id}",
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.json() == {"detail": f"You have no access to this chat {chat.id}"}
+
+
+@pytest.mark.anyio
+async def test_post_forwarding_messages_with_empty_to_chat(
+    authorized_client: AsyncClient,
+    message_in_chat: MessageFactory,
+) -> None:
+    """Testing to post forward messages with empty field to_chat."""
+    response = await authorized_client.post(
+        f"/api/chats/{message_in_chat.id}/messages/forward",
+        json={
+            "to_chat_id": "",
+            "messages": [
+                f"{message_in_chat.id}",
+            ],
+        },
+    )
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.json() == {"detail": "Chat not found"}
+
+
+@pytest.mark.anyio
 async def test_post_forwarding_messages_with_non_part_message_from_chat(
     authorized_client: AsyncClient,
     message_in_chat: MessageFactory,
@@ -558,7 +599,7 @@ async def test_post_forwarding_messages_with_non_part_message_from_chat(
     from which the message originated.
     """
     response = await authorized_client.post(
-        f"/api/chats/{direct_chat_with_users.id }/messages/forward",
+        f"/api/chats/{direct_chat_with_users.id}/messages/forward",
         json={
             "to_chat_id": f"{message_in_chat.chat.id}",
             "messages": [

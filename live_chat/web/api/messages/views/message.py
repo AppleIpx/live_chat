@@ -227,6 +227,7 @@ async def forward_message_view(
     )
     await validate_access_to_msg_in_chat(
         from_chat=chat,
+        to_chat=to_chat,
         current_user=current_user,
         messages=messages,
     )
