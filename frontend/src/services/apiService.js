@@ -273,7 +273,24 @@ export const messageService = {
             }
             throw error;
         }
-    }
+    },
+
+    async forwardMessage(fromChatId, toChatId, messages) {
+        try {
+            return apiClient.post(
+                `/api/chats/${fromChatId}/messages/forward`,
+                {
+                    "to_chat_id": toChatId,
+                    "messages": messages
+                }
+            );
+        } catch (error) {
+            if (error.message === "Нет токена доступа") {
+                await router.push("/");
+            }
+            throw error;
+        }
+    },
 }
 
 export const userService = {
@@ -376,8 +393,8 @@ export const readStatusService = {
 export const aiService = {
     async postSummarization(chatId, duration) {
         const params = new URLSearchParams();
-            params.append("chat_id", chatId);
-            params.append("duration", duration);
+        params.append("chat_id", chatId);
+        params.append("duration", duration);
         try {
             return await apiClient.post(`/api/ai/summarizations?${params.toString()}`);
         } catch (error) {

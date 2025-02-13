@@ -143,7 +143,11 @@ async def save_forwarded_message(
                 reactions=[],
                 forwarded_message_id=orig_msg.id,
             )
-            db_session.add(new_message)
+            if orig_msg.content is None:
+                await set_previous_message_content(to_chat, db_session)
+            else:
+                to_chat.last_message_content = orig_msg.content[:100]
+            db_session.add_all([new_message, to_chat])
             await db_session.commit()
             forwarded_messages.append(new_message)
     return forwarded_messages

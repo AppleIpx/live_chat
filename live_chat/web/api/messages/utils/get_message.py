@@ -83,7 +83,10 @@ async def get_messages_range(
     """Function to get messages between two dates."""
     query = (
         select(Message)
-        .options(selectinload(Message.reactions))
+        .options(
+            selectinload(Message.reactions),
+            selectinload(Message.forwarded_message),
+        )
         .where(
             Message.chat_id == chat_id,
             Message.created_at >= from_date,

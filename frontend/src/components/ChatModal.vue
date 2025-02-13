@@ -1,6 +1,6 @@
 <template>
-  <div class="modal">
-    <div class="modal-content">
+  <div class="chat-modal">
+    <div class="chat-modal-content">
       <h2>Выберите чат</h2>
       <div class="pagination">
         <button class="btn-modal-main" @click="loadPreviousPage" :disabled="!previousCursor"
@@ -146,7 +146,7 @@ export default {
 </script>
 
 <style scoped>
-.modal {
+.chat-modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -158,7 +158,7 @@ export default {
   justify-content: center;
 }
 
-.modal-content {
+.chat-modal-content {
   background: white;
   padding: 20px;
   border-radius: 8px;
