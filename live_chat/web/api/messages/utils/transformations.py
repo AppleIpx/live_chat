@@ -99,16 +99,17 @@ async def transformation_forward_msg(
                 id=forward_message.forwarded_message.id,
                 user=user_schema,
             )
-        if forward_message.forwarded_message.parent_message:
-            parent_message_schema = GetParentMessageSchema(
+        parent_message_schema = (
+            GetParentMessageSchema(
                 id=forward_message.parent_message.id,
                 message_type=forward_message.parent_message.message_type,
                 file_name=forward_message.parent_message.file_name,
                 file_path=forward_message.parent_message.file_path,
                 content=forward_message.parent_message.content,
             )
-        else:
-            parent_message_schema = None
+            if forward_message.parent_message
+            else None
+        )
 
         result.append(
             GetMessageSchema(
