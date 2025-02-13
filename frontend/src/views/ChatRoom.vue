@@ -902,7 +902,6 @@ export default {
 
     async setChat(chat) {
       try {
-        console.log(chat)
         await messageService.forwardMessage(this.chatId, chat.id, this.forwardMessages)
         this.isChatModalOpen = false;
         this.isSelectingMessages = false;
@@ -1365,13 +1364,6 @@ export default {
       this.replyToMessage = null;
     },
 
-    setForwardMessage(message) {
-      this.forwardMessage = message;
-    },
-    clearForward() {
-      this.forwardMessage = null;
-    },
-
     // Send message
     async sendMessage() {
       if (!this.messageText.trim() && !this.messageFileName) return;
@@ -1609,32 +1601,32 @@ export default {
 .forwarded-info {
   display: flex;
   justify-content: left;
-  position: relative; /* Необходимо для позиционирования forwarded-text */
+  position: relative;
   margin-top: 8px;
 }
 
 .forwarded-text {
   position: absolute;
   top: 0;
-  left: 1.5em; /* Смещение текста от иконки */
-  background-color: #f0f0f0; /* Серый фон */
+  left: 1.5em;
+  background-color: #f0f0f0;
   padding: 2px 5px;
   border-radius: 3px;
   white-space: nowrap;
-  opacity: 0; /* Скрываем текст изначально */
-  visibility: hidden; /* Скрываем текст изначально */
+  opacity: 0;
+  visibility: hidden;
   transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
-  z-index: 1; /* Обеспечивает отображение текста поверх других элементов */
+  z-index: 1;
 }
 
 .forwarded-info:hover .forwarded-text {
-  opacity: 1; /* Делаем текст видимым при наведении */
-  visibility: visible; /* Делаем текст видимым при наведении */
+  opacity: 1;
+  visibility: visible;
 }
 
 .forwarded-info > i {
   position: relative;
-  z-index: 2; /* Гарантируем, что иконка всегда видна */
+  z-index: 2;
 }
 
 .reply-preview {
