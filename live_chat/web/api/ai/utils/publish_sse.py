@@ -17,9 +17,9 @@ async def publish_faststream_summarize(
 ) -> None:
     """Publish summarize action in FastStream broker."""
     target_channel = f"Summarize:{chat_id!s}:{user_id!s}"
-    event_data = {"event": action, "data": jsonable_encoder(data)}
+    event_data = {"event": action, "data": json.dumps(jsonable_encoder(data))}
     await fast_stream_broker.publish(
-        json.dumps(event_data, ensure_ascii=False),
+        json.dumps(event_data),
         channel=target_channel,
     )
 
