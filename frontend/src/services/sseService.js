@@ -51,6 +51,13 @@ const SSEManager = {
             }
         });
 
+        eventSource.addEventListener("forward_message", async (event) => {
+            const message = JSON.parse(event.data);
+            if (isChatOpenCallback) {
+                messageCallback(message, "forward");
+            }
+        });
+
         eventSource.addEventListener("delete_message", async (event) => {
             const message = JSON.parse(event.data);
             if (isChatOpenCallback) {

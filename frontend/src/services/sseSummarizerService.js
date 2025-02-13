@@ -29,14 +29,12 @@ const SSESummarizerManager = {
         );
         eventSource.addEventListener("progress_summarization", async (event) => {
             const summarization_data = JSON.parse(event.data);
-            console.log("in sse", summarization_data)
             if (summarization_data) {
                 updateCallback(summarization_data, "progress_summarization");
             }
         });
         eventSource.addEventListener("failed_summarization", async (event) => {
             const summarization_data = JSON.parse(event.data);
-            console.log("in sse", summarization_data)
             if (summarization_data) {
                 updateCallback(summarization_data, "failed_summarization");
             }

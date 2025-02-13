@@ -1189,29 +1189,34 @@ export default {
       }
     },
 
+    addMessage(newMessage) {
+      const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
+      const message = {
+        id: newMessage.id,
+        user: message_user || {},
+        content: newMessage.content,
+        file_path: newMessage.file_path,
+        file_name: newMessage.file_name,
+        message_type: newMessage.message_type,
+        created_at: new Date(newMessage.created_at).toLocaleString(),
+        updated_at: new Date(newMessage.updated_at).toLocaleString(),
+        isMine: newMessage.user_id === this.user.id,
+        parent_message: newMessage.parent_message,
+        forwarded_message: newMessage.forwarded_message,
+      };
+      const index = this.messages.findIndex(
+          (msg) => new Date(msg.created_at) > new Date(message.created_at)
+      );
+      this.messages.splice(index === -1 ? this.messages.length : index, 0, message);
+    },
+
     handleNewMessage(newMessage, action) {
       if (this.chatType === "direct") {
         this.otherUser.last_online = new Date()
       }
       const existingMessageIndex = this.messages.findIndex(message => message.id === newMessage.id);
       if (action === "new" || action === "recover") {
-        const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
-        const message = {
-          id: newMessage.id,
-          user: message_user || {},
-          content: newMessage.content,
-          file_path: newMessage.file_path,
-          file_name: newMessage.file_name,
-          message_type: newMessage.message_type,
-          created_at: new Date(newMessage.created_at).toLocaleString(),
-          updated_at: new Date(newMessage.updated_at).toLocaleString(),
-          isMine: newMessage.user_id === this.user.id,
-          parent_message: newMessage.parent_message,
-        };
-        const index = this.messages.findIndex(
-            (msg) => new Date(msg.created_at) > new Date(message.created_at)
-        );
-        this.messages.splice(index === -1 ? this.messages.length : index, 0, message);
+        this.addMessage(newMessage)
         this.scrollToBottom();
       }
       if (action === "update") {
@@ -1221,6 +1226,10 @@ export default {
       }
       if (action === "delete") {
         this.messages = this.messages.filter(msg => msg.id !== newMessage.id);
+      }
+      if (action === "forward" && Array.isArray(newMessage)) {
+        newMessage.forEach(message => this.addMessage(message))
+        this.scrollToBottom();
       }
     },
 
@@ -1366,7 +1375,7 @@ export default {
 
     // Send message
     async sendMessage() {
-      if (!this.messageText.trim() && !this.messageFileName) return;
+      if (!this.messageText && !this.messageFileName) return;
       if (this.fileToUpload) {
         const formData = new FormData();
         formData.append("uploaded_file", this.fileToUpload);
