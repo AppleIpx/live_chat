@@ -20,7 +20,10 @@ async def get_message_by_id(
     """Function to get a message by his id from db."""
     query = (
         select(Message)
-        .options(selectinload(Message.reactions))
+        .options(
+            selectinload(Message.reactions),
+            selectinload(Message.forwarded_message),
+        )
         .where(Message.id == message_id)
     )
     result = await db_session.execute(query)

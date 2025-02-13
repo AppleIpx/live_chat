@@ -22,6 +22,8 @@ async def test_check_fields_message(
     assert message.user == message_db.user
     assert message.user_id == message_db.user_id
     assert message.content == message_db.content
+    assert message.forwarded_message_id == message_db.forwarded_message_id
+    assert message.forwarded_message == message_db.forwarded_message
     assert message.file_name == message_db.file_name
     assert message.file_path == message_db.file_path
 

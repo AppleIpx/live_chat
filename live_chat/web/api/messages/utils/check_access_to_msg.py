@@ -1,7 +1,6 @@
 from typing import List
 
 from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from live_chat.db.models.chat import Chat  # type: ignore[attr-defined]
@@ -11,21 +10,21 @@ from live_chat.db.models.user import User
 
 async def validate_access_to_msg_in_chat(
     from_chat: Chat,
+    to_chat: Chat,
     messages: List[Message | None],
     current_user: User,
-    db_session: AsyncSession,
 ) -> None:
     """Checks whether the user has access to the specified messages in a chat."""
-    if not from_chat:
+    if not from_chat or not to_chat:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Chat not found",
         )
-    members_of_chat = [user.id for user in from_chat.users]
-    if current_user.id not in members_of_chat:
+    members_of_to_chat = [user.id for user in to_chat.users]
+    if current_user.id not in members_of_to_chat:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"You have no access to this chat {from_chat.id}",
+            detail=f"You have no access to this chat {to_chat.id}",
         )
     for message in messages:
         if not message:
