@@ -99,22 +99,20 @@ async def transformation_message_data(message: MessageFactory | Message) -> str:
 
 async def transformation_forward_message_data(message: MessageFactory | Message) -> str:
     """Helper function that returns jsonable forwards message_data for faststream."""
-    forwarded_message = (
-        jsonable_encoder(
-            {
-                "id": message.forwarded_message.id,
-                "user": {
-                    "first_name": message.forwarded_message.user.first_name,
-                    "last_name": message.forwarded_message.user.last_name,
-                    "username": message.forwarded_message.user.username,
-                    "user_image": message.forwarded_message.user.user_image,
-                    "last_online": message.forwarded_message.user.last_online,
-                    "is_deleted": message.forwarded_message.user.is_deleted,
-                    "is_banned": message.forwarded_message.user.is_banned,
-                    "id": message.forwarded_message.user.id,
-                },
+    forwarded_message = jsonable_encoder(
+        {
+            "id": message.forwarded_message.id,
+            "user": {
+                "first_name": message.forwarded_message.user.first_name,
+                "last_name": message.forwarded_message.user.last_name,
+                "username": message.forwarded_message.user.username,
+                "user_image": message.forwarded_message.user.user_image,
+                "last_online": message.forwarded_message.user.last_online,
+                "is_deleted": message.forwarded_message.user.is_deleted,
+                "is_banned": message.forwarded_message.user.is_banned,
+                "id": message.forwarded_message.user.id,
             },
-        ),
+        },
     )
 
     return json.dumps(
