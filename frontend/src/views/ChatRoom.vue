@@ -120,7 +120,7 @@
 
             <!-- Date separator -->
             <div class="date-separator">
-              {{ formatDate(date) }}
+              {{ date }}
             </div>
 
             <!-- Messages for this date -->
@@ -582,11 +582,20 @@ export default {
     groupedMessages() {
       const grouped = {};
       this.messages.forEach((message) => {
-        const date = new Date(message.created_at).toLocaleDateString().split('T')[0];
-        if (!grouped[date]) {
-          grouped[date] = [];
+        const createdAt = message.created_at;
+        const [datePart] = createdAt.split(', ');
+        const [day, month, year] = datePart.split('.');
+        const dateObject = new Date(year, month - 1, day);
+        if (isNaN(dateObject.getTime())) {
+          console.error("Invalid Date for:", message.created_at);
+          return;
         }
-        grouped[date].push(message);
+        const options = {day: 'numeric', month: 'long', year: 'numeric',};
+        const dateKey = dateObject.toLocaleDateString('ru-RU', options);
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(message);
       });
       return grouped;
     },
@@ -733,11 +742,6 @@ export default {
       const lastOnlineDate = new Date(user.last_online);
       const now = new Date();
       return (now - lastOnlineDate) <= 3 * 60 * 1000;
-    },
-
-    formatDate(date) {
-      const options = {day: 'numeric', month: 'long', year: 'numeric',};
-      return new Date(date).toLocaleDateString("ru-RU", options);
     },
 
     formatDateTime(date) {

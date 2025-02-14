@@ -53,8 +53,8 @@ class Summarizer:
     def _create_prompt() -> PromptTemplate:
         """Creates a template for the prompt."""
         prompt_template = (
-            "Summarize the following chat conversation between two people as concisely "
-            "as possible. Highlight the main points and key topics discussed:\n{text}"
+            "Summarize the following chat conversation "
+            "between two people conciseness:\n{text}"
         )
         return PromptTemplate.from_template(prompt_template)
 
