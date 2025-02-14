@@ -1,8 +1,6 @@
 from sqladmin import ModelView
 
-from live_chat.db.models.summarization import (
-    Summarization,
-)
+from live_chat.db.models.summarization import Summarization
 from live_chat.web.admin.utils.identifier_utils import CustomStmtMixin
 
 
@@ -31,8 +29,8 @@ class SummarizationAdmin(CustomStmtMixin, ModelView, model=Summarization):
     can_edit = False
     can_delete = False
     can_create = False
-    name = "Задача"
-    name_plural = "Задачи"
+    name = "Суммаризация"
+    name_plural = "Суммаризации"
     icon = "fa-solid fa-bars-progress"
     page_size = 50
     page_size_options = (25, 50, 100, 200)

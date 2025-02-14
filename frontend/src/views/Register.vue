@@ -71,6 +71,7 @@ export default {
           user_image: null,
           is_deleted: false,
           is_banned: false,
+          is_warning: false,
         }
         const response = await authService.registerUser(registerData)
 

@@ -95,3 +95,44 @@ async def transformation_message_data(message: MessageFactory | Message) -> str:
             },
         ),
     )
+
+
+async def transformation_forward_message_data(message: MessageFactory | Message) -> str:
+    """Helper function that returns jsonable forwards message_data for faststream."""
+    forwarded_message = jsonable_encoder(
+        {
+            "id": message.forwarded_message.id,
+            "user": {
+                "first_name": message.forwarded_message.user.first_name,
+                "last_name": message.forwarded_message.user.last_name,
+                "username": message.forwarded_message.user.username,
+                "user_image": message.forwarded_message.user.user_image,
+                "last_online": message.forwarded_message.user.last_online,
+                "is_deleted": message.forwarded_message.user.is_deleted,
+                "is_banned": message.forwarded_message.user.is_banned,
+                "id": message.forwarded_message.user.id,
+            },
+        },
+    )
+
+    return json.dumps(
+        jsonable_encoder(
+            [
+                {
+                    "id": message.id,
+                    "user_id": message.user.id,
+                    "chat_id": message.chat.id,
+                    "message_type": message.message_type,
+                    "file_name": message.file_name,
+                    "file_path": message.file_path,
+                    "content": message.content,
+                    "created_at": message.created_at.isoformat().replace("+00:00", "Z"),
+                    "updated_at": message.updated_at.isoformat().replace("+00:00", "Z"),
+                    "is_deleted": message.is_deleted,
+                    "reactions": [],
+                    "forwarded_message": forwarded_message,
+                    "parent_message": None,
+                },
+            ],
+        ),
+    )

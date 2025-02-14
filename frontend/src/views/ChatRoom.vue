@@ -120,7 +120,7 @@
 
             <!-- Date separator -->
             <div class="date-separator">
-              {{ formatDate(date) }}
+              {{ date }}
             </div>
 
             <!-- Messages for this date -->
@@ -582,11 +582,20 @@ export default {
     groupedMessages() {
       const grouped = {};
       this.messages.forEach((message) => {
-        const date = new Date(message.created_at).toLocaleDateString().split('T')[0];
-        if (!grouped[date]) {
-          grouped[date] = [];
+        const createdAt = message.created_at;
+        const [datePart] = createdAt.split(', ');
+        const [day, month, year] = datePart.split('.');
+        const dateObject = new Date(year, month - 1, day);
+        if (isNaN(dateObject.getTime())) {
+          console.error("Invalid Date for:", message.created_at);
+          return;
         }
-        grouped[date].push(message);
+        const options = {day: 'numeric', month: 'long', year: 'numeric',};
+        const dateKey = dateObject.toLocaleDateString('ru-RU', options);
+        if (!grouped[dateKey]) {
+          grouped[dateKey] = [];
+        }
+        grouped[dateKey].push(message);
       });
       return grouped;
     },
@@ -733,11 +742,6 @@ export default {
       const lastOnlineDate = new Date(user.last_online);
       const now = new Date();
       return (now - lastOnlineDate) <= 3 * 60 * 1000;
-    },
-
-    formatDate(date) {
-      const options = {day: 'numeric', month: 'long', year: 'numeric',};
-      return new Date(date).toLocaleDateString("ru-RU", options);
     },
 
     formatDateTime(date) {
@@ -1189,29 +1193,34 @@ export default {
       }
     },
 
+    addMessage(newMessage) {
+      const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
+      const message = {
+        id: newMessage.id,
+        user: message_user || {},
+        content: newMessage.content,
+        file_path: newMessage.file_path,
+        file_name: newMessage.file_name,
+        message_type: newMessage.message_type,
+        created_at: new Date(newMessage.created_at).toLocaleString(),
+        updated_at: new Date(newMessage.updated_at).toLocaleString(),
+        isMine: newMessage.user_id === this.user.id,
+        parent_message: newMessage.parent_message,
+        forwarded_message: newMessage.forwarded_message,
+      };
+      const index = this.messages.findIndex(
+          (msg) => new Date(msg.created_at) > new Date(message.created_at)
+      );
+      this.messages.splice(index === -1 ? this.messages.length : index, 0, message);
+    },
+
     handleNewMessage(newMessage, action) {
       if (this.chatType === "direct") {
         this.otherUser.last_online = new Date()
       }
       const existingMessageIndex = this.messages.findIndex(message => message.id === newMessage.id);
       if (action === "new" || action === "recover") {
-        const message_user = this.chatData.users.find(user => user.id === newMessage.user_id);
-        const message = {
-          id: newMessage.id,
-          user: message_user || {},
-          content: newMessage.content,
-          file_path: newMessage.file_path,
-          file_name: newMessage.file_name,
-          message_type: newMessage.message_type,
-          created_at: new Date(newMessage.created_at).toLocaleString(),
-          updated_at: new Date(newMessage.updated_at).toLocaleString(),
-          isMine: newMessage.user_id === this.user.id,
-          parent_message: newMessage.parent_message,
-        };
-        const index = this.messages.findIndex(
-            (msg) => new Date(msg.created_at) > new Date(message.created_at)
-        );
-        this.messages.splice(index === -1 ? this.messages.length : index, 0, message);
+        this.addMessage(newMessage)
         this.scrollToBottom();
       }
       if (action === "update") {
@@ -1221,6 +1230,10 @@ export default {
       }
       if (action === "delete") {
         this.messages = this.messages.filter(msg => msg.id !== newMessage.id);
+      }
+      if (action === "forward" && Array.isArray(newMessage)) {
+        newMessage.forEach(message => this.addMessage(message))
+        this.scrollToBottom();
       }
     },
 
@@ -1366,7 +1379,7 @@ export default {
 
     // Send message
     async sendMessage() {
-      if (!this.messageText.trim() && !this.messageFileName) return;
+      if (!this.messageText && !this.messageFileName) return;
       if (this.fileToUpload) {
         const formData = new FormData();
         formData.append("uploaded_file", this.fileToUpload);

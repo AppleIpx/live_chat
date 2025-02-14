@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Type, Union
 
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from live_chat.db.models.user import User
@@ -9,6 +10,13 @@ from live_chat.db.models.warnings import (
     WarningLastName,
     WarningUsername,
 )
+from live_chat.db.utils import async_session_maker
+
+WARNING_MODELS_MAP = {
+    "first_name": WarningFirstName,
+    "last_name": WarningLastName,
+    "username": WarningUsername,
+}
 
 
 async def get_reason(field: str) -> str:
@@ -39,27 +47,31 @@ async def create_warning(
     await db_session.commit()
 
 
-async def create_warning_for_user(
-    field: str,
-    user: User,
-    db_session: AsyncSession,
-) -> None:
+async def create_warning_for_user(field: str, user: User) -> None:
     """Function that creates warnings for the user."""
-    if not user.is_warning:
-        user.is_warning = True
-        db_session.add(user)
-        await db_session.commit()
+    async with async_session_maker() as db_session:
+        if not user.is_warning:
+            user.is_warning = True
+            db_session.add(user)
+            await db_session.commit()
 
-    warnings_models = {
-        "first_name": WarningFirstName,
-        "last_name": WarningLastName,
-        "username": WarningUsername,
-    }
-    warning_model = warnings_models.get(field)
-    if warning_model:
-        await create_warning(
-            field=field,
-            db_session=db_session,
-            user=user,
-            warning_model=warning_model,  # type: ignore[arg-type]
-        )
+        warning_model = WARNING_MODELS_MAP.get(field)
+        if warning_model:
+            await create_warning(
+                field=field,
+                db_session=db_session,
+                user=user,
+                warning_model=warning_model,  # type: ignore[arg-type]
+            )
+
+
+async def delete_warnings_for_user(user: User) -> None:
+    """Function that delete warnings for the user."""
+    async with async_session_maker() as db_session:
+        if user.is_warning:
+            user.is_warning = False
+            db_session.add(user)
+            for model in WARNING_MODELS_MAP.values():
+                query = delete(model).where(model.user_id == user.id)
+                await db_session.execute(query)
+                await db_session.commit()

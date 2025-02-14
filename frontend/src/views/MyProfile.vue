@@ -1,5 +1,13 @@
 <template>
   <div class="profile">
+    <div v-if="user && user.is_warning && showWarning" class="warning-notification">
+      <i class="fas fa-exclamation-triangle warning-icon"></i>
+       Вы получили предупреждение из-за токсичности.
+      Пожалуйста, внесите изменения в ваш аккаунт для избежания блокировки.
+      <button class="close-button" @click="closeWarning">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
     <div class="profile-container">
       <div v-if="user">
         <!-- Profile Info -->
@@ -35,7 +43,7 @@
 
           <form @submit.prevent="saveProfile" class="profile-form">
             <label><strong>Логин</strong></label>
-            <input v-model="userForm.username" type="email" readonly/>
+            <input v-model="userForm.username" type="text" required/>
             <br>
             <label><strong>Почта</strong></label>
             <input v-model="userForm.email" type="email" required/>
@@ -92,6 +100,7 @@ export default {
       selectedAvatarPreview: null,
       hoverAvatar: false,
       error: null,
+      showWarning: true,
     };
   },
   mounted() {
@@ -112,7 +121,9 @@ export default {
         await handleError(error);
       }
     },
-
+    closeWarning() {
+      this.showWarning = false;
+    },
     async toggleUserState() {
       try {
         if (this.user.is_deleted) {
@@ -145,6 +156,7 @@ export default {
 
       if (
           this.userForm.email !== this.user.email ||
+          this.userForm.username !== this.user.username ||
           this.userForm.first_name !== this.user.first_name ||
           this.userForm.last_name !== this.user.last_name
       ) {
@@ -291,6 +303,36 @@ export default {
 .avatar-placeholder::after {
   content: ' ';
   display: block;
+}
+
+.warning-notification {
+  position: absolute;
+  top: 100px;
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  padding: 10px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  z-index: 1000;
+}
+
+.warning-icon {
+  margin-right: 5px;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #721c24;
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 16px; /* Немного увеличиваем размер крестика */
+}
+
+.close-button:hover {
+  color: #c7254e; /* Более темный цвет при наведении */
 }
 
 .edit-icon {

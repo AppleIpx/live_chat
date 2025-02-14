@@ -240,7 +240,8 @@ async def forward_message_view(
     list_get_schem = await transformation_forward_msg(
         forward_messages=forwarded_messages,
     )
-
+    data = jsonable_encoder(list_get_schem)
+    await publish_faststream("forward_message", to_chat.users, data, to_chat.id)  # type: ignore[union-attr]
     return CreatedForwardMessageSchema(
         forward_messages=list_get_schem,
     )
