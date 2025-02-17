@@ -67,6 +67,8 @@ class Settings(BaseSettings):
     use_logfire: bool = False
     # AI
     use_ai: bool = True
+    huggingfacehub_api_token: Optional[str] = None
+    huggingface_api_url: Optional[str] = None
 
     @property
     def db_url(self) -> URL:

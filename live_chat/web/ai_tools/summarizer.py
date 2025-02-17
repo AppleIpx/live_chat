@@ -13,11 +13,13 @@ from transformers import (
 )
 
 from live_chat.db.models.enums import SummarizationStatus
+from live_chat.web.ai_tools.hf_api_client import HuggingFaceAPIClient
 from live_chat.web.ai_tools.normalizer import Normalizer
 from live_chat.web.ai_tools.utils import (
     update_summarization,
 )
 from live_chat.web.api.ai.utils import publish_faststream_summarize
+from live_chat.web.exceptions import HuggingFaceAPIClientError
 
 
 class Summarizer:
@@ -72,8 +74,17 @@ class Summarizer:
 
     async def generate_summary_for_part(self, part: str) -> str:
         """Asynchronous summarization generation for a part of the text."""
-        self.hf_pipeline = self._create_pipeline(max_length=len(part))
-        return await self.chain.ainvoke({"text": part})
+        try:
+            hf_api_client = HuggingFaceAPIClient()
+            response = hf_api_client.summarize(part)
+            api_result = response.json()
+            if isinstance(api_result, list):
+                api_result = api_result[0]
+            return api_result.get("summary_text")
+        except HuggingFaceAPIClientError:
+            logging.warning("HuggingFace API error, started work with locale model")
+            self.hf_pipeline = self._create_pipeline(max_length=len(part))
+            return await self.chain.ainvoke({"text": part})
 
     async def _failed_summarization(self, error_message: str) -> None:
         """Send and update failed summarizations."""

@@ -186,7 +186,7 @@ export default {
     },
     animateText(date, text, currentText = "") {
       let index = 0;
-      const delay = 30 * 1000 / text.length;
+      const delay = 10 * 1000 / text.length;
 
       const addLetter = () => {
         if (index < text.length) {
